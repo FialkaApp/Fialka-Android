@@ -8,6 +8,11 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_settings"
+        android:title="Paramètres"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_reset_account"
         android:title="Supprimer mon compte"
         app:showAsAction="never" />

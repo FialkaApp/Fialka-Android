@@ -47,7 +47,7 @@
 | 📨 **Demandes de contact** | Système d'invitation : envoi → notification → accepter/refuser |
 | ⏳ **Conversations en attente** | Les messages ne sont envoyés qu'après acceptation mutuelle |
 | 📵 **Anonyme** | Pas de numéro, pas d'email — juste un pseudo + clé publique |
-| 💰 **Gratuit** | Firebase Spark (plan gratuit) comme simple relay |
+| 💰 **Gratuit** | Firebase Blaze (gratuit jusqu'à 2M invocations/mois) |
 | 🔑 **Keystore Android** | Clé privée en hardware (TEE/StrongBox quand disponible) |
 | 🧹 **Auto-nettoyage** | Messages Firebase auto-supprimés après 7 jours |
 | 🛡️ **Zéro fuite mémoire** | Toutes les clés intermédiaires sont zérorisées après usage |
@@ -55,6 +55,8 @@
 | 🔴 **Messages non lus** | Badge compteur sur la liste des conversations |
 | 📍 **Marqueur "Nouveaux messages"** | Séparateur dans le chat pour repérer les messages non lus |
 | 🔄 **Réception en temps réel** | Les messages arrivent même quand le chat n'est pas ouvert |
+| 🔔 **Push notifications** | Opt-in — notifications FCM quand l'app est fermée (aucun contenu message) |
+| ⚙️ **Paramètres** | Contrôle total : push ON/OFF, token supprimé si désactivé |
 
 ---
 
@@ -75,9 +77,24 @@
 │     ChatRepository — source de vérité unique │
 ├──────────────┬───────────────┬──────────────┤
 │   Room DB    │    Crypto     │   Firebase   │
-│   (local)    │  CryptoMgr +  │    Relay     │
-│              │   Ratchet     │   (remote)   │
+│   (local)    │  CryptoMgr +  │   Relay +    │
+│              │   Ratchet     │    FCM       │
 └──────────────┴───────────────┴──────────────┘
+         Cloud Function (push triggers)
+```
+
+### Push Notifications (opt-in)
+
+```
+Phone A → sendMessage() → Firebase RTDB
+                              ↓
+                   Cloud Function (onCreate)
+                              ↓
+                   /users/{uid}/fcm_token ?
+                              ↓ (si token existe)
+                   FCM → Phone B notification
+                   "Nouveau message de Alice"
+                   (ZÉRO contenu de message)
 ```
 
 ### Principes
@@ -226,7 +243,8 @@ Pour chaque message N :
 
 - **Android Studio** Hedgehog (2023.1.1) ou plus récent
 - **JDK 17**
-- Un projet **Firebase** (plan gratuit Spark)
+- Un projet **Firebase** (plan Blaze — gratuit jusqu'à 2M invocations/mois)
+- **Node.js 18+** (pour déployer la Cloud Function)
 
 ### Cloner le repo
 
@@ -264,52 +282,25 @@ Ou ouvrir dans Android Studio → **Run** sur un émulateur ou device physique.
 1. **Copier** `google-services.json` dans `app/`
 2. Firebase Console → **Authentication** → Méthode de connexion → **Anonyme** → Activer
 3. Firebase Console → **Realtime Database** → Créer (région la plus proche)
-4. Onglet **Règles** → coller :
+4. Onglet **Règles** → coller le contenu de [`firebase-rules.json`](firebase-rules.json)
 
-```json
-{
-  "rules": {
-    "conversations": {
-      "$conversationId": {
-        "participants": {
-          ".read": "auth != null",
-          "$uid": {
-            ".write": "auth != null && auth.uid === $uid",
-            ".validate": "newData.isBoolean()"
-          }
-        },
-        "messages": {
-          ".read": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
-          ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
-          ".indexOn": ["createdAt"],
-          "$messageId": {
-            ".validate": "newData.hasChildren(['senderPublicKey', 'ciphertext', 'iv', 'messageIndex', 'createdAt']) && newData.child('senderPublicKey').isString() && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('messageIndex').isNumber()"
-          }
-        }
-      }
-    },
-    "inbox": {
-      "$recipientHash": {
-        ".read": "auth != null",
-        ".write": "auth != null",
-        "$requestId": {
-          ".validate": "newData.hasChildren(['senderPublicKey', 'senderDisplayName', 'conversationId', 'createdAt'])"
-        }
-      }
-    },
-    "accepted": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "users": {
-      "$uid": {
-        ".read": "auth != null",
-        ".write": "auth.uid === $uid"
-      }
-    }
-  }
-}
+### Étape 3 — Déployer la Cloud Function (push notifications)
+
+```bash
+# Installer Firebase CLI
+npm install -g firebase-tools
+
+# Se connecter
+firebase login
+
+# Depuis la racine du projet
+cd functions
+npm install
+cd ..
+firebase deploy --only functions
 ```
+
+La Cloud Function se déclenche automatiquement à chaque nouveau message et envoie un push aux destinataires qui ont activé les notifications.
 
 > ⚠️ **`google-services.json` est dans le `.gitignore`** — il ne sera jamais poussé sur GitHub.
 > Le fichier `app/google-services.json.template` montre la structure attendue.
@@ -373,6 +364,7 @@ SecureChat/
 │       │   │
 │       │   └── ui/
 │       │       ├── MainActivity.kt           # Single-activity (NavHost)
+│       │       ├── MyFirebaseMessagingService.kt  # FCM push handler
 │       │       ├── onboarding/               # Création d'identité
 │       │       ├── conversations/            # Liste des chats + demandes de contact
 │       │       │   ├── ConversationsFragment.kt
@@ -381,14 +373,20 @@ SecureChat/
 │       │       │   └── ContactRequestsAdapter.kt  # Accepter/refuser les demandes
 │       │       ├── addcontact/               # Scanner QR + saisie manuelle
 │       │       ├── chat/                     # Messages E2E + bulles WhatsApp-like
-│       │       └── profile/                  # QR code, copier/partager, supprimer
+│       │       ├── profile/                  # QR code, copier/partager, supprimer
+│       │       └── settings/                 # Paramètres (push ON/OFF)
 │       │
 │       └── res/
 │           ├── drawable/                     # Bulles, cercles, icônes
 │           ├── layout/                       # Tous les layouts XML
-│           ├── menu/                         # Menu conversations (profil, reset)
+│           ├── menu/                         # Menu conversations (profil, settings, reset)
 │           ├── navigation/nav_graph.xml      # Graph de navigation
 │           └── values/                       # Couleurs, strings, thèmes
+│
+├── functions/                                # Firebase Cloud Function (push)
+│   ├── index.js
+│   ├── package.json
+│   └── .gitignore
 ```
 
 ---
@@ -402,7 +400,9 @@ SecureChat/
 | AndroidX Navigation | 2.8.9 | Navigation single-activity |
 | AndroidX Lifecycle | 2.8.7 | ViewModels, LiveData, coroutines |
 | Room + KSP | 2.7.1 | Base de données locale SQLite |
-| Firebase BOM | 34.10.0 | Auth anonyme + Realtime Database |
+| Firebase BOM | 34.10.0 | Auth anonyme + Realtime Database + Cloud Messaging |
+| firebase-functions (Node.js) | 7.0.0 | Cloud Function trigger (push notifications) |
+| firebase-admin (Node.js) | 13.6.0 | Admin SDK pour RTDB + FCM côté serveur |
 | AndroidX Security Crypto | 1.1.0-alpha06 | Stockage sécurisé |
 | Kotlinx Coroutines | 1.9.0 | Async + Flow |
 | ZXing Android Embedded | 4.3.0 | Génération et scan QR codes |
@@ -417,6 +417,9 @@ SecureChat/
 - ✅ **SecureRandom singleton** — IV de 12 octets, jamais réutilisé
 - ✅ **Envoi atomique** — Le ratchet state n'est persisté qu'après confirmation Firebase
 - ✅ **Mutex par conversation** — Pas de race condition sur le ratchet (mutex partagés entre instances)
+- ✅ **Push opt-in** — Notifications désactivées par défaut, aucun token FCM stocké tant que l'utilisateur n'active pas
+- ✅ **Zéro contenu dans les push** — Seul le nom de l'expéditeur est inclus, jamais le contenu du message
+- ✅ **Token FCM supprimable** — Désactiver les push supprime immédiatement le token de Firebase
 - ✅ **Re-auth Firebase** — Session anonyme restaurée après app kill
 - ✅ **TTL 7 jours** — Les vieux messages sont auto-supprimés de Firebase
 - ✅ **Anti-replay** — Filtrage par `sinceTimestamp` + `messageIndex`
@@ -452,12 +455,13 @@ SecureChat/
 - [x] Badge messages non lus sur la liste des conversations
 - [x] Marqueur "Nouveaux messages" dans le chat (disparaît après lecture)
 - [x] Réception des messages en temps réel sur la liste des conversations
+- [x] Push notifications FCM opt-in (Cloud Function + zéro contenu message)
+- [x] Écran Paramètres (push ON/OFF, token supprimable)
 
 ### 🔜 V2 — Planned
 
 - [ ] **Full Double Ratchet** — Rotation DH asymétrique (comme Signal)
 - [ ] **SQLCipher** — Chiffrement de la base Room locale
-- [ ] **Notifications push** — Firebase Cloud Messaging
 - [ ] **Vérification de clé** — Fingerprint emoji (comme Signal/WhatsApp)
 - [ ] **Groupes** — Conversations à 3+ participants
 - [ ] **Suppression pour tous** — Supprimer un message côté local + Firebase

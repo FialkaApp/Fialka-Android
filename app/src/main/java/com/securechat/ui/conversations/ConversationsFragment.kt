@@ -77,6 +77,10 @@ class ConversationsFragment : Fragment() {
                     findNavController().navigate(R.id.action_conversations_to_profile)
                     true
                 }
+                R.id.action_settings -> {
+                    findNavController().navigate(R.id.action_conversations_to_settings)
+                    true
+                }
                 R.id.action_reset_account -> {
                     showResetAccountDialog()
                     true

@@ -29,6 +29,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 repository.updateDisplayName(newName.trim())
+                repository.storeDisplayNameOnFirebase(newName.trim())
                 _saveResult.value = true
             } catch (e: Exception) {
                 _saveResult.value = false

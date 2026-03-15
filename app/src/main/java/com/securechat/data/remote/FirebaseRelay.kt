@@ -211,6 +211,60 @@ object FirebaseRelay {
             .addOnFailureListener { cont.resumeWithException(it) }
     }
 
+    /**
+     * Store the user's display name on Firebase so Cloud Functions can include it
+     * in push notifications. Path: /users/{firebaseUid}/displayName
+     */
+    suspend fun storeDisplayName(displayName: String) {
+        val uid = auth.currentUser?.uid ?: return
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("users")
+                .child(uid)
+                .child("displayName")
+                .setValue(displayName)
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) }
+        }
+    }
+
+    // ========================================================================
+    // FCM PUSH TOKEN
+    // ========================================================================
+
+    /**
+     * Store the FCM token on Firebase so the Cloud Function can send pushes.
+     * Path: /users/{uid}/fcm_token
+     */
+    suspend fun storeFcmToken(token: String) {
+        val uid = auth.currentUser?.uid ?: return
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("users")
+                .child(uid)
+                .child("fcm_token")
+                .setValue(token)
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) }
+        }
+    }
+
+    /**
+     * Delete the FCM token from Firebase (user opted out of push notifications).
+     */
+    suspend fun deleteFcmToken() {
+        val uid = auth.currentUser?.uid ?: return
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("users")
+                .child(uid)
+                .child("fcm_token")
+                .removeValue()
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) }
+        }
+    }
+
     // ========================================================================
     // INBOX — CONTACT REQUESTS
     // ========================================================================

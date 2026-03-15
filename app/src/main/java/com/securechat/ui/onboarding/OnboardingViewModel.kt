@@ -46,8 +46,9 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                     // Create local user (generates keys)
                     val user = repository.createUser(displayName.trim())
 
-                    // Register public key on Firebase
+                    // Register public key + display name on Firebase
                     FirebaseRelay.registerPublicKey(user.publicKey)
+                    FirebaseRelay.storeDisplayName(displayName.trim())
 
                     _state.value = OnboardingState.Success(user)
                 }

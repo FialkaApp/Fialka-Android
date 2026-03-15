@@ -16,13 +16,15 @@ data class FirebaseMessage(
     val ciphertext: String = "",
     val iv: String = "",
     val messageIndex: Int = 0,
-    val createdAt: Long = 0L
+    val createdAt: Long = 0L,
+    val senderUid: String = ""
 ) {
     fun toMap(): Map<String, Any> = mapOf(
         "senderPublicKey" to senderPublicKey,
         "ciphertext" to ciphertext,
         "iv" to iv,
         "messageIndex" to messageIndex,
-        "createdAt" to createdAt
+        "createdAt" to createdAt,
+        "senderUid" to senderUid
     )
 }

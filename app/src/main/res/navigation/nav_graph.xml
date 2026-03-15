@@ -32,6 +32,9 @@
             android:id="@+id/action_conversations_to_profile"
             app:destination="@id/profileFragment" />
         <action
+            android:id="@+id/action_conversations_to_settings"
+            app:destination="@id/settingsFragment" />
+        <action
             android:id="@+id/action_conversations_to_onboarding"
             app:destination="@id/onboardingFragment"
             app:popUpTo="@id/conversationsFragment"
@@ -73,5 +76,11 @@
             app:popUpTo="@id/nav_graph"
             app:popUpToInclusive="true" />
     </fragment>
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.securechat.ui.settings.SettingsFragment"
+        android:label="Paramètres"
+        tools:layout="@layout/fragment_settings" />
 
 </navigation>

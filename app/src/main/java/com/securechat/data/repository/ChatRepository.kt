@@ -238,7 +238,8 @@ class ChatRepository(context: Context) {
                 ciphertext = encryptedData.ciphertext,
                 iv = encryptedData.iv,
                 messageIndex = messageIndex,
-                createdAt = System.currentTimeMillis()
+                createdAt = System.currentTimeMillis(),
+                senderUid = FirebaseRelay.getCurrentUid() ?: ""
             )
             FirebaseRelay.sendMessage(conversationId, firebaseMessage)
 
@@ -392,6 +393,27 @@ class ChatRepository(context: Context) {
     // ========================================================================
     // CONTACT REQUESTS (INBOX)
     // ========================================================================
+
+    /**
+     * Store the user's display name on Firebase (used by Cloud Function for push).
+     */
+    suspend fun storeDisplayNameOnFirebase(displayName: String) {
+        FirebaseRelay.storeDisplayName(displayName)
+    }
+
+    /**
+     * Store FCM token on Firebase (opt-in push notifications).
+     */
+    suspend fun storeFcmToken(token: String) {
+        FirebaseRelay.storeFcmToken(token)
+    }
+
+    /**
+     * Delete FCM token from Firebase (opt-out push notifications).
+     */
+    suspend fun deleteFcmToken() {
+        FirebaseRelay.deleteFcmToken()
+    }
 
     /**
      * Send a contact request to the recipient's inbox on Firebase.

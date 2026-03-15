@@ -14,7 +14,7 @@
           ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
           ".indexOn": ["createdAt"],
           "$messageId": {
-            ".validate": "newData.hasChildren(['senderPublicKey', 'ciphertext', 'iv', 'messageIndex', 'createdAt']) && newData.child('senderPublicKey').isString() && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('messageIndex').isNumber()"
+            ".validate": "newData.hasChildren(['senderPublicKey', 'ciphertext', 'iv', 'messageIndex', 'createdAt', 'senderUid']) && newData.child('senderPublicKey').isString() && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('messageIndex').isNumber() && newData.child('senderUid').isString()"
           }
         }
       }
@@ -35,7 +35,10 @@
     "users": {
       "$uid": {
         ".read": "auth != null",
-        ".write": "auth.uid === $uid"
+        ".write": "auth.uid === $uid",
+        "publicKey": { ".validate": "newData.isString()" },
+        "displayName": { ".validate": "newData.isString() && newData.val().length < 100" },
+        "fcm_token": { ".validate": "newData.isString() && newData.val().length < 500" }
       }
     }
   }

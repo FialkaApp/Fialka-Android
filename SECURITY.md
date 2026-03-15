@@ -51,3 +51,7 @@ SecureChat uses the following cryptographic primitives:
 - ✅ Firebase TTL cleanup (messages older than 7 days auto-deleted)
 - ✅ Anti-replay: sinceTimestamp + messageIndex filtering
 - ✅ `android:allowBackup="false"` in AndroidManifest
+- ✅ Push notifications opt-in (disabled by default — no FCM token stored)
+- ✅ Zero message content in push notifications (only sender display name)
+- ✅ FCM token deleted immediately when user disables push
+- ✅ Invalid/expired FCM tokens auto-cleaned by Cloud Function
