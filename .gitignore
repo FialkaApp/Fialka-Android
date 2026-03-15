@@ -1,0 +1,44 @@
+﻿# ============================================
+# SecureChat — .gitignore
+# ============================================
+
+# --- Gradle ---
+.gradle/
+build/
+**/build/
+
+# --- IDE ---
+.idea/
+*.iml
+*.iws
+*.ipr
+local.properties
+.DS_Store
+Thumbs.db
+
+# --- Android ---
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# --- Firebase secrets (NEVER commit!) ---
+app/google-services.json
+
+# --- Signing ---
+*.jks
+*.keystore
+signing.properties
+
+# --- Logs ---
+*.log
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/onboardingFragment">
+
+    <fragment
+        android:id="@+id/onboardingFragment"
+        android:name="com.securechat.ui.onboarding.OnboardingFragment"
+        android:label="Onboarding"
+        tools:layout="@layout/fragment_onboarding">
+        <action
+            android:id="@+id/action_onboarding_to_conversations"
+            app:destination="@id/conversationsFragment"
+            app:popUpTo="@id/onboardingFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/conversationsFragment"
+        android:name="com.securechat.ui.conversations.ConversationsFragment"
+        android:label="Conversations"
+        tools:layout="@layout/fragment_conversations">
+        <action
+            android:id="@+id/action_conversations_to_chat"
+            app:destination="@id/chatFragment" />
+        <action
+            android:id="@+id/action_conversations_to_addContact"
+            app:destination="@id/addContactFragment" />
+        <action
+            android:id="@+id/action_conversations_to_profile"
+            app:destination="@id/profileFragment" />
+        <action
+            android:id="@+id/action_conversations_to_onboarding"
+            app:destination="@id/onboardingFragment"
+            app:popUpTo="@id/conversationsFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/chatFragment"
+        android:name="com.securechat.ui.chat.ChatFragment"
+        android:label="Chat"
+        tools:layout="@layout/fragment_chat">
+        <argument
+            android:name="conversationId"
+            app:argType="string" />
+        <argument
+            android:name="contactName"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addContactFragment"
+        android:name="com.securechat.ui.addcontact.AddContactFragment"
+        android:label="Ajouter un contact"
+        tools:layout="@layout/fragment_add_contact">
+        <action
+            android:id="@+id/action_addContact_to_chat"
+            app:destination="@id/chatFragment"
+            app:popUpTo="@id/conversationsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.securechat.ui.profile.ProfileFragment"
+        android:label="Profil"
+        tools:layout="@layout/fragment_profile">
+        <action
+            android:id="@+id/action_profile_to_onboarding"
+            app:destination="@id/onboardingFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+</navigation>

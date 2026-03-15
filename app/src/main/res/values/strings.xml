@@ -1,0 +1,52 @@
+﻿<resources>
+    <string name="app_name">SecureChat</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">SecureChat</string>
+    <string name="onboarding_subtitle">Chat chiffré de bout en bout\nSans numéro de téléphone\nRelay gratuit via Firebase</string>
+    <string name="create_identity">Créer mon identité</string>
+    <string name="enter_display_name">Entrez votre pseudo</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Mon Profil</string>
+    <string name="your_public_key">Votre clé publique :</string>
+    <string name="copy_key">Copier</string>
+    <string name="share_key">Partager</string>
+    <string name="rename">Renommer</string>
+    <string name="key_copied">Clé publique copiée !</string>
+    <string name="save">Enregistrer</string>
+    <string name="qr_hint">Montrez ce QR code pour que votre contact vous ajoute</string>
+
+    <!-- Conversations -->
+    <string name="conversations_title">Conversations</string>
+    <string name="no_conversations">Aucune conversation.\nAjoutez un contact pour commencer.</string>
+    <string name="new_chat">Nouveau chat</string>
+
+    <!-- Add Contact -->
+    <string name="add_contact_title">Ajouter un contact</string>
+    <string name="scan_qr_code">📷  Scanner un QR code</string>
+    <string name="or_manual_entry">— ou entrer manuellement —</string>
+    <string name="contact_name_hint">Pseudo du contact</string>
+    <string name="contact_public_key_hint">Clé publique du contact (base64)</string>
+    <string name="create_conversation">Créer la conversation</string>
+    <string name="error_empty_fields">Veuillez remplir tous les champs.</string>
+    <string name="error_invalid_key">Clé publique invalide.</string>
+    <string name="error_same_key">Vous ne pouvez pas ajouter votre propre clé.</string>
+    <string name="contact_added">Contact ajouté et conversation créée !</string>
+    <string name="qr_scanned_success">Clé publique scannée !</string>
+    <string name="camera_permission_denied">Permission caméra refusée</string>
+
+    <!-- Chat -->
+    <string name="type_message_hint">Tapez un message…</string>
+    <string name="send">Envoyer</string>
+    <string name="error_send_failed">Échec de l\'envoi du message.</string>
+
+    <!-- General -->
+    <string name="error_generic">Une erreur est survenue.</string>
+    <string name="loading">Chargement…</string>
+    <string name="delete_account">Supprimer mon compte</string>
+    <string name="delete_account_title">Supprimer le compte</string>
+    <string name="delete_account_message">Êtes-vous sûr de vouloir supprimer votre compte ?\n\nCette action va :\n• Supprimer votre identité et clés cryptographiques\n• Supprimer tous vos contacts\n• Supprimer toutes vos conversations\n• Vous déconnecter de Firebase\n\nCette action est irréversible.</string>
+    <string name="delete_account_confirm">Supprimer</string>
+    <string name="cancel">Annuler</string>
+</resources>

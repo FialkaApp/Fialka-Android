@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_profile"
+        android:title="Mon profil"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_reset_account"
+        android:title="Supprimer mon compte"
+        app:showAsAction="never" />
+</menu>

@@ -1,0 +1,19 @@
+<resources>
+    <color name="primary">#FF1B5E20</color>
+    <color name="primary_dark">#FF0D3B13</color>
+    <color name="primary_light">#FF4CAF50</color>
+    <color name="accent">#FF00E676</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="grey_light">#FFF0F0F0</color>
+    <color name="grey_medium">#FFE0E0E0</color>
+    <color name="grey_dark">#FF757575</color>
+    <color name="bubble_sent">#FFD5F5D0</color>
+    <color name="bubble_received">#FFFFFFFF</color>
+    <color name="text_primary">#FF1A1A1A</color>
+    <color name="text_secondary">#FF757575</color>
+    <color name="background">#FFFAFAFA</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="error">#FFD32F2F</color>
+    <color name="chat_background">#FFECE5DD</color>
+</resources>
