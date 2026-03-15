@@ -10,6 +10,9 @@ import com.securechat.data.model.Conversation
 import com.securechat.data.remote.FirebaseRelay
 import com.securechat.data.repository.ChatRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -22,9 +25,15 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
     private val _accountReset = MutableLiveData<Boolean?>()
     val accountReset: LiveData<Boolean?> = _accountReset
 
+    private val _pendingRequests = MutableLiveData<List<FirebaseRelay.ContactRequest>>(emptyList())
+    val pendingRequests: LiveData<List<FirebaseRelay.ContactRequest>> = _pendingRequests
+
+    private val pendingList = mutableListOf<FirebaseRelay.ContactRequest>()
+
     init {
-        // Ensure Firebase auth is active on screen load
         ensureAuthenticated()
+        listenForIncomingRequests()
+        listenForAcceptances()
     }
 
     private fun ensureAuthenticated() {
@@ -36,6 +45,79 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
                     Log.e("SecureChat", "Firebase re-auth failed", e)
                 }
             }
+        }
+    }
+
+    private fun listenForIncomingRequests() {
+        viewModelScope.launch {
+            // Wait for auth to be ready
+            if (!FirebaseRelay.isAuthenticated()) {
+                try {
+                    FirebaseRelay.signInAnonymously()
+                } catch (_: Exception) { return@launch }
+            }
+
+            repository.listenForContactRequests()
+                .onEach { request ->
+                    // Skip if already accepted
+                    if (!repository.isContactRequestAlreadyAccepted(request.conversationId)) {
+                        // Avoid duplicates in pending list
+                        if (pendingList.none { it.conversationId == request.conversationId }) {
+                            pendingList.add(request)
+                            _pendingRequests.postValue(pendingList.toList())
+                        }
+                    }
+                }
+                .catch { e ->
+                    Log.e("SecureChat", "Inbox listener error", e)
+                }
+                .launchIn(viewModelScope)
+        }
+    }
+
+    private fun listenForAcceptances() {
+        viewModelScope.launch {
+            if (!FirebaseRelay.isAuthenticated()) {
+                try {
+                    FirebaseRelay.signInAnonymously()
+                } catch (_: Exception) { return@launch }
+            }
+
+            repository.listenForAcceptances()
+                .onEach { conversationId ->
+                    repository.markConversationAccepted(conversationId)
+                }
+                .catch { e ->
+                    Log.e("SecureChat", "Acceptance listener error", e)
+                }
+                .launchIn(viewModelScope)
+        }
+    }
+
+    fun acceptRequest(request: FirebaseRelay.ContactRequest) {
+        viewModelScope.launch {
+            try {
+                val conversation = repository.acceptContactRequest(request)
+
+                // Remove from pending list
+                pendingList.removeAll { it.conversationId == request.conversationId }
+                _pendingRequests.value = pendingList.toList()
+            } catch (e: Exception) {
+                Log.e("SecureChat", "Accept request failed", e)
+            }
+        }
+    }
+
+    fun declineRequest(request: FirebaseRelay.ContactRequest) {
+        viewModelScope.launch {
+            // Just remove from pending list and Firebase inbox
+            pendingList.removeAll { it.conversationId == request.conversationId }
+            _pendingRequests.value = pendingList.toList()
+
+            val myPublicKey = repository.getUser()?.publicKey ?: return@launch
+            try {
+                FirebaseRelay.removeContactRequest(myPublicKey, request.conversationId)
+            } catch (_: Exception) { }
         }
     }
 

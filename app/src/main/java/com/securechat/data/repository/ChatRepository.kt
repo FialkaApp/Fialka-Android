@@ -98,7 +98,7 @@ class ChatRepository(context: Context) {
     suspend fun getConversation(conversationId: String): Conversation? =
         conversationDao.getConversationById(conversationId)
 
-    suspend fun createConversation(contactPublicKey: String, contactName: String): Conversation {
+    suspend fun createConversation(contactPublicKey: String, contactName: String, accepted: Boolean = true): Conversation {
         val myPublicKey = userDao.getUser()?.publicKey
             ?: throw IllegalStateException("User not initialized")
 
@@ -111,7 +111,8 @@ class ChatRepository(context: Context) {
         val conversation = Conversation(
             conversationId = conversationId,
             participantPublicKey = contactPublicKey,
-            contactDisplayName = contactName
+            contactDisplayName = contactName,
+            accepted = accepted
         )
         conversationDao.insertConversation(conversation)
 
@@ -321,6 +322,112 @@ class ChatRepository(context: Context) {
 
     fun listenForMessages(conversationId: String, sinceTimestamp: Long = 0): Flow<FirebaseMessage> =
         FirebaseRelay.listenForMessages(conversationId, sinceTimestamp)
+
+    // ========================================================================
+    // CONTACT REQUESTS (INBOX)
+    // ========================================================================
+
+    /**
+     * Send a contact request to the recipient's inbox on Firebase.
+     * Called automatically when sending the first message to a new contact.
+     */
+    suspend fun sendContactRequest(contactPublicKey: String) {
+        val user = userDao.getUser() ?: return
+        val conversationId = CryptoManager.deriveConversationId(user.publicKey, contactPublicKey)
+
+        try {
+            FirebaseRelay.sendContactRequest(
+                recipientPublicKey = contactPublicKey,
+                senderPublicKey = user.publicKey,
+                senderDisplayName = user.displayName,
+                conversationId = conversationId
+            )
+        } catch (_: Exception) {
+            // Best effort — message will still be on Firebase
+        }
+    }
+
+    /**
+     * Listen for incoming contact requests in the user's inbox.
+     */
+    fun listenForContactRequests(): Flow<FirebaseRelay.ContactRequest> {
+        val publicKey = CryptoManager.getPublicKey() ?: return kotlinx.coroutines.flow.emptyFlow()
+        return FirebaseRelay.listenForContactRequests(publicKey)
+    }
+
+    /**
+     * Accept an incoming contact request:
+     * 1. Add the sender as a contact
+     * 2. Create the conversation + initialize ratchet (accepted = true)
+     * 3. Notify the sender via Firebase that the request was accepted
+     * 4. Remove the request from Firebase inbox
+     * Returns the created Conversation.
+     */
+    suspend fun acceptContactRequest(request: FirebaseRelay.ContactRequest): Conversation {
+        // Add contact
+        addContact(request.senderDisplayName, request.senderPublicKey)
+
+        // Create conversation (accepted = true, ratchet initialized)
+        val conversation = createConversation(request.senderPublicKey, request.senderDisplayName, accepted = true)
+
+        // Notify sender that we accepted
+        val myPublicKey = userDao.getUser()?.publicKey
+        if (myPublicKey != null) {
+            try {
+                FirebaseRelay.notifyRequestAccepted(request.conversationId, myPublicKey)
+            } catch (_: Exception) { }
+
+            // Remove from inbox
+            try {
+                FirebaseRelay.removeContactRequest(myPublicKey, request.conversationId)
+            } catch (_: Exception) { }
+        }
+
+        return conversation
+    }
+
+    /**
+     * Fetch and decrypt all existing messages from Firebase for a conversation.
+     * Used after accepting a contact request to retrieve messages sent before acceptance.
+     */
+    private suspend fun syncExistingMessages(conversationId: String) {
+        try {
+            val firebaseMessages = FirebaseRelay.fetchExistingMessages(conversationId)
+            for (message in firebaseMessages) {
+                receiveMessage(conversationId, message)
+            }
+        } catch (_: Exception) {
+            // Best effort — messages will be picked up by the real-time listener later
+        }
+    }
+
+    /**
+     * Check if a contact request has already been accepted (conversation exists).
+     */
+    suspend fun isContactRequestAlreadyAccepted(conversationId: String): Boolean {
+        return conversationDao.getConversationById(conversationId) != null
+    }
+
+    /**
+     * Listen for acceptance notifications from Firebase.
+     * When a contact accepts our invitation, we update the local conversation.
+     */
+    fun listenForAcceptances(): Flow<String> = FirebaseRelay.listenForAcceptances()
+
+    /**
+     * Mark a conversation as accepted locally.
+     * Called when we receive an acceptance notification from Firebase.
+     */
+    suspend fun markConversationAccepted(conversationId: String) {
+        val conversation = conversationDao.getConversationById(conversationId) ?: return
+        if (!conversation.accepted) {
+            conversationDao.updateConversation(conversation.copy(accepted = true))
+            // Clean up the acceptance notification from Firebase
+            try {
+                FirebaseRelay.removeAcceptanceNotification(conversationId)
+            } catch (_: Exception) { }
+        }
+    }
 
     // ========================================================================
     // FIREBASE CLEANUP

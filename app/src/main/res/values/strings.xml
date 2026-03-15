@@ -1,4 +1,5 @@
-﻿<resources>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
     <string name="app_name">SecureChat</string>
 
     <!-- Onboarding -->
@@ -21,6 +22,7 @@
     <string name="conversations_title">Conversations</string>
     <string name="no_conversations">Aucune conversation.\nAjoutez un contact pour commencer.</string>
     <string name="new_chat">Nouveau chat</string>
+    <string name="pending_requests_header">📩 Demandes de contact en attente</string>
 
     <!-- Add Contact -->
     <string name="add_contact_title">Ajouter un contact</string>
@@ -40,6 +42,7 @@
     <string name="type_message_hint">Tapez un message…</string>
     <string name="send">Envoyer</string>
     <string name="error_send_failed">Échec de l\'envoi du message.</string>
+    <string name="pending_acceptance">⏳ En attente d\'acceptation par le contact.\nLes messages seront disponibles une fois la demande acceptée.</string>
 
     <!-- General -->
     <string name="error_generic">Une erreur est survenue.</string>

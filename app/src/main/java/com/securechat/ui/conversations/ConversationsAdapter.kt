@@ -5,6 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.securechat.R
 import com.securechat.data.model.Conversation
 import com.securechat.databinding.ItemConversationBinding
 import java.text.SimpleDateFormat
@@ -35,7 +36,15 @@ class ConversationsAdapter(
             binding.tvContactInitial.text =
                 conversation.contactDisplayName.firstOrNull()?.uppercase() ?: "?"
 
-            binding.tvLastMessage.text = conversation.lastMessage.ifEmpty { "Nouvelle conversation" }
+            if (!conversation.accepted) {
+                binding.tvLastMessage.text = "⏳ En attente d'acceptation…"
+                binding.tvLastMessage.setTextColor(0xFFFF9800.toInt())
+            } else {
+                binding.tvLastMessage.text = conversation.lastMessage.ifEmpty { "Nouvelle conversation" }
+                binding.tvLastMessage.setTextColor(
+                    binding.root.context.getColor(R.color.text_secondary)
+                )
+            }
 
             val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
             binding.tvTimestamp.text = dateFormat.format(Date(conversation.lastMessageTimestamp))

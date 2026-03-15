@@ -71,6 +71,17 @@ class ChatFragment : Fragment() {
             }
         }
 
+        // Observe acceptance status
+        viewModel.isAccepted.observe(viewLifecycleOwner) { accepted ->
+            if (accepted) {
+                binding.inputBar.visibility = View.VISIBLE
+                binding.tvPendingBanner.visibility = View.GONE
+            } else {
+                binding.inputBar.visibility = View.GONE
+                binding.tvPendingBanner.visibility = View.VISIBLE
+            }
+        }
+
         // Send button
         binding.btnSend.setOnClickListener {
             val text = binding.etMessage.text.toString()

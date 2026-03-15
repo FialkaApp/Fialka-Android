@@ -25,6 +25,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _sendError = MutableLiveData<String?>()
     val sendError: LiveData<String?> = _sendError
 
+    private val _isAccepted = MutableLiveData<Boolean>(true)
+    val isAccepted: LiveData<Boolean> = _isAccepted
+
     /**
      * Initialize the ViewModel with a conversation ID.
      * Ensures Firebase auth is active, then starts listening for messages.
@@ -47,12 +50,33 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
 
+            // Check if conversation is accepted
+            val conversation = repository.getConversation(conversationId)
+            _isAccepted.value = conversation?.accepted ?: true
+
+            if (conversation?.accepted == true) {
+                startListening(conversationId, conversation.createdAt)
+            } else {
+                // Listen for acceptance
+                repository.listenForAcceptances()
+                    .onEach { acceptedId ->
+                        if (acceptedId == conversationId) {
+                            repository.markConversationAccepted(conversationId)
+                            _isAccepted.postValue(true)
+                            val conv = repository.getConversation(conversationId)
+                            startListening(conversationId, conv?.createdAt ?: 0L)
+                        }
+                    }
+                    .catch { }
+                    .launchIn(viewModelScope)
+            }
+        }
+    }
+
+    private fun startListening(conversationId: String, sinceTimestamp: Long) {
+        viewModelScope.launch {
             // Cleanup old Firebase messages (best-effort, >7 days)
             repository.cleanupOldFirebaseMessages(conversationId)
-
-            // Get conversation creation time to ignore old Firebase messages
-            val conversation = repository.getConversation(conversationId)
-            val sinceTimestamp = conversation?.createdAt ?: 0L
 
             repository.listenForMessages(conversationId, sinceTimestamp)
                 .onEach { firebaseMessage ->
@@ -68,6 +92,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun sendMessage(plaintext: String) {
         if (plaintext.isBlank() || conversationId.isEmpty()) return
+
+        if (_isAccepted.value != true) {
+            _sendError.value = "En attente d'acceptation par le contact"
+            return
+        }
 
         viewModelScope.launch {
             try {

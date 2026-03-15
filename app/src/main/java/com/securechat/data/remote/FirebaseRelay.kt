@@ -182,6 +182,195 @@ object FirebaseRelay {
     }
 
     // ========================================================================
+    // INBOX — CONTACT REQUESTS
+    // ========================================================================
+
+    /**
+     * Send a contact request to a recipient's inbox on Firebase.
+     * This notifies the recipient that someone wants to chat with them.
+     *
+     * Path: /inbox/{recipientPubKeyHash}/{requestId}
+     *   - senderPublicKey: the sender's public key (so recipient can add them)
+     *   - senderDisplayName: the sender's display name
+     *   - conversationId: the derived conversation ID
+     *   - createdAt: server timestamp
+     */
+    suspend fun sendContactRequest(
+        recipientPublicKey: String,
+        senderPublicKey: String,
+        senderDisplayName: String,
+        conversationId: String
+    ) {
+        val recipientHash = hashPublicKey(recipientPublicKey)
+
+        suspendCancellableCoroutine { cont ->
+            val ref = database.reference
+                .child("inbox")
+                .child(recipientHash)
+                .child(conversationId) // Use conversationId as key to avoid duplicates
+
+            val requestMap = mapOf(
+                "senderPublicKey" to senderPublicKey,
+                "senderDisplayName" to senderDisplayName,
+                "conversationId" to conversationId,
+                "createdAt" to ServerValue.TIMESTAMP
+            )
+
+            ref.setValue(requestMap)
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resumeWithException(it) }
+        }
+    }
+
+    /**
+     * Listen for incoming contact requests in the user's inbox.
+     * Returns a Flow that emits each new request as it arrives.
+     *
+     * @param myPublicKey The local user's public key (to derive inbox path).
+     */
+    fun listenForContactRequests(myPublicKey: String): Flow<ContactRequest> = callbackFlow {
+        val myHash = hashPublicKey(myPublicKey)
+        val ref = database.reference
+            .child("inbox")
+            .child(myHash)
+
+        val listener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val senderPublicKey = snapshot.child("senderPublicKey").getValue(String::class.java) ?: return
+                val senderDisplayName = snapshot.child("senderDisplayName").getValue(String::class.java) ?: "Inconnu"
+                val conversationId = snapshot.child("conversationId").getValue(String::class.java) ?: return
+                val createdAt = snapshot.child("createdAt").getValue(Long::class.java) ?: 0L
+
+                trySend(ContactRequest(senderPublicKey, senderDisplayName, conversationId, createdAt))
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+
+        ref.addChildEventListener(listener)
+
+        awaitClose {
+            ref.removeEventListener(listener)
+        }
+    }
+
+    /**
+     * Remove a contact request from the inbox after it's been accepted.
+     */
+    suspend fun removeContactRequest(myPublicKey: String, conversationId: String) {
+        val myHash = hashPublicKey(myPublicKey)
+
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("inbox")
+                .child(myHash)
+                .child(conversationId)
+                .removeValue()
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) } // Best effort
+        }
+    }
+
+    /**
+     * Notify the sender that their contact request has been accepted.
+     * Writes to /accepted/{conversationId} so the sender can detect it.
+     */
+    suspend fun notifyRequestAccepted(conversationId: String, accepterPublicKey: String) {
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("accepted")
+                .child(conversationId)
+                .setValue(mapOf(
+                    "acceptedBy" to accepterPublicKey,
+                    "createdAt" to ServerValue.TIMESTAMP
+                ))
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) } // Best effort
+        }
+    }
+
+    /**
+     * Listen for acceptance notifications for pending conversations.
+     * Returns a Flow that emits conversationIds when they are accepted.
+     */
+    fun listenForAcceptances(): Flow<String> = callbackFlow {
+        val ref = database.reference.child("accepted")
+
+        val listener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val conversationId = snapshot.key ?: return
+                trySend(conversationId)
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onCancelled(error: DatabaseError) {}
+        }
+
+        ref.addChildEventListener(listener)
+
+        awaitClose {
+            ref.removeEventListener(listener)
+        }
+    }
+
+    /**
+     * Remove an acceptance notification after it's been processed.
+     */
+    suspend fun removeAcceptanceNotification(conversationId: String) {
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("accepted")
+                .child(conversationId)
+                .removeValue()
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) }
+        }
+    }
+
+    // ========================================================================
+    // FETCH EXISTING MESSAGES (ONE-SHOT)
+    // ========================================================================
+
+    /**
+     * Fetch all existing messages for a conversation in a single read.
+     * Used when accepting a contact request to retrieve messages sent before acceptance.
+     *
+     * @param conversationId The conversation to fetch messages from.
+     * @return List of FirebaseMessage sorted by createdAt.
+     */
+    suspend fun fetchExistingMessages(conversationId: String): List<FirebaseMessage> =
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("conversations")
+                .child(conversationId)
+                .child("messages")
+                .orderByChild("createdAt")
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val messages = mutableListOf<FirebaseMessage>()
+                        for (child in snapshot.children) {
+                            val message = child.getValue(FirebaseMessage::class.java)
+                            if (message != null) {
+                                messages.add(message)
+                            }
+                        }
+                        cont.resume(messages)
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        cont.resume(emptyList())
+                    }
+                })
+        }
+
+    // ========================================================================
     // CLEANUP
     // ========================================================================
 
@@ -231,4 +420,28 @@ object FirebaseRelay {
     fun signOut() {
         auth.signOut()
     }
+
+    // ========================================================================
+    // UTILITIES
+    // ========================================================================
+
+    /**
+     * Hash a public key to use as an inbox path.
+     * Uses SHA-256 truncated to 32 hex chars for a shorter path.
+     */
+    private fun hashPublicKey(publicKey: String): String {
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(publicKey.toByteArray(Charsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }.take(32)
+    }
+
+    /**
+     * Data class for an incoming contact request.
+     */
+    data class ContactRequest(
+        val senderPublicKey: String,
+        val senderDisplayName: String,
+        val conversationId: String,
+        val createdAt: Long
+    )
 }

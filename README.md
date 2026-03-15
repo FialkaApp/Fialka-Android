@@ -237,6 +237,19 @@ Ou ouvrir dans Android Studio → **Run** sur un émulateur ou device physique.
         }
       }
     },
+    "inbox": {
+      "$recipientHash": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        "$requestId": {
+          ".validate": "newData.hasChildren(['senderPublicKey', 'senderDisplayName', 'conversationId', 'createdAt'])"
+        }
+      }
+    },
+    "accepted": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
     "users": {
       "$uid": {
         ".read": "auth != null",

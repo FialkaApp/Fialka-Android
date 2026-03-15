@@ -34,6 +34,22 @@
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:stackFromEnd="true" />
 
+    <TextView
+        android:id="@+id/tvPendingBanner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="#FFF3E0"
+        android:gravity="center"
+        android:paddingVertical="14dp"
+        android:paddingHorizontal="16dp"
+        android:text="@string/pending_acceptance"
+        android:textColor="#E65100"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <LinearLayout
         android:id="@+id/inputBar"
         android:layout_width="0dp"

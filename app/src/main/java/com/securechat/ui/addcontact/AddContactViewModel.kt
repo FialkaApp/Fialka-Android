@@ -54,8 +54,11 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
                 // Add contact to local DB
                 repository.addContact(displayName.trim(), trimmedKey)
 
-                // Create conversation (also initializes ratchet)
-                val conversation = repository.createConversation(trimmedKey, displayName.trim())
+                // Create conversation as pending (not yet accepted by the other user)
+                val conversation = repository.createConversation(trimmedKey, displayName.trim(), accepted = false)
+
+                // Notify the contact via Firebase inbox
+                repository.sendContactRequest(trimmedKey)
 
                 _state.value = AddContactState.Success(conversation)
             } catch (e: Exception) {

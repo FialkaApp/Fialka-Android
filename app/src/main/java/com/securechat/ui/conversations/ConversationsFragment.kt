@@ -12,7 +12,7 @@ import com.securechat.R
 import com.securechat.databinding.FragmentConversationsBinding
 
 /**
- * Conversations list screen — shows all active chats.
+ * Conversations list screen — shows all active chats + pending contact requests.
  * FAB to add a new contact, toolbar menu to view profile or reset account.
  */
 class ConversationsFragment : Fragment() {
@@ -22,6 +22,7 @@ class ConversationsFragment : Fragment() {
 
     private val viewModel: ConversationsViewModel by viewModels()
     private lateinit var adapter: ConversationsAdapter
+    private lateinit var requestsAdapter: ContactRequestsAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,6 +36,7 @@ class ConversationsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Conversations adapter
         adapter = ConversationsAdapter { conversation ->
             val bundle = Bundle().apply {
                 putString("conversationId", conversation.conversationId)
@@ -44,10 +46,25 @@ class ConversationsFragment : Fragment() {
         }
         binding.rvConversations.adapter = adapter
 
+        // Contact requests adapter
+        requestsAdapter = ContactRequestsAdapter(
+            onAccept = { request -> viewModel.acceptRequest(request) },
+            onDecline = { request -> viewModel.declineRequest(request) }
+        )
+        binding.rvRequests.adapter = requestsAdapter
+
+        // Observe conversations
         viewModel.conversations.observe(viewLifecycleOwner) { conversations ->
             adapter.submitList(conversations)
-            binding.tvEmpty.visibility = if (conversations.isEmpty()) View.VISIBLE else View.GONE
-            binding.rvConversations.visibility = if (conversations.isEmpty()) View.GONE else View.VISIBLE
+            updateEmptyState(conversations.isEmpty())
+        }
+
+        // Observe pending contact requests
+        viewModel.pendingRequests.observe(viewLifecycleOwner) { requests ->
+            val hasRequests = requests.isNotEmpty()
+            binding.tvRequestsHeader.visibility = if (hasRequests) View.VISIBLE else View.GONE
+            binding.rvRequests.visibility = if (hasRequests) View.VISIBLE else View.GONE
+            requestsAdapter.submitList(requests)
         }
 
         binding.fabNewChat.setOnClickListener {
@@ -74,6 +91,13 @@ class ConversationsFragment : Fragment() {
                 findNavController().navigate(R.id.action_conversations_to_onboarding)
             }
         }
+    }
+
+    private fun updateEmptyState(noConversations: Boolean) {
+        val hasRequests = (viewModel.pendingRequests.value?.size ?: 0) > 0
+        val showEmpty = noConversations && !hasRequests
+        binding.tvEmpty.visibility = if (showEmpty) View.VISIBLE else View.GONE
+        binding.rvConversations.visibility = if (noConversations) View.GONE else View.VISIBLE
     }
 
     private fun showResetAccountDialog() {

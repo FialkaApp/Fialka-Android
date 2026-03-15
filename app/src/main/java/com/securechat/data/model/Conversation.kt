@@ -16,5 +16,6 @@ data class Conversation(
     val contactDisplayName: String,
     val lastMessage: String = "",
     val lastMessageTimestamp: Long = System.currentTimeMillis(),
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val accepted: Boolean = true        // false = pending invitation, true = active conversation
 )
