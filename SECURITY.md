@@ -26,14 +26,16 @@ SecureChat uses the following cryptographic primitives:
 | Message keys | HMAC-SHA256 KDF chain | Symmetric Ratchet (PFS) |
 | Message encryption | AES-256-GCM | 12-byte random IV, 128-bit auth tag |
 | Conversation ID | SHA-256 | Hash of sorted public keys |
+| Fingerprint emojis | SHA-256 → 64-palette × 16 | 96-bit entropy, anti-MITM |
+| Local DB encryption | SQLCipher (AES-256-CBC) | 256-bit passphrase via EncryptedSharedPreferences |
 
 ## Known Limitations (V1)
 
 1. **Symmetric Ratchet only** — No DH ratchet rotation (unlike Signal's full Double Ratchet). If an entire chain key is compromised, future messages in that chain direction are exposed until the next conversation reset.
 
-2. **No key verification** — Users cannot verify that a scanned public key truly belongs to the intended contact (vulnerable to MITM during initial key exchange).
+2. **No key verification** — ~~Users cannot verify that a scanned public key truly belongs to the intended contact (vulnerable to MITM during initial key exchange).~~ **FIXED in V1:** Emoji fingerprint verification (96-bit shared fingerprint, visual comparison, badge system).
 
-3. **Plaintext in local DB** — Decrypted messages are stored in Room (SQLite) without encryption. A rooted device or full disk backup could expose message history.
+3. **Plaintext in local DB** — ~~Decrypted messages are stored in Room (SQLite) without encryption. A rooted device or full disk backup could expose message history.~~ **FIXED in V1:** SQLCipher encrypts the entire Room database with a 256-bit passphrase stored in EncryptedSharedPreferences (Keystore-backed AES-256-GCM).
 
 4. **Metadata visible** — Firebase sees who communicates with whom and when (conversation IDs, timestamps).
 
@@ -55,3 +57,9 @@ SecureChat uses the following cryptographic primitives:
 - ✅ Zero message content in push notifications (only sender display name)
 - ✅ FCM token deleted immediately when user disables push
 - ✅ Invalid/expired FCM tokens auto-cleaned by Cloud Function
+- ✅ Emoji fingerprint: shared 96-bit (16 emojis from 64-palette, power-of-2 = zero modulo bias)
+- ✅ Fingerprint computed from sorted public keys (both sides see the same emojis)
+- ✅ Manual verification only (no auto-check — user must visually compare in person)
+- ✅ SQLCipher: entire Room database encrypted (AES-256-CBC, 256-bit key)
+- ✅ DB passphrase generated via SecureRandom, stored in EncryptedSharedPreferences (Keystore-backed)
+- ✅ DB file unreadable without Android Keystore access (protects against rooted device / backup dump)

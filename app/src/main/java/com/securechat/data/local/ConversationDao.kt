@@ -27,6 +27,9 @@ interface ConversationDao {
     @Query("UPDATE conversations SET unreadCount = 0 WHERE conversationId = :conversationId")
     suspend fun resetUnreadCount(conversationId: String)
 
+    @Query("UPDATE conversations SET fingerprintVerified = :verified WHERE conversationId = :conversationId")
+    suspend fun updateFingerprintVerified(conversationId: String, verified: Boolean)
+
     @Delete
     suspend fun deleteConversation(conversation: Conversation)
 }

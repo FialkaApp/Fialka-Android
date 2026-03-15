@@ -57,6 +57,8 @@
 | 🔄 **Réception en temps réel** | Les messages arrivent même quand le chat n'est pas ouvert |
 | 🔔 **Push notifications** | Opt-in — notifications FCM quand l'app est fermée (aucun contenu message) |
 | ⚙️ **Paramètres** | Contrôle total : push ON/OFF, token supprimé si désactivé |
+| 🔏 **Fingerprint emojis** | Empreinte partagée de 96 bits (16 emojis / 64 palette) — vérification anti-MITM |
+| 👤 **Profil du contact** | Voir l'empreinte, vérifier manuellement, badge vert/orange dans le chat |
 
 ---
 
@@ -179,6 +181,26 @@ Alice                                         Bob
 3. Chaque côté calcule : `shared_secret = ECDH(ma_clé_privée, clé_publique_contact)`
 4. Le rôle (initiator/responder) est déterminé par l'**ordre lexicographique** des clés publiques
 
+### Fingerprint Emojis (96-bit, anti-MITM)
+
+Chaque conversation a une **empreinte partagée** calculée à partir des deux clés publiques :
+
+```
+sorted_keys = sort_lexicographic(pubKeyA, pubKeyB)
+hash = SHA-256(sorted_keys[0] + sorted_keys[1])
+fingerprint = 16 emojis choisis dans une palette de 64
+            = 16 × log2(64) = 96 bits d'entropie
+```
+
+**Format :** `🔥🐱🦄🍕 🌟🚀💎⚡ 🎸📱🔔🎉 🌈🐶🎯🍀` (4 × 4 emojis)
+
+Les deux téléphones calculent la **même** empreinte. L'utilisateur compare visuellement (en personne ou par appel vidéo) pour détecter une attaque MITM.
+
+- ✅ Palette de 64 emojis (puissance de 2 → zéro biais modulo)
+- ✅ 96 bits d'entropie (7.9 × 10²⁸ combinaisons)
+- ✅ Badge dans le chat : vert (vérifié ✓) ou orange (non vérifié ➤)
+- ✅ Persisté en Room, état de vérification par conversation
+
 ### Symmetric Ratchet (PFS)
 
 ```
@@ -230,8 +252,9 @@ Pour chaque message N :
 | Compromission d'une clé message | ✅ | PFS — chaque message a sa propre clé |
 | Replay d'anciens messages | ✅ | sinceTimestamp + messageIndex |
 | Race conditions ratchet | ✅ | Mutex par conversation |
+| Attaque MITM | ✅ | Fingerprint emojis 96-bit (vérification visuelle) |
 | Métadonnées (qui/quand) | ❌ | Visible dans Firebase |
-| Vol du téléphone déverrouillé | ⚠️ | Clés dans Keystore, mais messages en clair dans Room |
+| Vol du téléphone déverrouillé | ✅ | Clés dans Keystore, DB chiffrée par SQLCipher (256-bit) |
 
 > Voir [`SECURITY.md`](SECURITY.md) pour l'analyse complète.
 
@@ -338,7 +361,7 @@ SecureChat/
 │       │   │
 │       │   ├── data/
 │       │   │   ├── local/
-│       │   │   │   ├── SecureChatDatabase.kt # Room DB v4
+│       │   │   │   ├── SecureChatDatabase.kt # Room DB v5 (SQLCipher)
 │       │   │   │   ├── UserLocalDao.kt
 │       │   │   │   ├── ContactDao.kt
 │       │   │   │   ├── ConversationDao.kt
@@ -373,6 +396,7 @@ SecureChat/
 │       │       │   └── ContactRequestsAdapter.kt  # Accepter/refuser les demandes
 │       │       ├── addcontact/               # Scanner QR + saisie manuelle
 │       │       ├── chat/                     # Messages E2E + bulles WhatsApp-like
+│       │       │   └── ConversationProfileFragment.kt  # Profil contact + fingerprint
 │       │       ├── profile/                  # QR code, copier/partager, supprimer
 │       │       └── settings/                 # Paramètres (push ON/OFF)
 │       │
@@ -400,6 +424,7 @@ SecureChat/
 | AndroidX Navigation | 2.8.9 | Navigation single-activity |
 | AndroidX Lifecycle | 2.8.7 | ViewModels, LiveData, coroutines |
 | Room + KSP | 2.7.1 | Base de données locale SQLite |
+| SQLCipher | 4.5.4 | Chiffrement AES-256 de la base Room |
 | Firebase BOM | 34.10.0 | Auth anonyme + Realtime Database + Cloud Messaging |
 | firebase-functions (Node.js) | 7.0.0 | Cloud Function trigger (push notifications) |
 | firebase-admin (Node.js) | 13.6.0 | Admin SDK pour RTDB + FCM côté serveur |
@@ -423,6 +448,9 @@ SecureChat/
 - ✅ **Re-auth Firebase** — Session anonyme restaurée après app kill
 - ✅ **TTL 7 jours** — Les vieux messages sont auto-supprimés de Firebase
 - ✅ **Anti-replay** — Filtrage par `sinceTimestamp` + `messageIndex`
+- ✅ **Fingerprint emojis** — Empreinte partagée 96-bit (64 emojis, 16 positions, zéro biais modulo)
+- ✅ **Anti-MITM** — Vérification visuelle badge vert/orange, état persisté par conversation
+- ✅ **SQLCipher** — Base Room chiffrée AES-256 (passphrase 256-bit stockée dans EncryptedSharedPreferences / Keystore)
 - ✅ **Pas de logs sensibles** — Clés et plaintexts retirés de Logcat
 - ✅ **Keystore delete on reset** — Clé privée supprimée quand on supprime le compte
 - ✅ **`allowBackup=false`** — Pas de backup automatique des données
@@ -457,12 +485,13 @@ SecureChat/
 - [x] Réception des messages en temps réel sur la liste des conversations
 - [x] Push notifications FCM opt-in (Cloud Function + zéro contenu message)
 - [x] Écran Paramètres (push ON/OFF, token supprimable)
+- [x] Fingerprint emojis 96-bit (64 palette × 16 positions, anti-MITM)
+- [x] Profil du contact (empreinte, vérification manuelle, badge chat)
+- [x] SQLCipher — Chiffrement de la base Room locale (256-bit, EncryptedSharedPreferences)
 
 ### 🔜 V2 — Planned
 
 - [ ] **Full Double Ratchet** — Rotation DH asymétrique (comme Signal)
-- [ ] **SQLCipher** — Chiffrement de la base Room locale
-- [ ] **Vérification de clé** — Fingerprint emoji (comme Signal/WhatsApp)
 - [ ] **Groupes** — Conversations à 3+ participants
 - [ ] **Suppression pour tous** — Supprimer un message côté local + Firebase
 - [ ] **Export/Import de clés** — Backup chiffré de l'identité

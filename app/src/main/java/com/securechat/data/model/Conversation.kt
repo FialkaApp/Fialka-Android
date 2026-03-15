@@ -18,5 +18,7 @@ data class Conversation(
     val lastMessageTimestamp: Long = System.currentTimeMillis(),
     val createdAt: Long = System.currentTimeMillis(),
     val accepted: Boolean = true,       // false = pending invitation, true = active conversation
-    val unreadCount: Int = 0            // Number of unread messages from the other participant
+    val unreadCount: Int = 0,           // Number of unread messages from the other participant
+    val sharedFingerprint: String = "", // Shared emoji fingerprint (96-bit, 16 emojis)
+    val fingerprintVerified: Boolean = false // User manually verified the fingerprint
 )

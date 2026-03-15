@@ -5,11 +5,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.securechat.R
+import com.securechat.data.repository.ChatRepository
 import com.securechat.databinding.FragmentChatBinding
+import kotlinx.coroutines.launch
 
 /**
  * Chat screen — displays messages for a conversation.
@@ -50,10 +55,35 @@ class ChatFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.toolbar.title = contactName
+        // Toolbar — custom title + fingerprint badge
+        binding.tvToolbarTitle.text = contactName
         binding.toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
         }
+
+        // Navigate to contact profile on toolbar content click or menu
+        val navigateToProfile = {
+            findNavController().navigate(
+                R.id.action_chat_to_conversationProfile,
+                bundleOf(
+                    "conversationId" to conversationId,
+                    "contactName" to contactName
+                )
+            )
+        }
+        binding.toolbarContent.setOnClickListener { navigateToProfile() }
+        binding.toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_contact_profile -> {
+                    navigateToProfile()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        // Load fingerprint badge
+        loadFingerprintBadge()
 
         adapter = MessagesAdapter()
         binding.rvMessages.adapter = adapter
@@ -95,6 +125,33 @@ class ChatFragment : Fragment() {
         viewModel.sendError.observe(viewLifecycleOwner) { error ->
             if (error != null) {
                 Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh badge when returning from profile (may have been verified)
+        if (_binding != null) loadFingerprintBadge()
+    }
+
+    private fun loadFingerprintBadge() {
+        lifecycleScope.launch {
+            val repo = ChatRepository(requireContext())
+            val conversation = repo.getConversation(conversationId)
+            if (conversation != null && _binding != null) {
+                val preview = conversation.sharedFingerprint.take(8) // First 4 emojis
+                if (conversation.fingerprintVerified) {
+                    binding.tvFingerprintBadge.text = "$preview ✓"
+                    binding.tvFingerprintBadge.setTextColor(
+                        ContextCompat.getColor(requireContext(), R.color.green_verified)
+                    )
+                } else {
+                    binding.tvFingerprintBadge.text = "$preview ➤"
+                    binding.tvFingerprintBadge.setTextColor(
+                        ContextCompat.getColor(requireContext(), R.color.orange_warning)
+                    )
+                }
             }
         }
     }

@@ -52,6 +52,22 @@
         <argument
             android:name="contactName"
             app:argType="string" />
+        <action
+            android:id="@+id/action_chat_to_conversationProfile"
+            app:destination="@id/conversationProfileFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/conversationProfileFragment"
+        android:name="com.securechat.ui.chat.ConversationProfileFragment"
+        android:label="Profil du contact"
+        tools:layout="@layout/fragment_conversation_profile">
+        <argument
+            android:name="conversationId"
+            app:argType="string" />
+        <argument
+            android:name="contactName"
+            app:argType="string" />
     </fragment>
 
     <fragment

@@ -123,11 +123,15 @@ class ChatRepository(context: Context) {
         val existing = conversationDao.getConversationById(conversationId)
         if (existing != null) return existing
 
+        // Compute shared emoji fingerprint (96-bit, same on both sides)
+        val sharedFingerprint = CryptoManager.getSharedFingerprint(myPublicKey, contactPublicKey)
+
         val conversation = Conversation(
             conversationId = conversationId,
             participantPublicKey = contactPublicKey,
             contactDisplayName = contactName,
-            accepted = accepted
+            accepted = accepted,
+            sharedFingerprint = sharedFingerprint
         )
         conversationDao.insertConversation(conversation)
 
@@ -520,6 +524,17 @@ class ChatRepository(context: Context) {
                 FirebaseRelay.removeAcceptanceNotification(conversationId)
             } catch (_: Exception) { }
         }
+    }
+
+    // ========================================================================
+    // FINGERPRINT VERIFICATION
+    // ========================================================================
+
+    /**
+     * Mark a conversation's fingerprint as verified (user has manually compared emojis).
+     */
+    suspend fun verifyFingerprint(conversationId: String, verified: Boolean) {
+        conversationDao.updateFingerprintVerified(conversationId, verified)
     }
 
     // ========================================================================

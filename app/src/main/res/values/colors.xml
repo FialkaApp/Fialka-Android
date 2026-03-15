@@ -16,4 +16,6 @@
     <color name="surface">#FFFFFFFF</color>
     <color name="error">#FFD32F2F</color>
     <color name="chat_background">#FFECE5DD</color>
+    <color name="green_verified">#FF4CAF50</color>
+    <color name="orange_warning">#FFFF9800</color>
 </resources>

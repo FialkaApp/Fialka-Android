@@ -52,4 +52,8 @@
     <string name="delete_account_message">Êtes-vous sûr de vouloir supprimer votre compte ?\n\nCette action va :\n• Supprimer votre identité et clés cryptographiques\n• Supprimer tous vos contacts\n• Supprimer toutes vos conversations\n• Vous déconnecter de Firebase\n\nCette action est irréversible.</string>
     <string name="delete_account_confirm">Supprimer</string>
     <string name="cancel">Annuler</string>
+
+    <!-- Fingerprint -->
+    <string name="contact_profile_title">Profil du contact</string>
+    <string name="fingerprint_verified">Empreinte vérifiée ✓</string>
 </resources>

@@ -285,6 +285,50 @@ object CryptoManager {
         return digest.joinToString("") { "%02x".format(it) }
     }
 
+    // ========================================================================
+    // 6. EMOJI FINGERPRINT (96-bit, Signal-style)
+    // ========================================================================
+
+    /**
+     * Palette of 64 visually distinct emojis.
+     * Power-of-2 size → zero modulo bias when selecting from SHA-256 bytes.
+     * 16 emojis chosen from 64 → log2(64^16) = 96 bits of entropy.
+     */
+    private val EMOJI_PALETTE = listOf(
+        "🔥", "🐱", "🦄", "🍕", "🌟", "🚀", "💎", "⚡",
+        "🎸", "📱", "🔔", "🎉", "🌈", "🐶", "🎯", "🍀",
+        "🦋", "🌺", "🍒", "🎵", "🐠", "🌙", "🍭", "🎨",
+        "🦊", "🌊", "🍩", "🎪", "🐧", "🌻", "🍋", "🎲",
+        "🦁", "🌴", "🍇", "🎹", "🐸", "🌸", "🍬", "🎭",
+        "🦉", "🌵", "🍎", "🎺", "🐝", "🌾", "🍫", "🎻",
+        "🦈", "🌽", "🍑", "🎼", "🐙", "🌿", "🍓", "🎮",
+        "🦜", "🍄", "🍊", "🎳", "🐢", "🌰", "🍈", "🎧"
+    )
+
+    /**
+     * Compute a shared emoji fingerprint from two public keys.
+     *
+     * Both sides compute the same fingerprint because the keys are sorted
+     * lexicographically before hashing. This allows visual verification
+     * that both phones see the same emojis (detects MITM).
+     *
+     * @param myPubKeyBase64 Local user's public key (Base64).
+     * @param contactPubKeyBase64 Contact's public key (Base64).
+     * @return 16 emojis in "xxxx xxxx xxxx xxxx" format (96-bit entropy).
+     */
+    fun getSharedFingerprint(myPubKeyBase64: String, contactPubKeyBase64: String): String {
+        val sorted = listOf(myPubKeyBase64, contactPubKeyBase64).sorted()
+        val combined = (sorted[0] + sorted[1]).toByteArray(Charsets.UTF_8)
+        val hash = MessageDigest.getInstance("SHA-256").digest(combined)
+
+        // 16 emojis from 64-element palette: hash[i] & 0x3F = mod 64, zero bias
+        val emojis = (0 until 16).map { i ->
+            EMOJI_PALETTE[hash[i].toInt() and 0x3F]
+        }
+
+        return emojis.chunked(4).joinToString(" ") { it.joinToString("") }
+    }
+
     /**
      * HMAC-SHA256 implementation.
      */
