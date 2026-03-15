@@ -1,4 +1,4 @@
-﻿package com.securechat.ui.profile
+package com.securechat.ui.profile
 
 import android.app.Application
 import android.util.Log

@@ -1,4 +1,4 @@
-﻿package com.securechat.data.repository
+package com.securechat.data.repository
 
 import android.content.Context
 import androidx.lifecycle.LiveData

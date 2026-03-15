@@ -1,4 +1,4 @@
-﻿package com.securechat.ui.conversations
+package com.securechat.ui.conversations
 
 import android.os.Bundle
 import android.view.LayoutInflater

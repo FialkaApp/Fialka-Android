@@ -1,4 +1,4 @@
-﻿package com.securechat.data.remote
+package com.securechat.data.remote
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*

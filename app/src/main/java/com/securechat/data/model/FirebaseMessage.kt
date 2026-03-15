@@ -1,4 +1,4 @@
-﻿package com.securechat.data.model
+package com.securechat.data.model
 
 /**
  * Firebase message model.

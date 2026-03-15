@@ -1,4 +1,4 @@
-﻿package com.securechat.ui.addcontact
+package com.securechat.ui.addcontact
 
 import android.os.Bundle
 import android.view.LayoutInflater

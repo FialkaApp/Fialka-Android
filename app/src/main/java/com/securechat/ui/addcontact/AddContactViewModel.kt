@@ -1,4 +1,4 @@
-﻿package com.securechat.ui.addcontact
+package com.securechat.ui.addcontact
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel

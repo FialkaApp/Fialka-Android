@@ -1,4 +1,4 @@
-﻿package com.securechat.ui.profile
+package com.securechat.ui.profile
 
 import android.content.ClipData
 import android.content.ClipboardManager

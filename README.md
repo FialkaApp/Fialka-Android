@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # 🔐 SecureChat
 
@@ -43,11 +43,15 @@
 | 🔐 **Chiffrement E2E** | ECDH P-256 + AES-256-GCM — personne ne lit vos messages |
 | 🔄 **Perfect Forward Secrecy** | Symmetric Ratchet — chaque message = clé unique et irréversible |
 | 📷 **QR Code** | Ajoutez un contact en scannant son QR code |
+| ✏️ **Saisie manuelle** | Ajoutez un contact en collant sa clé publique |
+| 📨 **Demandes de contact** | Système d'invitation : envoi → notification → accepter/refuser |
+| ⏳ **Conversations en attente** | Les messages ne sont envoyés qu'après acceptation mutuelle |
 | 📵 **Anonyme** | Pas de numéro, pas d'email — juste un pseudo + clé publique |
 | 💰 **Gratuit** | Firebase Spark (plan gratuit) comme simple relay |
 | 🔑 **Keystore Android** | Clé privée en hardware (TEE/StrongBox quand disponible) |
 | 🧹 **Auto-nettoyage** | Messages Firebase auto-supprimés après 7 jours |
 | 🛡️ **Zéro fuite mémoire** | Toutes les clés intermédiaires sont zérorisées après usage |
+| 📱 **Android 15 ready** | Support edge-to-edge natif (targetSdk 35) |
 
 ---
 
@@ -80,6 +84,7 @@
 - **Aucun accès Firebase depuis l'UI** — tout passe par Repository → FirebaseRelay
 - **Mutex par conversation** — les opérations ratchet sont sérialisées (thread-safe)
 - **Envoi atomique** — le ratchet n'avance que si Firebase confirme l'envoi
+- **Système d'invitation** — demande de contact → notification inbox → acceptation → conversation active
 
 | Couche | Rôle | Fichiers clés |
 |--------|------|---------------|
@@ -89,6 +94,29 @@
 | **Local DB** | Room — users, contacts, messages, ratchet | `data/local/` — DAOs, Database |
 | **Remote** | Relay Firebase (ciphertext only) | `data/remote/FirebaseRelay.kt` |
 | **Util** | QR codes | `util/QrCodeGenerator.kt` |
+
+### Flux des demandes de contact
+
+```
+Alice                              Firebase                              Bob
+  │                                   │                                    │
+  │  1. Scan QR / colle clé pub       │                                    │
+  │  2. createConversation(pending)   │                                    │
+  │  3. sendContactRequest ──────────►│ inbox/{bob_hash}/{convId}          │
+  │                                   │                                    │
+  │                                   │   listenForContactRequests() ◄─────│
+  │                                   │                                    │
+  │                                   │         4. "Nouvelle demande de    │
+  │                                   │             Alice" s'affiche       │
+  │                                   │                                    │
+  │                                   │◄── 5. acceptContactRequest() ──────│
+  │                                   │    notifyRequestAccepted()         │
+  │                                   │                                    │
+  │   listenForAcceptances() ◄────────│ accepted/{convId}                  │
+  │   6. markConversationAccepted()   │                                    │
+  │                                   │                                    │
+  │◄═══════════ Chat E2E actif ══════►│◄══════════════════════════════════►│
+```
 
 ---
 
@@ -160,6 +188,19 @@ Pour chaque message N :
 ```
 
 **Jamais envoyé :** texte en clair, clés privées, clés de chaîne.
+
+### Demande de contact (inbox Firebase)
+
+```json
+{
+  "senderPublicKey": "MFkwEwYHKoZ...",
+  "senderDisplayName": "Alice",
+  "conversationId": "conv_abc123",
+  "createdAt": 1700000000000
+}
+```
+
+**Flux :** Alice envoie une demande → apparaît dans l'inbox de Bob → Bob accepte ou refuse → si accepté, les deux côtés peuvent chatter.
 
 ### Modèle de menace
 
@@ -323,7 +364,11 @@ SecureChat/
 │       │   └── ui/
 │       │       ├── MainActivity.kt           # Single-activity (NavHost)
 │       │       ├── onboarding/               # Création d'identité
-│       │       ├── conversations/            # Liste des chats
+│       │       ├── conversations/            # Liste des chats + demandes de contact
+│       │       │   ├── ConversationsFragment.kt
+│       │       │   ├── ConversationsViewModel.kt
+│       │       │   ├── ConversationsAdapter.kt
+│       │       │   └── ContactRequestsAdapter.kt  # Accepter/refuser les demandes
 │       │       ├── addcontact/               # Scanner QR + saisie manuelle
 │       │       ├── chat/                     # Messages E2E + bulles WhatsApp-like
 │       │       └── profile/                  # QR code, copier/partager, supprimer
@@ -382,12 +427,18 @@ SecureChat/
 - [x] Chiffrement E2E (ECDH P-256 + AES-256-GCM)
 - [x] Perfect Forward Secrecy (Symmetric Ratchet)
 - [x] QR Code (génération + scan)
+- [x] Saisie manuelle de clé publique
+- [x] Demandes de contact (envoi, notification inbox, accepter/refuser)
+- [x] Conversations en attente (pending → accepted)
+- [x] Notification d'acceptation en temps réel
 - [x] Profil (pseudo modifiable, copier/partager clé)
 - [x] Suppression de compte complète
 - [x] Design WhatsApp-like
 - [x] Anti-doublons + anti-replay
 - [x] TTL Firebase (7 jours)
 - [x] Hardening crypto (zeroing, mutex, atomic send)
+- [x] Support Android 15 edge-to-edge (targetSdk 35)
+- [x] Re-authentification Firebase automatique après app kill
 
 ### 🔜 V2 — Planned
 

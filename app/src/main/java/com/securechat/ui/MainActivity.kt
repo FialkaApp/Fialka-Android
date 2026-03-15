@@ -1,4 +1,4 @@
-﻿package com.securechat.ui
+package com.securechat.ui
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity

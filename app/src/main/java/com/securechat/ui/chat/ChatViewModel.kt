@@ -1,4 +1,4 @@
-﻿package com.securechat.ui.chat
+package com.securechat.ui.chat
 
 import android.app.Application
 import androidx.lifecycle.*

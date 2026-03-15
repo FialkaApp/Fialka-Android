@@ -1,4 +1,4 @@
-﻿package com.securechat.data.local
+package com.securechat.data.local
 
 import android.content.Context
 import androidx.room.Database

@@ -1,4 +1,4 @@
-﻿package com.securechat.ui.chat
+package com.securechat.ui.chat
 
 import android.view.LayoutInflater
 import android.view.ViewGroup

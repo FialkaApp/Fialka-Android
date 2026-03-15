@@ -1,4 +1,4 @@
-﻿package com.securechat.util
+package com.securechat.util
 
 import android.graphics.Bitmap
 import android.graphics.Color

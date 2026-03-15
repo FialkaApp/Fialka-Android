@@ -1,4 +1,4 @@
-﻿package com.securechat.data.model
+package com.securechat.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

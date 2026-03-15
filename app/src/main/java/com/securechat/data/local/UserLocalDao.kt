@@ -1,4 +1,4 @@
-﻿package com.securechat.data.local
+package com.securechat.data.local
 
 import androidx.lifecycle.LiveData
 import androidx.room.*

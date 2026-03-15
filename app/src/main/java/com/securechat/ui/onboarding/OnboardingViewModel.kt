@@ -1,4 +1,4 @@
-﻿package com.securechat.ui.onboarding
+package com.securechat.ui.onboarding
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel

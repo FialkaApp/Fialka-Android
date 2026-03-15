@@ -1,4 +1,4 @@
-﻿package com.securechat.crypto
+package com.securechat.crypto
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
