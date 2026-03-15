@@ -19,14 +19,21 @@ class MainActivity : AppCompatActivity() {
         // White icons on dark green status bar
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
 
-        // Apply system bar insets as padding so content doesn't draw under status/nav bars
-        val rootView = findViewById<android.view.View>(R.id.nav_host_fragment)
-        ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.updatePadding(
-                top = systemBars.top,
-                bottom = systemBars.bottom
-            )
+        // Size the status bar background View to match the actual status bar height
+        val statusBarBg = findViewById<android.view.View>(R.id.status_bar_background)
+        val navHost = findViewById<android.view.View>(R.id.nav_host_fragment)
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.status_bar_background)) { view, insets ->
+            val statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            view.layoutParams.height = statusBarHeight
+            view.requestLayout()
+            insets
+        }
+
+        // Handle bottom nav bar inset on the fragment container
+        ViewCompat.setOnApplyWindowInsetsListener(navHost) { view, insets ->
+            val navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            view.updatePadding(bottom = navBarHeight)
             insets
         }
     }
