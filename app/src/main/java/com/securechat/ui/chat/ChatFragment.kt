@@ -61,12 +61,12 @@ class ChatFragment : Fragment() {
         // Initialize ViewModel with conversation ID
         viewModel.init(conversationId)
 
-        // Observe messages
-        viewModel.messages.observe(viewLifecycleOwner) { messages ->
-            adapter.submitList(messages) {
+        // Observe chat items (messages + optional unread divider)
+        viewModel.chatItems.observe(viewLifecycleOwner) { items ->
+            adapter.submitList(items) {
                 // Scroll to bottom when new messages arrive
-                if (messages.isNotEmpty()) {
-                    binding.rvMessages.scrollToPosition(messages.size - 1)
+                if (items.isNotEmpty()) {
+                    binding.rvMessages.scrollToPosition(items.size - 1)
                 }
             }
         }

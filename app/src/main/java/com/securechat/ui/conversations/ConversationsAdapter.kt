@@ -1,5 +1,6 @@
 package com.securechat.ui.conversations
 
+import android.view.View
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -48,6 +49,18 @@ class ConversationsAdapter(
 
             val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
             binding.tvTimestamp.text = dateFormat.format(Date(conversation.lastMessageTimestamp))
+
+            // Unread badge
+            if (conversation.unreadCount > 0) {
+                binding.tvUnreadBadge.visibility = View.VISIBLE
+                binding.tvUnreadBadge.text = if (conversation.unreadCount > 99) "99+" else conversation.unreadCount.toString()
+                binding.tvContactName.setTextColor(binding.root.context.getColor(R.color.text_primary))
+                binding.tvTimestamp.setTextColor(binding.root.context.getColor(R.color.primary))
+            } else {
+                binding.tvUnreadBadge.visibility = View.GONE
+                binding.tvContactName.setTextColor(binding.root.context.getColor(R.color.text_primary))
+                binding.tvTimestamp.setTextColor(binding.root.context.getColor(R.color.text_secondary))
+            }
 
             binding.root.setOnClickListener { onClick(conversation) }
         }

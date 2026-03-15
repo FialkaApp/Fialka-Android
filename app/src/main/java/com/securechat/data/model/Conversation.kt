@@ -17,5 +17,6 @@ data class Conversation(
     val lastMessage: String = "",
     val lastMessageTimestamp: Long = System.currentTimeMillis(),
     val createdAt: Long = System.currentTimeMillis(),
-    val accepted: Boolean = true        // false = pending invitation, true = active conversation
+    val accepted: Boolean = true,       // false = pending invitation, true = active conversation
+    val unreadCount: Int = 0            // Number of unread messages from the other participant
 )

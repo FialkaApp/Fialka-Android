@@ -30,10 +30,11 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // Handle bottom nav bar inset on the fragment container
+        // Handle bottom nav bar + keyboard (IME) insets on the fragment container
         ViewCompat.setOnApplyWindowInsetsListener(navHost) { view, insets ->
             val navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-            view.updatePadding(bottom = navBarHeight)
+            val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            view.updatePadding(bottom = maxOf(navBarHeight, imeHeight))
             insets
         }
     }

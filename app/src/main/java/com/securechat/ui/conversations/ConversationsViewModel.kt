@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
 import com.securechat.data.model.Conversation
 import com.securechat.data.remote.FirebaseRelay
@@ -30,10 +31,38 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
 
     private val pendingList = mutableListOf<FirebaseRelay.ContactRequest>()
 
+    // Track which conversations already have active Firebase message listeners
+    private val activeMessageListeners = mutableSetOf<String>()
+
+    // Observer to react when conversations change (new conversation added, etc.)
+    private val conversationsObserver = Observer<List<Conversation>> { _ ->
+        refreshMessageListeners()
+    }
+
     init {
         ensureAuthenticated()
         listenForIncomingRequests()
         listenForAcceptances()
+        conversations.observeForever(conversationsObserver)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        conversations.removeObserver(conversationsObserver)
+    }
+
+    /**
+     * Start Firebase message listeners for all accepted conversations
+     * that don't already have one. This ensures the conversation list
+     * shows new messages in real-time even when no chat is open.
+     */
+    private fun refreshMessageListeners() {
+        viewModelScope.launch {
+            if (!FirebaseRelay.isAuthenticated()) {
+                try { FirebaseRelay.signInAnonymously() } catch (_: Exception) { return@launch }
+            }
+            repository.startListeningAllConversations(viewModelScope, activeMessageListeners)
+        }
     }
 
     private fun ensureAuthenticated() {

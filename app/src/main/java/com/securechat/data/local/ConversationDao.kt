@@ -15,8 +15,17 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations WHERE conversationId = :conversationId LIMIT 1")
     suspend fun getConversationById(conversationId: String): Conversation?
 
+    @Query("SELECT * FROM conversations WHERE accepted = 1")
+    suspend fun getAcceptedConversations(): List<Conversation>
+
     @Update
     suspend fun updateConversation(conversation: Conversation)
+
+    @Query("UPDATE conversations SET unreadCount = unreadCount + 1 WHERE conversationId = :conversationId")
+    suspend fun incrementUnreadCount(conversationId: String)
+
+    @Query("UPDATE conversations SET unreadCount = 0 WHERE conversationId = :conversationId")
+    suspend fun resetUnreadCount(conversationId: String)
 
     @Delete
     suspend fun deleteConversation(conversation: Conversation)

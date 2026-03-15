@@ -18,8 +18,26 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _conversationIdLive = MutableLiveData<String>()
 
-    val messages: LiveData<List<MessageLocal>> = _conversationIdLive.switchMap { id ->
-        repository.getMessages(id)
+    /** Number of unread messages at the time the chat was opened (consumed on first build). */
+    private var initialUnreadCount = 0
+
+    /** localId of the first unread message — anchors the divider position even as new messages arrive. */
+    private var dividerAnchorId: String? = null
+
+    override fun onCleared() {
+        super.onCleared()
+        ChatRepository.currentlyViewedConversation = null
+    }
+
+    /**
+     * Chat items = messages + optional "new messages" divider.
+     * The divider is inserted once at the position where unread messages start.
+     * After the user reads them and re-opens the conversation, it won't appear.
+     */
+    val chatItems: LiveData<List<ChatItem>> = _conversationIdLive.switchMap { id ->
+        repository.getMessages(id).map { messages ->
+            buildChatItems(messages)
+        }
     }
 
     private val _sendError = MutableLiveData<String?>()
@@ -27,6 +45,30 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isAccepted = MutableLiveData<Boolean>(true)
     val isAccepted: LiveData<Boolean> = _isAccepted
+
+    private fun buildChatItems(messages: List<MessageLocal>): List<ChatItem> {
+        // On the first emission, anchor the divider to the first unread message's localId
+        if (dividerAnchorId == null && initialUnreadCount > 0 && messages.isNotEmpty()) {
+            val idx = messages.size - initialUnreadCount
+            if (idx > 0 && idx < messages.size) {
+                dividerAnchorId = messages[idx].localId
+            }
+            initialUnreadCount = 0 // consumed
+        }
+
+        if (dividerAnchorId == null) {
+            return messages.map { ChatItem.Message(it) }
+        }
+
+        val items = mutableListOf<ChatItem>()
+        for (msg in messages) {
+            if (msg.localId == dividerAnchorId) {
+                items.add(ChatItem.UnreadDivider)
+            }
+            items.add(ChatItem.Message(msg))
+        }
+        return items
+    }
 
     /**
      * Initialize the ViewModel with a conversation ID.
@@ -37,9 +79,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         if (this.conversationId == conversationId) return
         this.conversationId = conversationId
 
-        _conversationIdLive.value = conversationId
-
         viewModelScope.launch {
+            // Capture unread count before resetting
+            val conversation = repository.getConversation(conversationId)
+            initialUnreadCount = conversation?.unreadCount ?: 0
+
+            // Mark as read + flag as currently viewed
+            repository.markConversationRead(conversationId)
+            ChatRepository.currentlyViewedConversation = conversationId
+
+            _conversationIdLive.value = conversationId
+
             // Ensure Firebase auth is still active (can expire after app kill)
             if (!FirebaseRelay.isAuthenticated()) {
                 try {
@@ -51,7 +101,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             // Check if conversation is accepted
-            val conversation = repository.getConversation(conversationId)
             _isAccepted.value = conversation?.accepted ?: true
 
             if (conversation?.accepted == true) {

@@ -43,12 +43,13 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"
         android:layout_marginTop="3dp"
+        android:layout_marginEnd="8dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/text_secondary"
         android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="@id/tvContactInitial"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tvUnreadBadge"
         app:layout_constraintStart_toEndOf="@id/tvContactInitial"
         app:layout_constraintTop_toBottomOf="@id/tvContactName" />
 
@@ -61,5 +62,19 @@
         android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/tvContactName" />
+
+    <TextView
+        android:id="@+id/tvUnreadBadge"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:background="@drawable/bg_circle"
+        android:gravity="center"
+        android:textColor="@color/white"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvTimestamp"
+        app:layout_constraintBottom_toBottomOf="@id/tvLastMessage" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

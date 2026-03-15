@@ -22,7 +22,7 @@ import com.securechat.data.model.UserLocal
         MessageLocal::class,
         RatchetState::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class SecureChatDatabase : RoomDatabase() {

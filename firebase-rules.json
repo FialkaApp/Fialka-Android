@@ -2,12 +2,19 @@
   "rules": {
     "conversations": {
       "$conversationId": {
-        "messages": {
+        "participants": {
           ".read": "auth != null",
-          ".write": "auth != null",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.isBoolean()"
+          }
+        },
+        "messages": {
+          ".read": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
+          ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
           ".indexOn": ["createdAt"],
           "$messageId": {
-            ".validate": "newData.hasChildren(['senderPublicKey', 'ciphertext', 'iv', 'messageIndex', 'createdAt'])"
+            ".validate": "newData.hasChildren(['senderPublicKey', 'ciphertext', 'iv', 'messageIndex', 'createdAt']) && newData.child('senderPublicKey').isString() && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('messageIndex').isNumber()"
           }
         }
       }

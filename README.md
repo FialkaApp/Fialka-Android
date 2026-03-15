@@ -52,6 +52,9 @@
 | 🧹 **Auto-nettoyage** | Messages Firebase auto-supprimés après 7 jours |
 | 🛡️ **Zéro fuite mémoire** | Toutes les clés intermédiaires sont zérorisées après usage |
 | 📱 **Android 15 ready** | Support edge-to-edge natif (targetSdk 35) |
+| 🔴 **Messages non lus** | Badge compteur sur la liste des conversations |
+| 📍 **Marqueur "Nouveaux messages"** | Séparateur dans le chat pour repérer les messages non lus |
+| 🔄 **Réception en temps réel** | Les messages arrivent même quand le chat n'est pas ouvert |
 
 ---
 
@@ -268,12 +271,19 @@ Ou ouvrir dans Android Studio → **Run** sur un émulateur ou device physique.
   "rules": {
     "conversations": {
       "$conversationId": {
-        "messages": {
+        "participants": {
           ".read": "auth != null",
-          ".write": "auth != null",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.isBoolean()"
+          }
+        },
+        "messages": {
+          ".read": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
+          ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
           ".indexOn": ["createdAt"],
           "$messageId": {
-            ".validate": "newData.hasChildren(['senderPublicKey', 'ciphertext', 'iv', 'messageIndex', 'createdAt'])"
+            ".validate": "newData.hasChildren(['senderPublicKey', 'ciphertext', 'iv', 'messageIndex', 'createdAt']) && newData.child('senderPublicKey').isString() && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('messageIndex').isNumber()"
           }
         }
       }
@@ -337,7 +347,7 @@ SecureChat/
 │       │   │
 │       │   ├── data/
 │       │   │   ├── local/
-│       │   │   │   ├── SecureChatDatabase.kt # Room DB v2
+│       │   │   │   ├── SecureChatDatabase.kt # Room DB v4
 │       │   │   │   ├── UserLocalDao.kt
 │       │   │   │   ├── ContactDao.kt
 │       │   │   │   ├── ConversationDao.kt
@@ -406,7 +416,7 @@ SecureChat/
 - ✅ **Zeroing mémoire** — Toutes les clés intermédiaires (`sharedSecret`, `chainKey`, `messageKey`, `plaintext bytes`, `IV`) sont remplies de zéros après usage
 - ✅ **SecureRandom singleton** — IV de 12 octets, jamais réutilisé
 - ✅ **Envoi atomique** — Le ratchet state n'est persisté qu'après confirmation Firebase
-- ✅ **Mutex par conversation** — Pas de race condition sur le ratchet
+- ✅ **Mutex par conversation** — Pas de race condition sur le ratchet (mutex partagés entre instances)
 - ✅ **Re-auth Firebase** — Session anonyme restaurée après app kill
 - ✅ **TTL 7 jours** — Les vieux messages sont auto-supprimés de Firebase
 - ✅ **Anti-replay** — Filtrage par `sinceTimestamp` + `messageIndex`
@@ -439,6 +449,9 @@ SecureChat/
 - [x] Hardening crypto (zeroing, mutex, atomic send)
 - [x] Support Android 15 edge-to-edge (targetSdk 35)
 - [x] Re-authentification Firebase automatique après app kill
+- [x] Badge messages non lus sur la liste des conversations
+- [x] Marqueur "Nouveaux messages" dans le chat (disparaît après lecture)
+- [x] Réception des messages en temps réel sur la liste des conversations
 
 ### 🔜 V2 — Planned
 

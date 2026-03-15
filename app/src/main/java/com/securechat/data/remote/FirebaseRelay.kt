@@ -70,6 +70,36 @@ object FirebaseRelay {
     fun getCurrentUid(): String? = auth.currentUser?.uid
 
     // ========================================================================
+    // PARTICIPANT REGISTRATION
+    // ========================================================================
+
+    /**
+     * Register the current user as a participant of a conversation.
+     * Required by Firebase security rules to allow read/write on messages.
+     *
+     * Each user writes ONLY their own UID entry:
+     *   /conversations/{conversationId}/participants/{uid} = true
+     */
+    suspend fun registerParticipant(conversationId: String) {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            // Auth not ready — try to authenticate first
+            signInAnonymously()
+        }
+        val finalUid = auth.currentUser?.uid ?: return
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("conversations")
+                .child(conversationId)
+                .child("participants")
+                .child(finalUid)
+                .setValue(true)
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) } // Best effort
+        }
+    }
+
+    // ========================================================================
     // SEND MESSAGE
     // ========================================================================
 

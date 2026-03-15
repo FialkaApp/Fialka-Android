@@ -8,6 +8,9 @@ import com.securechat.data.local.SecureChatDatabase
 import com.securechat.data.model.*
 import com.securechat.data.remote.FirebaseRelay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
@@ -33,13 +36,25 @@ class ChatRepository(context: Context) {
     private val messageDao = db.messageLocalDao()
     private val ratchetDao = db.ratchetStateDao()
 
-    // Mutex per conversation to serialize ratchet operations
-    private val ratchetMutexes = mutableMapOf<String, Mutex>()
+    companion object {
+        // Shared across all ChatRepository instances so that the global listener
+        // (ConversationsViewModel) and the per-chat listener (ChatViewModel)
+        // serialize ratchet operations on the same conversation.
+        private val ratchetMutexes = mutableMapOf<String, Mutex>()
 
-    private fun getMutex(conversationId: String): Mutex {
-        return synchronized(ratchetMutexes) {
-            ratchetMutexes.getOrPut(conversationId) { Mutex() }
+        internal fun getMutex(conversationId: String): Mutex {
+            return synchronized(ratchetMutexes) {
+                ratchetMutexes.getOrPut(conversationId) { Mutex() }
+            }
         }
+
+        internal fun clearMutexes() {
+            synchronized(ratchetMutexes) { ratchetMutexes.clear() }
+        }
+
+        /** The conversation currently being viewed. Unread count won't increment for it. */
+        @Volatile
+        var currentlyViewedConversation: String? = null
     }
 
     // ========================================================================
@@ -115,6 +130,14 @@ class ChatRepository(context: Context) {
             accepted = accepted
         )
         conversationDao.insertConversation(conversation)
+
+        // Register as participant on Firebase (required for security rules)
+        try {
+            if (!FirebaseRelay.isAuthenticated()) {
+                FirebaseRelay.signInAnonymously()
+            }
+            FirebaseRelay.registerParticipant(conversationId)
+        } catch (_: Exception) { }
 
         // Initialize ratchet state for this conversation
         initializeRatchet(conversationId, myPublicKey, contactPublicKey)
@@ -194,6 +217,11 @@ class ChatRepository(context: Context) {
             ?: throw IllegalStateException("User not initialized")
         val conversation = conversationDao.getConversationById(conversationId)
             ?: throw IllegalStateException("Conversation not found")
+
+        // Ensure Firebase auth is active before sending
+        if (!FirebaseRelay.isAuthenticated()) {
+            FirebaseRelay.signInAnonymously()
+        }
 
         return getMutex(conversationId).withLock {
             // 1. Get ratchet state and advance send chain
@@ -311,6 +339,9 @@ class ChatRepository(context: Context) {
             )
             messageDao.insertMessage(localMessage)
             updateConversationLastMessage(conversationId, plaintext)
+            if (currentlyViewedConversation != conversationId) {
+                conversationDao.incrementUnreadCount(conversationId)
+            }
 
             localMessage
         }
@@ -322,6 +353,41 @@ class ChatRepository(context: Context) {
 
     fun listenForMessages(conversationId: String, sinceTimestamp: Long = 0): Flow<FirebaseMessage> =
         FirebaseRelay.listenForMessages(conversationId, sinceTimestamp)
+
+    /**
+     * Mark a conversation as read (reset unread count to 0).
+     * Called when the user opens a chat.
+     */
+    suspend fun markConversationRead(conversationId: String) {
+        conversationDao.resetUnreadCount(conversationId)
+    }
+
+    /**
+     * Start listening for new messages on ALL accepted conversations.
+     * Used by the conversation list screen to update lastMessage in real-time
+     * even when no individual chat is open.
+     *
+     * @param scope The CoroutineScope to launch listeners in (typically viewModelScope).
+     * @param activeListeners A mutable set tracking which conversations already have listeners,
+     *                        to avoid launching duplicate listeners.
+     */
+    suspend fun startListeningAllConversations(
+        scope: kotlinx.coroutines.CoroutineScope,
+        activeListeners: MutableSet<String>
+    ) {
+        val conversations = conversationDao.getAcceptedConversations()
+        for (conv in conversations) {
+            if (conv.conversationId in activeListeners) continue
+            activeListeners.add(conv.conversationId)
+
+            listenForMessages(conv.conversationId, conv.createdAt)
+                .onEach { firebaseMessage ->
+                    receiveMessage(conv.conversationId, firebaseMessage)
+                }
+                .catch { /* Silently handle Firebase errors */ }
+                .launchIn(scope)
+        }
+    }
 
     // ========================================================================
     // CONTACT REQUESTS (INBOX)
@@ -364,10 +430,15 @@ class ChatRepository(context: Context) {
      * Returns the created Conversation.
      */
     suspend fun acceptContactRequest(request: FirebaseRelay.ContactRequest): Conversation {
+        // Ensure Firebase auth before any write operations
+        if (!FirebaseRelay.isAuthenticated()) {
+            FirebaseRelay.signInAnonymously()
+        }
+
         // Add contact
         addContact(request.senderDisplayName, request.senderPublicKey)
 
-        // Create conversation (accepted = true, ratchet initialized)
+        // Create conversation (accepted = true, ratchet initialized, participant registered)
         val conversation = createConversation(request.senderPublicKey, request.senderDisplayName, accepted = true)
 
         // Notify sender that we accepted
@@ -457,9 +528,7 @@ class ChatRepository(context: Context) {
      */
     suspend fun resetAccount() {
         // Clear ratchet mutexes
-        synchronized(ratchetMutexes) {
-            ratchetMutexes.clear()
-        }
+        clearMutexes()
         db.clearAllTables()
         CryptoManager.deleteIdentityKey()
         FirebaseRelay.signOut()
