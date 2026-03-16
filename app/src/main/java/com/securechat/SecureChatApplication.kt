@@ -5,6 +5,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.google.firebase.FirebaseApp
+import com.securechat.crypto.CryptoManager
+import com.securechat.crypto.MnemonicManager
 import com.securechat.util.ThemeManager
 
 /**
@@ -15,6 +17,8 @@ class SecureChatApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         FirebaseApp.initializeApp(this)
+        CryptoManager.init(this)
+        MnemonicManager.init(this)
         ThemeManager.applySavedTheme(this)
         createNotificationChannel()
     }

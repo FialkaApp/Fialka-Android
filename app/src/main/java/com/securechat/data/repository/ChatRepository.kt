@@ -3,7 +3,7 @@ package com.securechat.data.repository
 import android.content.Context
 import androidx.lifecycle.LiveData
 import com.securechat.crypto.CryptoManager
-import com.securechat.crypto.SymmetricRatchet
+import com.securechat.crypto.DoubleRatchet
 import com.securechat.data.local.SecureChatDatabase
 import com.securechat.data.model.*
 import com.securechat.data.remote.FirebaseRelay
@@ -23,7 +23,7 @@ import java.util.UUID
  *  - Room (local storage)
  *  - Firebase (remote relay)
  *  - CryptoManager (encryption/decryption)
- *  - SymmetricRatchet (Perfect Forward Secrecy)
+ *  - DoubleRatchet (X25519 DH ratchet + KDF chains — Perfect Forward Secrecy)
  *
  * Thread safety: ratchet operations are serialized per-conversation via Mutex
  * to prevent race conditions when multiple Firebase messages arrive simultaneously.
@@ -71,6 +71,16 @@ class ChatRepository(context: Context) {
 
     suspend fun createUser(displayName: String): UserLocal {
         val publicKey = CryptoManager.generateIdentityKeyPair()
+        val user = UserLocal(
+            userId = UUID.randomUUID().toString(),
+            displayName = displayName,
+            publicKey = publicKey
+        )
+        userDao.insertUser(user)
+        return user
+    }
+
+    suspend fun createUserWithKey(displayName: String, publicKey: String): UserLocal {
         val user = UserLocal(
             userId = UUID.randomUUID().toString(),
             displayName = displayName,
@@ -175,17 +185,22 @@ class ChatRepository(context: Context) {
         val sharedSecret = CryptoManager.performKeyAgreement(contactPublicKey)
         val isInitiator = myPublicKey < contactPublicKey
 
-        val (rootKey, sendChainKey, recvChainKey) = SymmetricRatchet.initializeChains(
-            sharedSecret, isInitiator
-        )
+        val init = if (isInitiator) {
+            DoubleRatchet.initializeAsInitiator(sharedSecret)
+        } else {
+            DoubleRatchet.initializeAsResponder(sharedSecret)
+        }
 
         val ratchetState = RatchetState(
             conversationId = conversationId,
-            rootKey = rootKey,
-            sendChainKey = sendChainKey,
-            recvChainKey = recvChainKey,
+            rootKey = init.rootKey,
+            sendChainKey = init.sendChainKey,
+            recvChainKey = init.recvChainKey,
             sendIndex = 0,
-            recvIndex = 0
+            recvIndex = 0,
+            localDhPublic = init.localDhPublic,
+            localDhPrivate = init.localDhPrivate,
+            remoteDhPublic = init.remoteDhPublic
         )
         ratchetDao.insertOrUpdate(ratchetState)
     }
@@ -232,25 +247,46 @@ class ChatRepository(context: Context) {
         }
 
         return getMutex(conversationId).withLock {
-            // 1. Get ratchet state and advance send chain
-            val ratchetState = getOrCreateRatchetState(conversationId, conversation.participantPublicKey)
-            val (newSendChainKey, messageKey) = SymmetricRatchet.advanceChain(ratchetState.sendChainKey)
+            // 1. Get ratchet state
+            var ratchetState = getOrCreateRatchetState(conversationId, conversation.participantPublicKey)
+
+            // 2. DH ratchet step: if we have the remote's DH public key but no sendChainKey yet,
+            //    or if we need to generate a fresh ephemeral for a new sending turn
+            if (ratchetState.sendChainKey.isEmpty() && ratchetState.remoteDhPublic.isNotEmpty()) {
+                // We know the remote's DH key — perform DH ratchet to derive send chain
+                val newEphemeral = CryptoManager.generateEphemeralKeyPair()
+                val dhResult = DoubleRatchet.dhRatchetStep(
+                    ratchetState.rootKey, newEphemeral.privateKeyBase64, ratchetState.remoteDhPublic
+                )
+                ratchetState = ratchetState.copy(
+                    rootKey = dhResult.newRootKey,
+                    sendChainKey = dhResult.newChainKey,
+                    sendIndex = 0,
+                    localDhPublic = newEphemeral.publicKeyBase64,
+                    localDhPrivate = newEphemeral.privateKeyBase64
+                )
+                ratchetDao.insertOrUpdate(ratchetState)
+            }
+
+            // 3. Advance symmetric send chain → get unique message key
+            val (newSendChainKey, messageKey) = DoubleRatchet.advanceChain(ratchetState.sendChainKey)
             val messageIndex = ratchetState.sendIndex
 
-            // 2. Embed messageIndex in plaintext for metadata privacy, then encrypt
+            // 4. Embed messageIndex in plaintext for metadata privacy, then encrypt
             val augmentedPlaintext = "$messageIndex|$plaintext"
             val encryptedData = CryptoManager.encrypt(augmentedPlaintext, messageKey)
 
-            // 3. Send to Firebase — metadata-hardened: no senderPublicKey, no messageIndex
+            // 5. Send to Firebase — include ephemeral DH public key for Double Ratchet
             val firebaseMessage = FirebaseMessage(
                 ciphertext = encryptedData.ciphertext,
                 iv = encryptedData.iv,
                 createdAt = System.currentTimeMillis(),
-                senderUid = FirebaseRelay.getCurrentUid() ?: ""
+                senderUid = FirebaseRelay.getCurrentUid() ?: "",
+                ephemeralKey = ratchetState.localDhPublic
             )
             FirebaseRelay.sendMessage(conversationId, firebaseMessage)
 
-            // 4. Firebase succeeded → persist ratchet state
+            // 6. Firebase succeeded → persist ratchet state
             ratchetDao.insertOrUpdate(
                 ratchetState.copy(
                     sendChainKey = newSendChainKey,
@@ -258,7 +294,7 @@ class ChatRepository(context: Context) {
                 )
             )
 
-            // 5. Save plaintext locally (with ephemeral timing if enabled)
+            // 7. Save plaintext locally (with ephemeral timing if enabled)
             val ephDuration = conversation.ephemeralDuration
             val expiresAt = if (ephDuration > 0) System.currentTimeMillis() + ephDuration else 0L
             val localMessage = MessageLocal(
@@ -307,7 +343,30 @@ class ChatRepository(context: Context) {
                 ?: return@withLock null
 
             // Get ratchet state
-            val ratchetState = getOrCreateRatchetState(conversationId, conversation.participantPublicKey)
+            var ratchetState = getOrCreateRatchetState(conversationId, conversation.participantPublicKey)
+
+            // DH ratchet step: if remote sent a new ephemeral key, perform DH ratchet
+            val remoteEphemeral = firebaseMessage.ephemeralKey
+
+            // Always store the remote ephemeral if present
+            if (remoteEphemeral.isNotEmpty() && remoteEphemeral != ratchetState.remoteDhPublic) {
+                val previousRemote = ratchetState.remoteDhPublic
+                ratchetState = ratchetState.copy(remoteDhPublic = remoteEphemeral)
+
+                // DH ratchet only if we already knew a previous remote ephemeral AND it changed
+                if (previousRemote.isNotEmpty()) {
+                    val dhResult = DoubleRatchet.dhRatchetStep(
+                        ratchetState.rootKey, ratchetState.localDhPrivate, remoteEphemeral
+                    )
+                    ratchetState = ratchetState.copy(
+                        rootKey = dhResult.newRootKey,
+                        recvChainKey = dhResult.newChainKey,
+                        recvIndex = 0,
+                        sendChainKey = ""  // Force DH ratchet on next send (healing)
+                    )
+                }
+                ratchetDao.insertOrUpdate(ratchetState)
+            }
 
             // Trial decryption: messageIndex is embedded in ciphertext as "index|plaintext"
             var tempChainKey = ratchetState.recvChainKey
@@ -316,7 +375,7 @@ class ChatRepository(context: Context) {
             var foundIndex = -1
 
             for (skip in 0..MAX_RATCHET_SKIP) {
-                val (nextChainKey, messageKey) = SymmetricRatchet.advanceChain(tempChainKey)
+                val (nextChainKey, messageKey) = DoubleRatchet.advanceChain(tempChainKey)
                 try {
                     val decrypted = CryptoManager.decrypt(
                         CryptoManager.EncryptedData(
@@ -354,8 +413,6 @@ class ChatRepository(context: Context) {
             }
 
             // Save locally (with ephemeral timing if conversation has it enabled)
-            // For received messages, expiresAt starts at 0 (timer starts on READ).
-            // If the chat is currently open, start the timer immediately.
             val ephDuration = conversation.ephemeralDuration
             val isCurrentlyViewing = currentlyViewedConversation == conversationId
             val expiresAt = if (ephDuration > 0 && isCurrentlyViewing) {
@@ -577,6 +634,34 @@ class ChatRepository(context: Context) {
         conversationDao.deleteConversation(conversation)
     }
 
+    /**
+     * Check if a conversation still exists on Firebase (not deleted by other user).
+     */
+    suspend fun isConversationAliveOnFirebase(conversationId: String): Boolean {
+        return try {
+            FirebaseRelay.conversationExists(conversationId)
+        } catch (_: Exception) {
+            false // Any error (permission denied, network) = treat as dead
+        }
+    }
+
+    /**
+     * Delete a stale conversation, its messages, ratchet state, and the contact.
+     * Used when re-adding a contact whose account was reset.
+     */
+    suspend fun deleteStaleConversation(conversationId: String, contact: Contact) {
+        messageDao.deleteMessagesForConversation(conversationId)
+        val conversation = conversationDao.getConversationById(conversationId)
+        if (conversation != null) {
+            conversationDao.deleteConversation(conversation)
+        }
+        ratchetDao.deleteState(conversationId)
+        contactDao.deleteContact(contact)
+        synchronized(ratchetMutexes) {
+            ratchetMutexes.remove(conversationId)
+        }
+    }
+
     // ========================================================================
     // FIREBASE CLEANUP
     // ========================================================================
@@ -671,12 +756,30 @@ class ChatRepository(context: Context) {
 
     /**
      * Delete all local data and cryptographic material:
-     * 1. Clear all Room tables (user, contacts, conversations, messages, ratchet state)
-     * 2. Delete the identity key pair from Android Keystore
-     * 3. Sign out from Firebase
+     * 1. Delete user profile + conversations + inbox from Firebase
+     * 2. Clear all Room tables (user, contacts, conversations, messages, ratchet state)
+     * 3. Delete the identity key pair from EncryptedSharedPreferences
+     * 4. Sign out from Firebase
      */
     suspend fun resetAccount() {
-        // Clear ratchet mutexes
+        // Gather data needed for Firebase cleanup BEFORE clearing local DB
+        val publicKey = CryptoManager.getPublicKey()
+        val conversations = conversationDao.getAllConversationsList()
+
+        // Clean Firebase
+        try {
+            FirebaseRelay.deleteUserProfile()
+            if (publicKey != null) {
+                FirebaseRelay.deleteInbox(publicKey)
+            }
+            for (convo in conversations) {
+                FirebaseRelay.deleteConversation(convo.conversationId)
+            }
+        } catch (_: Exception) {
+            // Best-effort cleanup — don't block account deletion
+        }
+
+        // Clear local data
         clearMutexes()
         db.clearAllTables()
         CryptoManager.deleteIdentityKey()

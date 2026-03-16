@@ -1,5 +1,6 @@
 package com.securechat.ui.chat
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -126,6 +127,24 @@ class ChatFragment : Fragment() {
         viewModel.sendError.observe(viewLifecycleOwner) { error ->
             if (error != null) {
                 Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Dead conversation detection
+        viewModel.conversationDead.observe(viewLifecycleOwner) { dead ->
+            if (dead) {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Conversation supprimée")
+                    .setMessage("Ce contact a supprimé son compte. Cette conversation n'existe plus sur le serveur.")
+                    .setCancelable(false)
+                    .setPositiveButton("Supprimer") { _, _ ->
+                        viewModel.deleteDeadConversation()
+                        findNavController().navigateUp()
+                    }
+                    .setNegativeButton("Retour") { _, _ ->
+                        findNavController().navigateUp()
+                    }
+                    .show()
             }
         }
 

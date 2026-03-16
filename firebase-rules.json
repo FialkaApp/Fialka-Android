@@ -2,6 +2,8 @@
   "rules": {
     "conversations": {
       "$conversationId": {
+        ".read": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
+        ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists() && !newData.exists()",
         "participants": {
           ".read": "auth != null",
           "$uid": {
@@ -14,7 +16,7 @@
           ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
           ".indexOn": ["createdAt"],
           "$messageId": {
-            ".validate": "newData.hasChildren(['ciphertext', 'iv', 'createdAt', 'senderUid']) && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('senderUid').isString()"
+            ".validate": "newData.hasChildren(['ciphertext', 'iv', 'createdAt', 'senderUid']) && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('senderUid').isString() && (!newData.hasChild('ephemeralKey') || newData.child('ephemeralKey').isString())"
           }
         },
         "settings": {

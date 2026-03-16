@@ -46,6 +46,10 @@ class OnboardingFragment : Fragment() {
             viewModel.createIdentity(displayName)
         }
 
+        binding.btnRestore.setOnClickListener {
+            findNavController().navigate(R.id.action_onboarding_to_restore)
+        }
+
         viewModel.state.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is OnboardingViewModel.OnboardingState.Idle -> {
@@ -58,7 +62,7 @@ class OnboardingFragment : Fragment() {
                 }
                 is OnboardingViewModel.OnboardingState.Success -> {
                     binding.progressBar.visibility = View.GONE
-                    findNavController().navigate(R.id.action_onboarding_to_conversations)
+                    findNavController().navigate(R.id.action_onboarding_to_backup)
                 }
                 is OnboardingViewModel.OnboardingState.Error -> {
                     binding.progressBar.visibility = View.GONE

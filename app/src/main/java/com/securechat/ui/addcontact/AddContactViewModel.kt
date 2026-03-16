@@ -42,13 +42,20 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
 
         viewModelScope.launch {
             try {
-                // Check for duplicate contact
+                // Check for duplicate contact — if conversation is dead, reset it
                 val existingContact = repository.getContactByPublicKey(trimmedKey)
                 if (existingContact != null) {
-                    _state.value = AddContactState.Error(
-                        "Ce contact existe déjà sous le nom \"${existingContact.displayName}\"."
-                    )
-                    return@launch
+                    val myKey = CryptoManager.getPublicKey() ?: ""
+                    val convoId = CryptoManager.deriveConversationId(myKey, trimmedKey)
+                    val convoAlive = repository.isConversationAliveOnFirebase(convoId)
+                    if (convoAlive) {
+                        _state.value = AddContactState.Error(
+                            "Ce contact existe déjà sous le nom \"${existingContact.displayName}\"."
+                        )
+                        return@launch
+                    }
+                    // Dead conversation — clean up and recreate
+                    repository.deleteStaleConversation(convoId, existingContact)
                 }
 
                 // Add contact to local DB

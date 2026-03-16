@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 /**
  * Local user identity.
  * Stores the user's display name and public key.
- * Private key is stored in Android Keystore, not here.
+ * Private key is stored in EncryptedSharedPreferences (Keystore-backed), not here.
  */
 @Entity(tableName = "user_local")
 data class UserLocal(

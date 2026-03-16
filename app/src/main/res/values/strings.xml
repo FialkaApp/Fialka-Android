@@ -6,7 +6,20 @@
     <string name="onboarding_title">SecureChat</string>
     <string name="onboarding_subtitle">Chat chiffré de bout en bout\nSans numéro de téléphone\nRelay gratuit via Firebase</string>
     <string name="create_identity">Créer mon identité</string>
+    <string name="restore_identity">Restaurer mon compte</string>
     <string name="enter_display_name">Entrez votre pseudo</string>
+
+    <!-- Backup Phrase -->
+    <string name="backup_phrase_title">Sauvegarde ta phrase</string>
+    <string name="backup_phrase_subtitle">Notez ces 24 mots dans l\'ordre.\nIls permettent de restaurer votre compte.</string>
+    <string name="backup_phrase_confirm">J\'ai noté ma phrase de récupération</string>
+    <string name="backup_phrase_continue">Continuer</string>
+
+    <!-- Restore -->
+    <string name="restore_title">Restaurer mon compte</string>
+    <string name="restore_subtitle">Entrez vos 24 mots de récupération</string>
+    <string name="restore_mnemonic_hint">24 mots séparés par des espaces</string>
+    <string name="restore_button">Restaurer</string>
 
     <!-- Profile -->
     <string name="profile_title">Mon Profil</string>

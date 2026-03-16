@@ -37,7 +37,7 @@ class LockScreenActivity : AppCompatActivity() {
         setContentView(R.layout.activity_lock_screen)
 
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
-        @Suppress("DEPRECATION") // Safe on minSdk 26; no replacement until API 35
+        @Suppress("DEPRECATION") // Safe on minSdk 33; no replacement until API 35
         window.statusBarColor = ContextCompat.getColor(this, R.color.primary_dark)
 
         tvTitle = findViewById(R.id.tvLockTitle)

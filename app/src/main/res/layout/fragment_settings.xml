@@ -370,7 +370,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="ECDH P-256 · AES-256-GCM · Symmetric Ratchet"
+                        android:text="X25519 · AES-256-GCM · Double Ratchet"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>

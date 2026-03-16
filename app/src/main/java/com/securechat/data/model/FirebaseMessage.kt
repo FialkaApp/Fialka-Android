@@ -18,12 +18,19 @@ data class FirebaseMessage(
     val ciphertext: String = "",
     val iv: String = "",
     val createdAt: Long = 0L,
-    val senderUid: String = ""
+    val senderUid: String = "",
+    val ephemeralKey: String = ""   // Base64 X25519 DH public key (Double Ratchet)
 ) {
-    fun toMap(): Map<String, Any> = mapOf(
-        "ciphertext" to ciphertext,
-        "iv" to iv,
-        "createdAt" to createdAt,
-        "senderUid" to senderUid
-    )
+    fun toMap(): Map<String, Any> {
+        val map = mutableMapOf<String, Any>(
+            "ciphertext" to ciphertext,
+            "iv" to iv,
+            "createdAt" to createdAt,
+            "senderUid" to senderUid
+        )
+        if (ephemeralKey.isNotEmpty()) {
+            map["ephemeralKey"] = ephemeralKey
+        }
+        return map
+    }
 }

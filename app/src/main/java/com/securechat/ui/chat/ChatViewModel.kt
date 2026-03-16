@@ -52,6 +52,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _isAccepted = MutableLiveData<Boolean>(true)
     val isAccepted: LiveData<Boolean> = _isAccepted
 
+    private val _conversationDead = MutableLiveData<Boolean>(false)
+    val conversationDead: LiveData<Boolean> = _conversationDead
+
     private fun buildChatItems(messages: List<MessageLocal>): List<ChatItem> {
         val realMessages = messages.filter { !it.isInfoMessage }
 
@@ -169,7 +172,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 repository.sendMessage(conversationId, plaintext.trim())
                 _sendError.value = null
             } catch (e: Exception) {
-                _sendError.value = e.message ?: "Échec de l'envoi"
+                // Check if conversation was deleted on Firebase
+                val alive = repository.isConversationAliveOnFirebase(conversationId)
+                if (!alive) {
+                    _conversationDead.postValue(true)
+                } else {
+                    _sendError.value = e.message ?: "Échec de l'envoi"
+                }
             }
         }
     }
@@ -196,6 +205,24 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
             .catch { /* Silently handle */ }
             .launchIn(viewModelScope)
+    }
+
+    /**
+     * Delete the dead conversation locally so the user can re-add the contact later.
+     * Cleans up: messages, conversation, ratchet state, and contact.
+     */
+    fun deleteDeadConversation() {
+        viewModelScope.launch {
+            val conversation = repository.getConversation(conversationId)
+            if (conversation != null) {
+                val contact = repository.getContactByPublicKey(conversation.participantPublicKey)
+                if (contact != null) {
+                    repository.deleteStaleConversation(conversationId, contact)
+                    return@launch
+                }
+            }
+            repository.deleteConversation(conversationId)
+        }
     }
 
     /** Periodically delete expired ephemeral messages (every 5s). */

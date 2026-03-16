@@ -22,5 +22,9 @@ data class RatchetState(
     val sendChainKey: String,       // Base64 — current sending chain key
     val recvChainKey: String,       // Base64 — current receiving chain key
     val sendIndex: Int = 0,         // Next sending message index
-    val recvIndex: Int = 0          // Next expected receiving message index
+    val recvIndex: Int = 0,         // Next expected receiving message index
+    // --- Double Ratchet DH state ---
+    val localDhPublic: String = "",   // Base64 — our current ephemeral DH public key
+    val localDhPrivate: String = "",  // Base64 — our current ephemeral DH private key
+    val remoteDhPublic: String = ""   // Base64 — their latest ephemeral DH public key
 )

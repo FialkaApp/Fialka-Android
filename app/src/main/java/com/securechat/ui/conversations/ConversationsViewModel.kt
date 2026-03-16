@@ -88,13 +88,22 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
 
             repository.listenForContactRequests()
                 .onEach { request ->
-                    // Skip if already accepted
-                    if (!repository.isContactRequestAlreadyAccepted(request.conversationId)) {
-                        // Avoid duplicates in pending list
-                        if (pendingList.none { it.conversationId == request.conversationId }) {
-                            pendingList.add(request)
-                            _pendingRequests.postValue(pendingList.toList())
+                    // If conversation exists locally, check if it's still alive on Firebase
+                    if (repository.isContactRequestAlreadyAccepted(request.conversationId)) {
+                        val alive = repository.isConversationAliveOnFirebase(request.conversationId)
+                        if (alive) return@onEach // Truly active — skip
+
+                        // Stale conversation — clean up so user can re-accept
+                        val contact = repository.getContactByPublicKey(request.senderPublicKey)
+                        if (contact != null) {
+                            repository.deleteStaleConversation(request.conversationId, contact)
                         }
+                    }
+
+                    // Avoid duplicates in pending list
+                    if (pendingList.none { it.conversationId == request.conversationId }) {
+                        pendingList.add(request)
+                        _pendingRequests.postValue(pendingList.toList())
                     }
                 }
                 .catch { e ->

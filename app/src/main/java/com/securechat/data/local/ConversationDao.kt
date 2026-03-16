@@ -18,6 +18,9 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations WHERE accepted = 1")
     suspend fun getAcceptedConversations(): List<Conversation>
 
+    @Query("SELECT * FROM conversations")
+    suspend fun getAllConversationsList(): List<Conversation>
+
     @Update
     suspend fun updateConversation(conversation: Conversation)
 

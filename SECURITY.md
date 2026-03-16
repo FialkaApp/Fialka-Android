@@ -4,8 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.2.x   | ✅ Current |
-| 1.0.x   | ⚠️ Outdated |
+| 2.1.x   | ✅ Current |
+| 2.0.x   | ⚠️ Outdated |
+| 1.x     | ❌ Unsupported |
 
 ## Reporting a Vulnerability
 
@@ -21,10 +22,13 @@ SecureChat uses the following cryptographic primitives:
 
 | Component | Algorithm | Notes |
 |-----------|-----------|-------|
-| Identity keys | EC P-256 (secp256r1) | Stored in Android Keystore (hardware-backed) |
-| Key exchange | ECDH | Shared secret derived from P-256 keys |
+| Identity keys | X25519 (Curve25519) | Software JCA, private in EncryptedSharedPreferences (Keystore-backed) |
+| Identity backup | BIP-39 mnemonic (24 words) | 256 bits entropy + 8-bit SHA-256 checksum = 264 bits = 24 × 11-bit words |
+| Key restore | X25519 DH with base point u=9 | Private key → DH(priv, basepoint) → public key derivation |
+| Key exchange | X25519 ECDH | Shared secret derived from Curve25519 keys |
 | Key derivation | HKDF-SHA256 | Root key → send/recv chain keys |
-| Message keys | HMAC-SHA256 KDF chain | Symmetric Ratchet (PFS) |
+| Message keys | HMAC-SHA256 KDF chain | Double Ratchet (DH ratchet + KDF chains, PFS + healing) |
+| DH Ratchet | X25519 ephemeral keys | New key pair per direction change → post-compromise healing |
 | Message encryption | AES-256-GCM | 12-byte random IV, 128-bit auth tag |
 | Conversation ID | SHA-256 | Hash of sorted public keys |
 | Fingerprint emojis | SHA-256 → 64-palette × 16 | 96-bit entropy, anti-MITM |
@@ -32,7 +36,7 @@ SecureChat uses the following cryptographic primitives:
 
 ## Known Limitations (V1)
 
-1. **Symmetric Ratchet only** — No DH ratchet rotation (unlike Signal's full Double Ratchet). If an entire chain key is compromised, future messages in that chain direction are exposed until the next conversation reset.
+1. ~~**Symmetric Ratchet only** — No DH ratchet rotation (unlike Signal's full Double Ratchet). If an entire chain key is compromised, future messages in that chain direction are exposed until the next conversation reset.~~ **FIXED in V2:** Full Double Ratchet with X25519 ephemeral DH keys. Compromise of a chain key is healed at the next direction change (DH ratchet step).
 
 2. **No key verification** — ~~Users cannot verify that a scanned public key truly belongs to the intended contact (vulnerable to MITM during initial key exchange).~~ **FIXED in V1:** Emoji fingerprint verification (96-bit shared fingerprint, visual comparison, badge system).
 
@@ -40,15 +44,17 @@ SecureChat uses the following cryptographic primitives:
 
 4. **Metadata visible** — ~~Firebase sees who communicates with whom and when (conversation IDs, timestamps).~~ **PARTIALLY FIXED in V1.1:** `senderPublicKey` and `messageIndex` removed from wire format. Firebase still sees: `senderUid` (anonymous), `createdAt` (timestamps), conversation IDs, participant UIDs. Full metadata privacy would require a mix network or onion routing (V3+).
 
-5. **No message authentication beyond GCM** — Messages are not signed with the sender's identity key, only authenticated by GCM tag (which proves knowledge of the shared secret). In 1-to-1 conversations this is acceptable (only 2 participants share the key). For future group chats, ECDSA signatures will be required (V2 planned).
+5. **No message authentication beyond GCM** — Messages are not signed with the sender's identity key, only authenticated by GCM tag (which proves knowledge of the shared secret). In 1-to-1 conversations this is acceptable (only 2 participants share the key). For future group chats, ECDSA signatures will be required (V3 planned).
 
-6. **Ephemeral timer client-enforced** — Ephemeral message deletion is performed client-side (local Room delete + Firebase remove). A modified client could skip deletion. Server-enforced TTL per-message would require Cloud Functions (V2+).
+6. **Ephemeral timer client-enforced** — Ephemeral message deletion is performed client-side (local Room delete + Firebase remove). A modified client could skip deletion. Server-enforced TTL per-message would require Cloud Functions (V3+).
+
+7. **Mnemonic phrase unencrypted** — The 24-word BIP-39 backup phrase is displayed in plaintext on screen. If someone sees the screen during backup, or if the user stores the phrase insecurely, the identity key is compromised. The user is responsible for secure physical storage of their mnemonic.
 
 ## Security Hardening Implemented
 
-- ✅ All intermediate key material (shared secrets, chain keys, message keys) is zeroed from memory after use
+- ✅ All intermediate key material (shared secrets, chain keys, message keys, DH ephemeral private keys) is zeroed from memory after use
 - ✅ SecureRandom singleton for IV generation (never reused)
-- ✅ Private key deleted from Keystore on account reset
+- ✅ Private key stored in EncryptedSharedPreferences (Keystore-backed AES-256-GCM) on account reset
 - ✅ Ratchet state persisted only after successful Firebase send (atomic)
 - ✅ Mutex per conversation to prevent ratchet race conditions
 - ✅ Firebase re-authentication on app resume
@@ -77,5 +83,12 @@ SecureChat uses the following cryptographic primitives:
 - ✅ Ephemeral duration synced between participants via Firebase RTDB (`/settings/ephemeralDuration`)
 - ✅ Ephemeral deletion: local Room delete + Firebase node removal
 - ✅ Firebase security rules: read/write restricted to conversation participants (messages, settings)
+- ✅ Firebase security rules: conversation-level delete restricted to participants (`!newData.exists()`)
 - ✅ Dark mode: full DayNight theme with adaptive colors (backgrounds, bubbles, badges)
 - ✅ Theme-aware drawables: info boxes, backgrounds use `@color/` resources with night variants
+- ✅ BIP-39 mnemonic backup: 24 words encode 256-bit X25519 private key + 8-bit SHA-256 checksum
+- ✅ Mnemonic restore: private key → DH with base point u=9 → deterministic public key derivation
+- ✅ Account deletion: full Firebase cleanup (profile `/users/{uid}`, inbox `/inbox/{hash}`, all conversations)
+- ✅ Dead conversation detection: `conversationExists()` returns false on PERMISSION_DENIED (deleted conversation)
+- ✅ Stale contact cleanup: dead conversations cleaned from local DB (messages, ratchet state, contact) before re-invitation
+- ✅ Orphaned profile cleanup: `removeOldUserByPublicKey()` removes old `/users/` node on account restore

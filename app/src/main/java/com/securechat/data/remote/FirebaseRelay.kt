@@ -494,8 +494,96 @@ object FirebaseRelay {
     }
 
     // ========================================================================
-    // SIGN OUT
+    // SIGN OUT / ACCOUNT CLEANUP
     // ========================================================================
+
+    /**
+     * Delete the current user's profile from Firebase (/users/{uid}).
+     */
+    suspend fun deleteUserProfile() {
+        val uid = auth.currentUser?.uid ?: return
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("users")
+                .child(uid)
+                .removeValue()
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) }
+        }
+    }
+
+    /**
+     * Delete a conversation from Firebase (/conversations/{id}).
+     */
+    suspend fun deleteConversation(conversationId: String) {
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("conversations")
+                .child(conversationId)
+                .removeValue()
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) }
+        }
+    }
+
+    /**
+     * Delete inbox entries for a given public key hash.
+     */
+    suspend fun deleteInbox(publicKey: String) {
+        val hash = hashPublicKey(publicKey)
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("inbox")
+                .child(hash)
+                .removeValue()
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) }
+        }
+    }
+
+    /**
+     * Find and remove any existing /users/{uid} node that has the given publicKey.
+     * Used during restore to clean up the orphaned old profile.
+     */
+    suspend fun removeOldUserByPublicKey(publicKey: String) {
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("users")
+                .orderByChild("publicKey")
+                .equalTo(publicKey)
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        for (child in snapshot.children) {
+                            child.ref.removeValue()
+                        }
+                        cont.resume(Unit)
+                    }
+                    override fun onCancelled(error: DatabaseError) {
+                        cont.resume(Unit)
+                    }
+                })
+        }
+    }
+
+    /**
+     * Check if a conversation node exists on Firebase.
+     * PERMISSION_DENIED means the conversation was deleted (participant check fails) → false.
+     */
+    suspend fun conversationExists(conversationId: String): Boolean =
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("conversations")
+                .child(conversationId)
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        cont.resume(snapshot.exists())
+                    }
+                    override fun onCancelled(error: DatabaseError) {
+                        // Permission denied = conversation deleted or not a participant = dead
+                        cont.resume(false)
+                    }
+                })
+        }
 
     /**
      * Sign out from Firebase Authentication.
