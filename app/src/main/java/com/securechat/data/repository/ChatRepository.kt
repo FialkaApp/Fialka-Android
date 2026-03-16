@@ -7,6 +7,7 @@ import com.securechat.crypto.SymmetricRatchet
 import com.securechat.data.local.SecureChatDatabase
 import com.securechat.data.model.*
 import com.securechat.data.remote.FirebaseRelay
+import com.securechat.util.EphemeralManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -599,9 +600,11 @@ class ChatRepository(context: Context) {
     /**
      * Set ephemeral duration for a conversation.
      * Writes to BOTH local DB and Firebase so the other participant sees it too.
+     * Also inserts a local info message visible in the chat.
      */
     suspend fun setEphemeralDuration(conversationId: String, durationMs: Long) {
         conversationDao.updateEphemeralDuration(conversationId, durationMs)
+        insertEphemeralInfoMessage(conversationId, durationMs)
         try {
             FirebaseRelay.setEphemeralDuration(conversationId, durationMs)
         } catch (_: Exception) { }
@@ -619,6 +622,28 @@ class ChatRepository(context: Context) {
      */
     suspend fun syncEphemeralDurationLocally(conversationId: String, durationMs: Long) {
         conversationDao.updateEphemeralDuration(conversationId, durationMs)
+    }
+
+    /**
+     * Insert a local-only info message when ephemeral setting changes.
+     * Does NOT reveal any username — just the action and duration.
+     */
+    suspend fun insertEphemeralInfoMessage(conversationId: String, durationMs: Long) {
+        val text = if (durationMs > 0) {
+            "⏱ Les messages éphémères ont été activés sur ${EphemeralManager.getLabelForDuration(durationMs)}"
+        } else {
+            "⏱ Les messages éphémères ont été désactivés"
+        }
+        val infoMessage = MessageLocal(
+            localId = UUID.randomUUID().toString(),
+            conversationId = conversationId,
+            senderPublicKey = "",
+            plaintext = text,
+            timestamp = System.currentTimeMillis(),
+            isMine = false,
+            isInfoMessage = true
+        )
+        messageDao.insertMessage(infoMessage)
     }
 
     /** Delete all expired ephemeral messages. */

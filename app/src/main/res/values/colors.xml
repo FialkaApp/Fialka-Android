@@ -21,4 +21,5 @@
     <color name="nav_bar">#FFFFFFFF</color>
     <color name="info_box_background">#FFF3F8FF</color>
     <color name="info_box_stroke">#FFCDE0F5</color>
+    <color name="info_message_background">#FFE8E8E8</color>
 </resources>

@@ -21,6 +21,7 @@ import java.util.Locale
 sealed class ChatItem {
     data class Message(val message: MessageLocal) : ChatItem()
     object UnreadDivider : ChatItem()
+    data class InfoMessage(val text: String, val timestamp: Long) : ChatItem()
 }
 
 class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
@@ -29,12 +30,14 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
         private const val VIEW_TYPE_SENT = 0
         private const val VIEW_TYPE_RECEIVED = 1
         private const val VIEW_TYPE_UNREAD_DIVIDER = 2
+        private const val VIEW_TYPE_INFO = 3
         private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     }
 
     override fun getItemViewType(position: Int): Int {
         return when (val item = getItem(position)) {
             is ChatItem.UnreadDivider -> VIEW_TYPE_UNREAD_DIVIDER
+            is ChatItem.InfoMessage -> VIEW_TYPE_INFO
             is ChatItem.Message -> if (item.message.isMine) VIEW_TYPE_SENT else VIEW_TYPE_RECEIVED
         }
     }
@@ -51,6 +54,11 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
                 val view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.item_unread_divider, parent, false)
                 UnreadDividerViewHolder(view)
+            }
+            VIEW_TYPE_INFO -> {
+                val view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_info_message, parent, false)
+                InfoViewHolder(view)
             }
             else -> {
                 val binding = ItemMessageReceivedBinding.inflate(
@@ -70,6 +78,10 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
             is ReceivedViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
                 holder.bind(msg)
+            }
+            is InfoViewHolder -> {
+                val info = getItem(position) as ChatItem.InfoMessage
+                holder.bind(info.text)
             }
             is UnreadDividerViewHolder -> { /* static view, nothing to bind */ }
         }
@@ -111,9 +123,17 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
 
     class UnreadDividerViewHolder(view: View) : RecyclerView.ViewHolder(view)
 
+    class InfoViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val tvInfoMessage: android.widget.TextView = view.findViewById(R.id.tvInfoMessage)
+        fun bind(text: String) {
+            tvInfoMessage.text = text
+        }
+    }
+
     object ChatItemDiffCallback : DiffUtil.ItemCallback<ChatItem>() {
         override fun areItemsTheSame(a: ChatItem, b: ChatItem): Boolean {
             if (a is ChatItem.UnreadDivider && b is ChatItem.UnreadDivider) return true
+            if (a is ChatItem.InfoMessage && b is ChatItem.InfoMessage) return a.timestamp == b.timestamp
             if (a is ChatItem.Message && b is ChatItem.Message) return a.message.localId == b.message.localId
             return false
         }

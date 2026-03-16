@@ -26,6 +26,12 @@ Thumbs.db
 # --- Firebase secrets (NEVER commit!) ---
 app/google-services.json
 
+# --- V2 CDC & tracking (sensitive — never push) ---
+SecureChat_V2_CDC_Final.md
+SecureChat_V2_CDC_Final.docx
+V2_PROGRESS.md
+securechat-relay/
+
 # --- Signing ---
 *.jks
 *.keystore

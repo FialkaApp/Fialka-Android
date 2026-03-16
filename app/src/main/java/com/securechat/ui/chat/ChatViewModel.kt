@@ -53,21 +53,27 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val isAccepted: LiveData<Boolean> = _isAccepted
 
     private fun buildChatItems(messages: List<MessageLocal>): List<ChatItem> {
+        val realMessages = messages.filter { !it.isInfoMessage }
+
         // On the first emission, anchor the divider to the first unread message's localId
-        if (dividerAnchorId == null && initialUnreadCount > 0 && messages.isNotEmpty()) {
-            val idx = messages.size - initialUnreadCount
-            if (idx > 0 && idx < messages.size) {
-                dividerAnchorId = messages[idx].localId
+        if (dividerAnchorId == null && initialUnreadCount > 0 && realMessages.isNotEmpty()) {
+            val idx = realMessages.size - initialUnreadCount
+            if (idx > 0 && idx < realMessages.size) {
+                dividerAnchorId = realMessages[idx].localId
             }
             initialUnreadCount = 0 // consumed
         }
 
         val items = mutableListOf<ChatItem>()
         for (msg in messages) {
-            if (msg.localId == dividerAnchorId) {
+            if (!msg.isInfoMessage && msg.localId == dividerAnchorId) {
                 items.add(ChatItem.UnreadDivider)
             }
-            items.add(ChatItem.Message(msg))
+            if (msg.isInfoMessage) {
+                items.add(ChatItem.InfoMessage(msg.plaintext, msg.timestamp))
+            } else {
+                items.add(ChatItem.Message(msg))
+            }
         }
         return items
     }
@@ -175,16 +181,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Listen for remote ephemeral duration changes from Firebase.
      * When the OTHER user changes ephemeral setting, we update our local DB
-     * so both sides stay in sync.
+     * so both sides stay in sync, and insert an info message in the chat.
      */
     private fun listenForEphemeralChanges(conversationId: String) {
         repository.listenForEphemeralDuration(conversationId)
             .onEach { duration ->
                 _ephemeralDuration.postValue(duration)
-                // Sync remote → local DB
+                // Sync remote → local DB + insert info message if changed
                 val currentConv = repository.getConversation(conversationId)
                 if (currentConv != null && currentConv.ephemeralDuration != duration) {
                     repository.syncEphemeralDurationLocally(conversationId, duration)
+                    repository.insertEphemeralInfoMessage(conversationId, duration)
                 }
             }
             .catch { /* Silently handle */ }
