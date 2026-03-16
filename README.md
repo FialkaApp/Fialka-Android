@@ -61,8 +61,6 @@
 | 🕵️ **Metadata hardening** | senderPublicKey + messageIndex supprimés de Firebase — graphe social protégé |
 | 🔒 **App Lock** | Code PIN 4 chiffres + déverrouillage biométrique (empreinte/visage) — opt-in |
 | ⏱️ **Messages éphémères** | 10 durées (30s → 1 mois) — timer synchro Firebase entre les 2 utilisateurs |
-| 😂 **Réactions** | Double-tap sur un message → emoji réaction (8 emojis) — synchro Firebase |
-| 💬 **Messages info** | Notification dans le chat : « Alice a réagi 👍 au message… » (style Telegram) |
 | 🌙 **Dark mode** | Thème DayNight complet — couleurs adaptatives pour toutes les vues |
 | ⚙️ **Paramètres avancés** | Hub avec 4 sous-écrans : Apparence, Notifications, Sécurité, Éphémère |
 | 🎨 **Thème personnalisable** | Choix du mode : Système / Clair / Sombre |
@@ -237,16 +235,6 @@ Pour chaque message N :
 }
 ```
 
-**Réactions (en clair — emoji seulement, pas de contenu message) :**
-```json
-{
-  "emoji": "👍",
-  "messageTimestamp": 1700000000000,
-  "reactorUid": "firebase-anonymous-uid",
-  "createdAt": 1700000000000
-}
-```
-
 **Paramètres éphémères (synchro entre les 2 utilisateurs) :**
 ```
 /conversations/{id}/settings/ephemeralDuration = 3600000
@@ -282,7 +270,6 @@ Pour chaque message N :
 | Attaque MITM | ✅ | Fingerprint emojis 96-bit (vérification visuelle) |
 | Vol du téléphone déverrouillé | ✅ | Keystore, SQLCipher, App Lock PIN + biométrie, auto-lock |
 | Messages sensibles oubliés | ✅ | Messages éphémères (timer sur envoi / lecture) |
-| Réactions exposent du contenu | ⚠️ | Les emojis de réaction transitent en clair (pas de contenu message) |
 | Métadonnées (qui/quand) | ⚠️ | senderPublicKey + messageIndex supprimés ; senderUid + timestamps restent |
 
 > Voir [`SECURITY.md`](SECURITY.md) pour l'analyse complète.
@@ -404,12 +391,12 @@ SecureChat/
 │       │   │   │   ├── UserLocal.kt          # Identité locale
 │       │   │   │   ├── Contact.kt            # Contact (pseudo + pubkey)
 │       │   │   │   ├── Conversation.kt       # Conversation (ephemeral, fingerprint, etc.)
-│       │   │   │   ├── MessageLocal.kt       # Message (plaintext, reaction, ephemeral, info)
+│       │   │   │   ├── MessageLocal.kt       # Message (plaintext, ephemeral)
 │       │   │   │   ├── FirebaseMessage.kt    # Message chiffré (Firebase)
 │       │   │   │   └── RatchetState.kt       # État du ratchet par conversation
 │       │   │   │
 │       │   │   ├── remote/
-│       │   │   │   └── FirebaseRelay.kt      # Auth anonyme + relay + ephemeral sync + reactions
+│       │   │   │   └── FirebaseRelay.kt      # Auth anonyme + relay + ephemeral sync
 │       │   │   │
 │       │   │   └── repository/
 │       │   │       └── ChatRepository.kt     # Source de vérité unique (Mutex-protected)
@@ -428,10 +415,10 @@ SecureChat/
 │       │       │   ├── ConversationsAdapter.kt
 │       │       │   └── ContactRequestsAdapter.kt
 │       │       ├── addcontact/               # Scanner QR + saisie manuelle
-│       │       ├── chat/                     # Messages E2E + bulles + réactions
+│       │       ├── chat/                     # Messages E2E + bulles
 │       │       │   ├── ChatFragment.kt
 │       │       │   ├── ChatViewModel.kt
-│       │       │   ├── MessagesAdapter.kt    # Bulles sent/received + info + divider
+│       │       │   ├── MessagesAdapter.kt    # Bulles sent/received + divider
 │       │       │   ├── ConversationProfileFragment.kt  # Hub profil conversation
 │       │       │   └── FingerprintFragment.kt          # Vérification empreinte emojis
 │       │       ├── profile/                  # QR code, copier/partager, supprimer
@@ -506,9 +493,8 @@ SecureChat/
 - ✅ **Auto-lock timeout** — Configurable (5s, 15s, 30s, 1min, 5min), défaut 5 secondes
 - ✅ **Messages éphémères** — Timer côté envoi (immédiat) + côté lecture (activé quand le chat s'ouvre)
 - ✅ **Ephemeral sync** — Durée éphémère synchro Firebase entre les 2 participants
-- ✅ **Réactions synchro** — Emoji réaction envoyé via Firebase, message info affiché
-- ✅ **Firebase security rules** — Lecture/écriture restreinte aux participants (messages, settings, reactions)
-- ✅ **Dark mode** — Thème DayNight avec couleurs adaptatives (bg, bulles, badges, info boxes)
+- ✅ **Firebase security rules** — Lecture/écriture restreinte aux participants (messages, settings)
+- ✅ **Dark mode** — Thème DayNight avec couleurs adaptatives (bg, bulles, badges)
 
 ### Limites connues
 
@@ -548,7 +534,6 @@ SecureChat/
 - [x] Profil amélioré — Cards, en-tête avatar, zone danger, UX modernisée
 - [x] Paramètres améliorés — Sections verrouillage / notifications / sécurité
 - [x] Messages éphémères — Timer côté envoi + côté lecture, durée synchro Firebase
-- [x] Réactions emoji — Sync Firebase, messages info style Telegram
 - [x] Dark mode — Thème DayNight complet, couleurs adaptatives
 - [x] Auto-lock timeout — Configurable (5s → 5min), défaut 5 secondes
 - [x] Sous-écran Fingerprint — Visualisation + vérification dédiée

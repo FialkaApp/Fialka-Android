@@ -641,66 +641,6 @@ class ChatRepository(context: Context) {
     }
 
     // ========================================================================
-    // MESSAGE REACTIONS (SYNCED VIA FIREBASE)
-    // ========================================================================
-
-    /** Toggle a reaction on a message — updates local DB + syncs to Firebase. */
-    suspend fun setReaction(messageId: String, emoji: String, conversationId: String) {
-        messageDao.updateReaction(messageId, emoji)
-        val message = messageDao.getMessageById(messageId) ?: return
-        try {
-            FirebaseRelay.sendReaction(conversationId, message.timestamp, emoji)
-        } catch (_: Exception) { }
-    }
-
-    /**
-     * Listen for remote reaction changes from Firebase.
-     * When the other user reacts to a message, we update our local DB
-     * and insert an info message (like Telegram's reaction notifications).
-     */
-    fun listenForReactions(conversationId: String): Flow<FirebaseRelay.ReactionEvent> =
-        FirebaseRelay.listenForReactions(conversationId)
-
-    /**
-     * Apply a remote reaction from the other user:
-     *  1. Find the target message by timestamp
-     *  2. Update its reaction field
-     *  3. Insert an info message ("ContactName a réagi 👍 au message «…»")
-     */
-    suspend fun applyRemoteReaction(
-        conversationId: String,
-        messageTimestamp: Long,
-        emoji: String,
-        contactDisplayName: String
-    ) {
-        val message = messageDao.getMessageByTimestamp(conversationId, messageTimestamp) ?: return
-        // Skip if reaction is already the same
-        if (message.reaction == emoji) return
-
-        messageDao.updateReaction(message.localId, emoji)
-
-        // Build info message text
-        val infoText = if (emoji.isNotEmpty()) {
-            val preview = message.plaintext.take(25) + if (message.plaintext.length > 25) "…" else ""
-            "$contactDisplayName a réagi $emoji au message « $preview »"
-        } else {
-            val preview = message.plaintext.take(25) + if (message.plaintext.length > 25) "…" else ""
-            "$contactDisplayName a retiré sa réaction du message « $preview »"
-        }
-
-        val infoMessage = MessageLocal(
-            localId = UUID.randomUUID().toString(),
-            conversationId = conversationId,
-            senderPublicKey = "",
-            plaintext = infoText,
-            timestamp = System.currentTimeMillis(),
-            isMine = false,
-            isInfoMessage = true
-        )
-        messageDao.insertMessage(infoMessage)
-    }
-
-    // ========================================================================
     // RESET / DELETE ACCOUNT
     // ========================================================================
 

@@ -23,13 +23,6 @@
           "ephemeralDuration": {
             ".validate": "newData.isNumber() && newData.val() >= 0"
           }
-        },
-        "reactions": {
-          ".read": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
-          ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
-          "$reactionId": {
-            ".validate": "newData.hasChildren(['emoji', 'messageTimestamp', 'reactorUid', 'createdAt'])"
-          }
         }
       }
     },

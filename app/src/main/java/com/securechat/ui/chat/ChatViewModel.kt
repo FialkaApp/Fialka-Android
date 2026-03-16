@@ -53,28 +53,21 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val isAccepted: LiveData<Boolean> = _isAccepted
 
     private fun buildChatItems(messages: List<MessageLocal>): List<ChatItem> {
-        // Filter out info messages for divider positioning (count only real messages)
-        val realMessages = messages.filter { !it.isInfoMessage }
-
         // On the first emission, anchor the divider to the first unread message's localId
-        if (dividerAnchorId == null && initialUnreadCount > 0 && realMessages.isNotEmpty()) {
-            val idx = realMessages.size - initialUnreadCount
-            if (idx > 0 && idx < realMessages.size) {
-                dividerAnchorId = realMessages[idx].localId
+        if (dividerAnchorId == null && initialUnreadCount > 0 && messages.isNotEmpty()) {
+            val idx = messages.size - initialUnreadCount
+            if (idx > 0 && idx < messages.size) {
+                dividerAnchorId = messages[idx].localId
             }
             initialUnreadCount = 0 // consumed
         }
 
         val items = mutableListOf<ChatItem>()
         for (msg in messages) {
-            if (!msg.isInfoMessage && msg.localId == dividerAnchorId) {
+            if (msg.localId == dividerAnchorId) {
                 items.add(ChatItem.UnreadDivider)
             }
-            if (msg.isInfoMessage) {
-                items.add(ChatItem.InfoMessage(msg.plaintext, msg.timestamp))
-            } else {
-                items.add(ChatItem.Message(msg))
-            }
+            items.add(ChatItem.Message(msg))
         }
         return items
     }
@@ -107,9 +100,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             // Listen for remote ephemeral setting changes (other user changed it)
             listenForEphemeralChanges(conversationId)
-
-            // Listen for remote reaction changes (other user reacted to a message)
-            listenForRemoteReactions(conversationId)
 
             // Ensure Firebase auth is still active (can expire after app kill)
             if (!FirebaseRelay.isAuthenticated()) {
@@ -178,13 +168,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** Toggle a reaction emoji on a message — syncs to Firebase. */
-    fun toggleReaction(messageId: String, emoji: String) {
-        viewModelScope.launch {
-            repository.setReaction(messageId, emoji, conversationId)
-        }
-    }
-
     /** Ephemeral duration LiveData — updated when either user changes the setting. */
     private val _ephemeralDuration = MutableLiveData<Long>(0L)
     val ephemeralDuration: LiveData<Long> = _ephemeralDuration
@@ -205,30 +188,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             .catch { /* Silently handle */ }
-            .launchIn(viewModelScope)
-    }
-
-    /**
-     * Listen for remote reaction changes from Firebase.
-     * When the OTHER user reacts, we update the local message and show an info banner.
-     * Own reactions (matching our UID) are skipped to avoid loops.
-     */
-    private fun listenForRemoteReactions(conversationId: String) {
-        repository.listenForReactions(conversationId)
-            .onEach { event ->
-                val myUid = FirebaseRelay.getCurrentUid() ?: ""
-                if (event.reactorUid == myUid) return@onEach // skip own reactions
-
-                val conversation = repository.getConversation(conversationId)
-                val contactName = conversation?.contactDisplayName ?: "Contact"
-                repository.applyRemoteReaction(
-                    conversationId,
-                    event.messageTimestamp,
-                    event.emoji,
-                    contactName
-                )
-            }
-            .catch { }
             .launchIn(viewModelScope)
     }
 

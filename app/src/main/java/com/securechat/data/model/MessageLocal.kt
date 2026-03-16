@@ -17,7 +17,5 @@ data class MessageLocal(
     val timestamp: Long = System.currentTimeMillis(),
     val isMine: Boolean,              // true if sent by this user
     val ephemeralDuration: Long = 0,  // 0 = permanent, >0 = duration in ms
-    val expiresAt: Long = 0,          // 0 = permanent, >0 = epoch ms when it should be deleted
-    val reaction: String = "",        // emoji reaction (single emoji string)
-    val isInfoMessage: Boolean = false // true for system/info messages (e.g. reaction notifications)
+    val expiresAt: Long = 0           // 0 = permanent, >0 = epoch ms when it should be deleted
 )

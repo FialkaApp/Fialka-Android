@@ -33,16 +33,13 @@ interface MessageLocalDao {
     @Query("SELECT * FROM messages WHERE expiresAt > 0 AND expiresAt < :now")
     suspend fun getExpiredMessages(now: Long = System.currentTimeMillis()): List<MessageLocal>
 
-    @Query("UPDATE messages SET reaction = :reaction WHERE localId = :messageId")
-    suspend fun updateReaction(messageId: String, reaction: String)
-
     @Query("UPDATE messages SET expiresAt = :expiresAt WHERE localId = :messageId")
     suspend fun setExpiresAt(messageId: String, expiresAt: Long)
 
     @Query("SELECT * FROM messages WHERE localId = :messageId LIMIT 1")
     suspend fun getMessageById(messageId: String): MessageLocal?
 
-    @Query("SELECT * FROM messages WHERE conversationId = :conversationId AND timestamp = :timestamp AND isInfoMessage = 0 LIMIT 1")
+    @Query("SELECT * FROM messages WHERE conversationId = :conversationId AND timestamp = :timestamp LIMIT 1")
     suspend fun getMessageByTimestamp(conversationId: String, timestamp: Long): MessageLocal?
 
     /**

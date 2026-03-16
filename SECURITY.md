@@ -42,9 +42,7 @@ SecureChat uses the following cryptographic primitives:
 
 5. **No message authentication beyond GCM** — Messages are not signed with the sender's identity key, only authenticated by GCM tag (which proves knowledge of the shared secret). In 1-to-1 conversations this is acceptable (only 2 participants share the key). For future group chats, ECDSA signatures will be required (V2 planned).
 
-6. **Reaction emoji in cleartext** — Emoji reactions are synced via Firebase RTDB in cleartext (not encrypted). They reveal which emoji was used on which message, but not the message content itself. Acceptable trade-off for V1; E2E-encrypted reactions planned for V2.
-
-7. **Ephemeral timer client-enforced** — Ephemeral message deletion is performed client-side (local Room delete + Firebase remove). A modified client could skip deletion. Server-enforced TTL per-message would require Cloud Functions (V2+).
+6. **Ephemeral timer client-enforced** — Ephemeral message deletion is performed client-side (local Room delete + Firebase remove). A modified client could skip deletion. Server-enforced TTL per-message would require Cloud Functions (V2+).
 
 ## Security Hardening Implemented
 
@@ -78,8 +76,6 @@ SecureChat uses the following cryptographic primitives:
 - ✅ Ephemeral messages: timer starts on send (sender) or on chat open (receiver READ)
 - ✅ Ephemeral duration synced between participants via Firebase RTDB (`/settings/ephemeralDuration`)
 - ✅ Ephemeral deletion: local Room delete + Firebase node removal
-- ✅ Reactions synced via Firebase RTDB (`/reactions/` path, participant-only rules)
-- ✅ Info messages for reactions (Telegram-style, local-only display)
-- ✅ Firebase security rules: read/write restricted to conversation participants (messages, settings, reactions)
-- ✅ Dark mode: full DayNight theme with adaptive colors (backgrounds, bubbles, badges, info boxes)
+- ✅ Firebase security rules: read/write restricted to conversation participants (messages, settings)
+- ✅ Dark mode: full DayNight theme with adaptive colors (backgrounds, bubbles, badges)
 - ✅ Theme-aware drawables: info boxes, backgrounds use `@color/` resources with night variants
