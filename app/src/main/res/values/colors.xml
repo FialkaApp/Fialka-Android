@@ -18,4 +18,7 @@
     <color name="chat_background">#FFECE5DD</color>
     <color name="green_verified">#FF4CAF50</color>
     <color name="orange_warning">#FFFF9800</color>
+    <color name="nav_bar">#FFFFFFFF</color>
+    <color name="info_box_background">#FFF3F8FF</color>
+    <color name="info_box_stroke">#FFCDE0F5</color>
 </resources>

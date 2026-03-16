@@ -14,7 +14,21 @@
           ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
           ".indexOn": ["createdAt"],
           "$messageId": {
-            ".validate": "newData.hasChildren(['senderPublicKey', 'ciphertext', 'iv', 'messageIndex', 'createdAt', 'senderUid']) && newData.child('senderPublicKey').isString() && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('messageIndex').isNumber() && newData.child('senderUid').isString()"
+            ".validate": "newData.hasChildren(['ciphertext', 'iv', 'createdAt', 'senderUid']) && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('senderUid').isString()"
+          }
+        },
+        "settings": {
+          ".read": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
+          ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
+          "ephemeralDuration": {
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          }
+        },
+        "reactions": {
+          ".read": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
+          ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
+          "$reactionId": {
+            ".validate": "newData.hasChildren(['emoji', 'messageTimestamp', 'reactorUid', 'createdAt'])"
           }
         }
       }

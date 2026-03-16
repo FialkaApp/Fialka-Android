@@ -30,6 +30,9 @@ interface ConversationDao {
     @Query("UPDATE conversations SET fingerprintVerified = :verified WHERE conversationId = :conversationId")
     suspend fun updateFingerprintVerified(conversationId: String, verified: Boolean)
 
+    @Query("UPDATE conversations SET ephemeralDuration = :duration WHERE conversationId = :conversationId")
+    suspend fun updateEphemeralDuration(conversationId: String, duration: Long)
+
     @Delete
     suspend fun deleteConversation(conversation: Conversation)
 }

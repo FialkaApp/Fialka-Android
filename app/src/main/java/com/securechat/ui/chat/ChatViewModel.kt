@@ -5,6 +5,8 @@ import androidx.lifecycle.*
 import com.securechat.data.model.MessageLocal
 import com.securechat.data.remote.FirebaseRelay
 import com.securechat.data.repository.ChatRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -24,9 +26,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     /** localId of the first unread message — anchors the divider position even as new messages arrive. */
     private var dividerAnchorId: String? = null
 
+    /** Periodic job that cleans up expired ephemeral messages. */
+    private var ephemeralCleanupJob: Job? = null
+
     override fun onCleared() {
         super.onCleared()
         ChatRepository.currentlyViewedConversation = null
+        ephemeralCleanupJob?.cancel()
     }
 
     /**
@@ -47,25 +53,28 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val isAccepted: LiveData<Boolean> = _isAccepted
 
     private fun buildChatItems(messages: List<MessageLocal>): List<ChatItem> {
+        // Filter out info messages for divider positioning (count only real messages)
+        val realMessages = messages.filter { !it.isInfoMessage }
+
         // On the first emission, anchor the divider to the first unread message's localId
-        if (dividerAnchorId == null && initialUnreadCount > 0 && messages.isNotEmpty()) {
-            val idx = messages.size - initialUnreadCount
-            if (idx > 0 && idx < messages.size) {
-                dividerAnchorId = messages[idx].localId
+        if (dividerAnchorId == null && initialUnreadCount > 0 && realMessages.isNotEmpty()) {
+            val idx = realMessages.size - initialUnreadCount
+            if (idx > 0 && idx < realMessages.size) {
+                dividerAnchorId = realMessages[idx].localId
             }
             initialUnreadCount = 0 // consumed
         }
 
-        if (dividerAnchorId == null) {
-            return messages.map { ChatItem.Message(it) }
-        }
-
         val items = mutableListOf<ChatItem>()
         for (msg in messages) {
-            if (msg.localId == dividerAnchorId) {
+            if (!msg.isInfoMessage && msg.localId == dividerAnchorId) {
                 items.add(ChatItem.UnreadDivider)
             }
-            items.add(ChatItem.Message(msg))
+            if (msg.isInfoMessage) {
+                items.add(ChatItem.InfoMessage(msg.plaintext, msg.timestamp))
+            } else {
+                items.add(ChatItem.Message(msg))
+            }
         }
         return items
     }
@@ -89,6 +98,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             ChatRepository.currentlyViewedConversation = conversationId
 
             _conversationIdLive.value = conversationId
+
+            // Activate ephemeral timers on received messages now that user is reading them
+            repository.activateEphemeralTimers(conversationId)
+
+            // Start periodic ephemeral message cleanup
+            startEphemeralCleanup()
+
+            // Listen for remote ephemeral setting changes (other user changed it)
+            listenForEphemeralChanges(conversationId)
+
+            // Listen for remote reaction changes (other user reacted to a message)
+            listenForRemoteReactions(conversationId)
 
             // Ensure Firebase auth is still active (can expire after app kill)
             if (!FirebaseRelay.isAuthenticated()) {
@@ -153,6 +174,71 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _sendError.value = null
             } catch (e: Exception) {
                 _sendError.value = e.message ?: "Échec de l'envoi"
+            }
+        }
+    }
+
+    /** Toggle a reaction emoji on a message — syncs to Firebase. */
+    fun toggleReaction(messageId: String, emoji: String) {
+        viewModelScope.launch {
+            repository.setReaction(messageId, emoji, conversationId)
+        }
+    }
+
+    /** Ephemeral duration LiveData — updated when either user changes the setting. */
+    private val _ephemeralDuration = MutableLiveData<Long>(0L)
+    val ephemeralDuration: LiveData<Long> = _ephemeralDuration
+
+    /**
+     * Listen for remote ephemeral duration changes from Firebase.
+     * When the OTHER user changes ephemeral setting, we update our local DB
+     * so both sides stay in sync.
+     */
+    private fun listenForEphemeralChanges(conversationId: String) {
+        repository.listenForEphemeralDuration(conversationId)
+            .onEach { duration ->
+                _ephemeralDuration.postValue(duration)
+                // Sync remote → local DB
+                val currentConv = repository.getConversation(conversationId)
+                if (currentConv != null && currentConv.ephemeralDuration != duration) {
+                    repository.syncEphemeralDurationLocally(conversationId, duration)
+                }
+            }
+            .catch { /* Silently handle */ }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Listen for remote reaction changes from Firebase.
+     * When the OTHER user reacts, we update the local message and show an info banner.
+     * Own reactions (matching our UID) are skipped to avoid loops.
+     */
+    private fun listenForRemoteReactions(conversationId: String) {
+        repository.listenForReactions(conversationId)
+            .onEach { event ->
+                val myUid = FirebaseRelay.getCurrentUid() ?: ""
+                if (event.reactorUid == myUid) return@onEach // skip own reactions
+
+                val conversation = repository.getConversation(conversationId)
+                val contactName = conversation?.contactDisplayName ?: "Contact"
+                repository.applyRemoteReaction(
+                    conversationId,
+                    event.messageTimestamp,
+                    event.emoji,
+                    contactName
+                )
+            }
+            .catch { }
+            .launchIn(viewModelScope)
+    }
+
+    /** Periodically delete expired ephemeral messages (every 5s). */
+    private fun startEphemeralCleanup() {
+        ephemeralCleanupJob?.cancel()
+        ephemeralCleanupJob = viewModelScope.launch {
+            while (true) {
+                delay(5_000)
+                repository.deleteExpiredMessages()
             }
         }
     }

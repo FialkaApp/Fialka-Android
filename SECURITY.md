@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.0.x   | ✅ Current |
+| 1.2.x   | ✅ Current |
+| 1.0.x   | ⚠️ Outdated |
 
 ## Reporting a Vulnerability
 
@@ -37,9 +38,13 @@ SecureChat uses the following cryptographic primitives:
 
 3. **Plaintext in local DB** — ~~Decrypted messages are stored in Room (SQLite) without encryption. A rooted device or full disk backup could expose message history.~~ **FIXED in V1:** SQLCipher encrypts the entire Room database with a 256-bit passphrase stored in EncryptedSharedPreferences (Keystore-backed AES-256-GCM).
 
-4. **Metadata visible** — Firebase sees who communicates with whom and when (conversation IDs, timestamps).
+4. **Metadata visible** — ~~Firebase sees who communicates with whom and when (conversation IDs, timestamps).~~ **PARTIALLY FIXED in V1.1:** `senderPublicKey` and `messageIndex` removed from wire format. Firebase still sees: `senderUid` (anonymous), `createdAt` (timestamps), conversation IDs, participant UIDs. Full metadata privacy would require a mix network or onion routing (V3+).
 
-5. **No message authentication beyond GCM** — Messages are not signed with the sender's identity key, only authenticated by GCM tag (which proves knowledge of the shared secret).
+5. **No message authentication beyond GCM** — Messages are not signed with the sender's identity key, only authenticated by GCM tag (which proves knowledge of the shared secret). In 1-to-1 conversations this is acceptable (only 2 participants share the key). For future group chats, ECDSA signatures will be required (V2 planned).
+
+6. **Reaction emoji in cleartext** — Emoji reactions are synced via Firebase RTDB in cleartext (not encrypted). They reveal which emoji was used on which message, but not the message content itself. Acceptable trade-off for V1; E2E-encrypted reactions planned for V2.
+
+7. **Ephemeral timer client-enforced** — Ephemeral message deletion is performed client-side (local Room delete + Firebase remove). A modified client could skip deletion. Server-enforced TTL per-message would require Cloud Functions (V2+).
 
 ## Security Hardening Implemented
 
@@ -51,7 +56,10 @@ SecureChat uses the following cryptographic primitives:
 - ✅ Firebase re-authentication on app resume
 - ✅ No sensitive data logged (public keys, plaintexts removed from Logcat)
 - ✅ Firebase TTL cleanup (messages older than 7 days auto-deleted)
-- ✅ Anti-replay: sinceTimestamp + messageIndex filtering
+- ✅ Anti-replay: sinceTimestamp + messageIndex filtering (index embedded in ciphertext)
+- ✅ Metadata hardening: `senderPublicKey` removed from wire format (unnecessary in 1-to-1)
+- ✅ Metadata hardening: `messageIndex` encrypted inside AES-GCM payload (trial decryption, MAX_SKIP=100)
+- ✅ Trial decryption: constant-time-ish — common case (in-order) = 1 attempt, worst case = 100 attempts
 - ✅ `android:allowBackup="false"` in AndroidManifest
 - ✅ Push notifications opt-in (disabled by default — no FCM token stored)
 - ✅ Zero message content in push notifications (only sender display name)
@@ -63,3 +71,15 @@ SecureChat uses the following cryptographic primitives:
 - ✅ SQLCipher: entire Room database encrypted (AES-256-CBC, 256-bit key)
 - ✅ DB passphrase generated via SecureRandom, stored in EncryptedSharedPreferences (Keystore-backed)
 - ✅ DB file unreadable without Android Keystore access (protects against rooted device / backup dump)
+- ✅ App Lock: 4-digit PIN (SHA-256 hash stored in EncryptedSharedPreferences)
+- ✅ Biometric unlock: opt-in via BiometricPrompt (BIOMETRIC_STRONG | BIOMETRIC_WEAK)
+- ✅ Auto-lock timeout: configurable (5s, 15s, 30s, 1min, 5min), default 5 seconds
+- ✅ Lock screen bypasses disabled (`onBackPressed` → `finishAffinity`)
+- ✅ Ephemeral messages: timer starts on send (sender) or on chat open (receiver READ)
+- ✅ Ephemeral duration synced between participants via Firebase RTDB (`/settings/ephemeralDuration`)
+- ✅ Ephemeral deletion: local Room delete + Firebase node removal
+- ✅ Reactions synced via Firebase RTDB (`/reactions/` path, participant-only rules)
+- ✅ Info messages for reactions (Telegram-style, local-only display)
+- ✅ Firebase security rules: read/write restricted to conversation participants (messages, settings, reactions)
+- ✅ Dark mode: full DayNight theme with adaptive colors (backgrounds, bubbles, badges, info boxes)
+- ✅ Theme-aware drawables: info boxes, backgrounds use `@color/` resources with night variants

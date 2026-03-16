@@ -56,9 +56,17 @@
 | 📍 **Marqueur "Nouveaux messages"** | Séparateur dans le chat pour repérer les messages non lus |
 | 🔄 **Réception en temps réel** | Les messages arrivent même quand le chat n'est pas ouvert |
 | 🔔 **Push notifications** | Opt-in — notifications FCM quand l'app est fermée (aucun contenu message) |
-| ⚙️ **Paramètres** | Contrôle total : push ON/OFF, token supprimé si désactivé |
 | 🔏 **Fingerprint emojis** | Empreinte partagée de 96 bits (16 emojis / 64 palette) — vérification anti-MITM |
-| 👤 **Profil du contact** | Voir l'empreinte, vérifier manuellement, badge vert/orange dans le chat |
+| 👤 **Profil du contact** | Hub conversation : empreinte, éphémère, recherche, supprimer |
+| 🕵️ **Metadata hardening** | senderPublicKey + messageIndex supprimés de Firebase — graphe social protégé |
+| 🔒 **App Lock** | Code PIN 4 chiffres + déverrouillage biométrique (empreinte/visage) — opt-in |
+| ⏱️ **Messages éphémères** | 10 durées (30s → 1 mois) — timer synchro Firebase entre les 2 utilisateurs |
+| 😂 **Réactions** | Double-tap sur un message → emoji réaction (8 emojis) — synchro Firebase |
+| 💬 **Messages info** | Notification dans le chat : « Alice a réagi 👍 au message… » (style Telegram) |
+| 🌙 **Dark mode** | Thème DayNight complet — couleurs adaptatives pour toutes les vues |
+| ⚙️ **Paramètres avancés** | Hub avec 4 sous-écrans : Apparence, Notifications, Sécurité, Éphémère |
+| 🎨 **Thème personnalisable** | Choix du mode : Système / Clair / Sombre |
+| 🔐 **Auto-lock timeout** | Verrouillage automatique configurable (5s, 15s, 30s, 1min, 5min) |
 
 ---
 
@@ -113,9 +121,9 @@ Phone A → sendMessage() → Firebase RTDB
 | **UI** | Écrans, navigation, interactions | `ui/` — Fragments, ViewModels, Adapters |
 | **Repository** | Coordination local/crypto/remote | `data/repository/ChatRepository.kt` |
 | **Crypto** | Clés, ECDH, AES-GCM, Ratchet | `crypto/CryptoManager.kt`, `crypto/SymmetricRatchet.kt` |
-| **Local DB** | Room — users, contacts, messages, ratchet | `data/local/` — DAOs, Database |
+| **Local DB** | Room v7 — users, contacts, messages, ratchet | `data/local/` — DAOs, Database (SQLCipher) |
 | **Remote** | Relay Firebase (ciphertext only) | `data/remote/FirebaseRelay.kt` |
-| **Util** | QR codes | `util/QrCodeGenerator.kt` |
+| **Util** | QR codes, thèmes, app lock, éphémère | `util/QrCodeGenerator.kt`, `ThemeManager.kt`, `AppLockManager.kt`, `EphemeralManager.kt` |
 
 ### Flux des demandes de contact
 
@@ -219,17 +227,36 @@ Pour chaque message N :
 
 ### Ce qui transite sur Firebase
 
+**Messages (chiffrés) :**
 ```json
 {
-  "senderPublicKey": "MFkwEwYHKoZ...",
   "ciphertext": "a3F4bWx...",
   "iv": "dG9rZW4...",
-  "messageIndex": 42,
+  "createdAt": 1700000000000,
+  "senderUid": "firebase-anonymous-uid"
+}
+```
+
+**Réactions (en clair — emoji seulement, pas de contenu message) :**
+```json
+{
+  "emoji": "👍",
+  "messageTimestamp": 1700000000000,
+  "reactorUid": "firebase-anonymous-uid",
   "createdAt": 1700000000000
 }
 ```
 
-**Jamais envoyé :** texte en clair, clés privées, clés de chaîne.
+**Paramètres éphémères (synchro entre les 2 utilisateurs) :**
+```
+/conversations/{id}/settings/ephemeralDuration = 3600000
+```
+
+**Supprimé du wire format (V1.1 metadata hardening) :**
+- `senderPublicKey` — inutile en 1-to-1 (le destinataire connaît déjà la clé du contact)
+- `messageIndex` — chiffré dans le payload AES-GCM (trial decryption côté réception)
+
+**Jamais envoyé :** texte en clair, clés privées, clés de chaîne, position du ratchet.
 
 ### Demande de contact (inbox Firebase)
 
@@ -250,11 +277,13 @@ Pour chaque message N :
 |--------|-----------|--------|
 | Firebase lit les messages | ✅ | Chiffré E2E, Firebase ne voit que du ciphertext |
 | Compromission d'une clé message | ✅ | PFS — chaque message a sa propre clé |
-| Replay d'anciens messages | ✅ | sinceTimestamp + messageIndex |
+| Replay d'anciens messages | ✅ | sinceTimestamp + messageIndex (embedded dans ciphertext) |
 | Race conditions ratchet | ✅ | Mutex par conversation |
 | Attaque MITM | ✅ | Fingerprint emojis 96-bit (vérification visuelle) |
-| Métadonnées (qui/quand) | ❌ | Visible dans Firebase |
-| Vol du téléphone déverrouillé | ✅ | Clés dans Keystore, DB chiffrée par SQLCipher (256-bit) |
+| Vol du téléphone déverrouillé | ✅ | Keystore, SQLCipher, App Lock PIN + biométrie, auto-lock |
+| Messages sensibles oubliés | ✅ | Messages éphémères (timer sur envoi / lecture) |
+| Réactions exposent du contenu | ⚠️ | Les emojis de réaction transitent en clair (pas de contenu message) |
+| Métadonnées (qui/quand) | ⚠️ | senderPublicKey + messageIndex supprimés ; senderUid + timestamps restent |
 
 > Voir [`SECURITY.md`](SECURITY.md) pour l'analyse complète.
 
@@ -354,6 +383,9 @@ SecureChat/
 │       │
 │       ├── java/com/securechat/
 │       │   ├── SecureChatApplication.kt      # Init Firebase
+│       │   ├── MainActivity.kt               # Single-activity (NavHost)
+│       │   ├── LockScreenActivity.kt         # Écran de verrouillage PIN + biométrie
+│       │   ├── MyFirebaseMessagingService.kt  # FCM push handler
 │       │   │
 │       │   ├── crypto/
 │       │   │   ├── CryptoManager.kt          # EC P-256, ECDH, AES-256-GCM, HKDF
@@ -361,7 +393,7 @@ SecureChat/
 │       │   │
 │       │   ├── data/
 │       │   │   ├── local/
-│       │   │   │   ├── SecureChatDatabase.kt # Room DB v5 (SQLCipher)
+│       │   │   │   ├── SecureChatDatabase.kt # Room DB v7 (SQLCipher)
 │       │   │   │   ├── UserLocalDao.kt
 │       │   │   │   ├── ContactDao.kt
 │       │   │   │   ├── ConversationDao.kt
@@ -371,41 +403,53 @@ SecureChat/
 │       │   │   ├── model/
 │       │   │   │   ├── UserLocal.kt          # Identité locale
 │       │   │   │   ├── Contact.kt            # Contact (pseudo + pubkey)
-│       │   │   │   ├── Conversation.kt       # Conversation (participant + ratchet)
-│       │   │   │   ├── MessageLocal.kt       # Message déchiffré (local only)
+│       │   │   │   ├── Conversation.kt       # Conversation (ephemeral, fingerprint, etc.)
+│       │   │   │   ├── MessageLocal.kt       # Message (plaintext, reaction, ephemeral, info)
 │       │   │   │   ├── FirebaseMessage.kt    # Message chiffré (Firebase)
 │       │   │   │   └── RatchetState.kt       # État du ratchet par conversation
 │       │   │   │
 │       │   │   ├── remote/
-│       │   │   │   └── FirebaseRelay.kt      # Auth anonyme + relay chiffré + TTL cleanup
+│       │   │   │   └── FirebaseRelay.kt      # Auth anonyme + relay + ephemeral sync + reactions
 │       │   │   │
 │       │   │   └── repository/
 │       │   │       └── ChatRepository.kt     # Source de vérité unique (Mutex-protected)
 │       │   │
 │       │   ├── util/
-│       │   │   └── QrCodeGenerator.kt        # Génération QR codes (ZXing)
+│       │   │   ├── QrCodeGenerator.kt        # Génération QR codes (ZXing)
+│       │   │   ├── ThemeManager.kt           # Gestion DayNight (Système/Clair/Sombre)
+│       │   │   ├── AppLockManager.kt         # PIN, biométrie, auto-lock timeout
+│       │   │   └── EphemeralManager.kt       # Durées éphémères (30s → 1 mois)
 │       │   │
 │       │   └── ui/
-│       │       ├── MainActivity.kt           # Single-activity (NavHost)
-│       │       ├── MyFirebaseMessagingService.kt  # FCM push handler
 │       │       ├── onboarding/               # Création d'identité
 │       │       ├── conversations/            # Liste des chats + demandes de contact
 │       │       │   ├── ConversationsFragment.kt
 │       │       │   ├── ConversationsViewModel.kt
 │       │       │   ├── ConversationsAdapter.kt
-│       │       │   └── ContactRequestsAdapter.kt  # Accepter/refuser les demandes
+│       │       │   └── ContactRequestsAdapter.kt
 │       │       ├── addcontact/               # Scanner QR + saisie manuelle
-│       │       ├── chat/                     # Messages E2E + bulles WhatsApp-like
-│       │       │   └── ConversationProfileFragment.kt  # Profil contact + fingerprint
+│       │       ├── chat/                     # Messages E2E + bulles + réactions
+│       │       │   ├── ChatFragment.kt
+│       │       │   ├── ChatViewModel.kt
+│       │       │   ├── MessagesAdapter.kt    # Bulles sent/received + info + divider
+│       │       │   ├── ConversationProfileFragment.kt  # Hub profil conversation
+│       │       │   └── FingerprintFragment.kt          # Vérification empreinte emojis
 │       │       ├── profile/                  # QR code, copier/partager, supprimer
-│       │       └── settings/                 # Paramètres (push ON/OFF)
+│       │       └── settings/                 # Hub paramètres + sous-écrans
+│       │           ├── SettingsFragment.kt
+│       │           ├── AppearanceFragment.kt
+│       │           ├── NotificationsFragment.kt
+│       │           ├── SecurityFragment.kt
+│       │           ├── EphemeralSettingsFragment.kt
+│       │           └── PinSetupDialogFragment.kt
 │       │
 │       └── res/
-│           ├── drawable/                     # Bulles, cercles, icônes
-│           ├── layout/                       # Tous les layouts XML
+│           ├── drawable/                     # Bulles, badges, icônes, backgrounds
+│           ├── layout/                       # 20 layouts XML (fragments + items)
 │           ├── menu/                         # Menu conversations (profil, settings, reset)
-│           ├── navigation/nav_graph.xml      # Graph de navigation
-│           └── values/                       # Couleurs, strings, thèmes
+│           ├── navigation/nav_graph.xml      # 12 destinations
+│           ├── values/                       # Couleurs, strings, thèmes (mode clair)
+│           └── values-night/                 # Couleurs dark mode
 │
 ├── functions/                                # Firebase Cloud Function (push)
 │   ├── index.js
@@ -429,6 +473,7 @@ SecureChat/
 | firebase-functions (Node.js) | 7.0.0 | Cloud Function trigger (push notifications) |
 | firebase-admin (Node.js) | 13.6.0 | Admin SDK pour RTDB + FCM côté serveur |
 | AndroidX Security Crypto | 1.1.0-alpha06 | Stockage sécurisé |
+| AndroidX Biometric | 1.1.0 | BiometricPrompt (empreinte, visage) |
 | Kotlinx Coroutines | 1.9.0 | Async + Flow |
 | ZXing Android Embedded | 4.3.0 | Génération et scan QR codes |
 
@@ -447,13 +492,23 @@ SecureChat/
 - ✅ **Token FCM supprimable** — Désactiver les push supprime immédiatement le token de Firebase
 - ✅ **Re-auth Firebase** — Session anonyme restaurée après app kill
 - ✅ **TTL 7 jours** — Les vieux messages sont auto-supprimés de Firebase
-- ✅ **Anti-replay** — Filtrage par `sinceTimestamp` + `messageIndex`
+- ✅ **Anti-replay** — Filtrage par `sinceTimestamp` + messageIndex (embedded dans ciphertext)
+- ✅ **Metadata hardening** — `senderPublicKey` et `messageIndex` supprimés du wire format Firebase
+- ✅ **Trial decryption** — messageIndex chiffré dans le payload AES-GCM (MAX_SKIP=100)
 - ✅ **Fingerprint emojis** — Empreinte partagée 96-bit (64 emojis, 16 positions, zéro biais modulo)
 - ✅ **Anti-MITM** — Vérification visuelle badge vert/orange, état persisté par conversation
 - ✅ **SQLCipher** — Base Room chiffrée AES-256 (passphrase 256-bit stockée dans EncryptedSharedPreferences / Keystore)
 - ✅ **Pas de logs sensibles** — Clés et plaintexts retirés de Logcat
 - ✅ **Keystore delete on reset** — Clé privée supprimée quand on supprime le compte
 - ✅ **`allowBackup=false`** — Pas de backup automatique des données
+- ✅ **App Lock** — Code PIN 4 chiffres (SHA-256) + biométrie opt-in (BiometricPrompt STRONG|WEAK)
+- ✅ **PIN hash sécurisé** — SHA-256, stocké dans EncryptedSharedPreferences (Keystore-backed)
+- ✅ **Auto-lock timeout** — Configurable (5s, 15s, 30s, 1min, 5min), défaut 5 secondes
+- ✅ **Messages éphémères** — Timer côté envoi (immédiat) + côté lecture (activé quand le chat s'ouvre)
+- ✅ **Ephemeral sync** — Durée éphémère synchro Firebase entre les 2 participants
+- ✅ **Réactions synchro** — Emoji réaction envoyé via Firebase, message info affiché
+- ✅ **Firebase security rules** — Lecture/écriture restreinte aux participants (messages, settings, reactions)
+- ✅ **Dark mode** — Thème DayNight avec couleurs adaptatives (bg, bulles, badges, info boxes)
 
 ### Limites connues
 
@@ -488,10 +543,21 @@ SecureChat/
 - [x] Fingerprint emojis 96-bit (64 palette × 16 positions, anti-MITM)
 - [x] Profil du contact (empreinte, vérification manuelle, badge chat)
 - [x] SQLCipher — Chiffrement de la base Room locale (256-bit, EncryptedSharedPreferences)
+- [x] Metadata hardening — senderPublicKey + messageIndex supprimés de Firebase (trial decryption)
+- [x] App Lock — Code PIN 4 chiffres + déverrouillage biométrique opt-in
+- [x] Profil amélioré — Cards, en-tête avatar, zone danger, UX modernisée
+- [x] Paramètres améliorés — Sections verrouillage / notifications / sécurité
+- [x] Messages éphémères — Timer côté envoi + côté lecture, durée synchro Firebase
+- [x] Réactions emoji — Sync Firebase, messages info style Telegram
+- [x] Dark mode — Thème DayNight complet, couleurs adaptatives
+- [x] Auto-lock timeout — Configurable (5s → 5min), défaut 5 secondes
+- [x] Sous-écran Fingerprint — Visualisation + vérification dédiée
+- [x] Profil contact redesign — Hub conversation (éphémère, fingerprint, danger zone)
 
 ### 🔜 V2 — Planned
 
 - [ ] **Full Double Ratchet** — Rotation DH asymétrique (comme Signal)
+- [ ] **Signature ECDSA** — Clé de signature dédiée (PURPOSE_SIGN) pour authentifier chaque message
 - [ ] **Groupes** — Conversations à 3+ participants
 - [ ] **Suppression pour tous** — Supprimer un message côté local + Firebase
 - [ ] **Export/Import de clés** — Backup chiffré de l'identité
@@ -521,7 +587,7 @@ Fourni à des fins **éducatives**. Utilisez-le comme base pour comprendre le ch
 
 <div align="center">
 
-**Fait avec 🔐 et ☕ — SecureChat V1**
+**Fait avec 🔐 et ☕ — SecureChat V1.2**
 
 *"Vos messages, vos clés, votre vie privée."*
 

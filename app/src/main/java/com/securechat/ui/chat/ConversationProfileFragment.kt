@@ -5,21 +5,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.content.ContextCompat
+import androidx.appcompat.app.AlertDialog
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.securechat.R
 import com.securechat.data.repository.ChatRepository
 import com.securechat.databinding.FragmentConversationProfileBinding
+import com.securechat.util.EphemeralManager
 import kotlinx.coroutines.launch
 
 /**
- * Conversation profile screen — shows contact info and emoji fingerprint verification.
- *
- * The shared fingerprint (96-bit, 16 emojis from a 64-emoji palette) is computed
- * from both public keys sorted lexicographically, so both sides see the same emojis.
- * Users compare visually (in person or via video call) to detect MITM attacks.
+ * Conversation profile hub — shows contact info, ephemeral settings,
+ * fingerprint verification link, crypto info, and delete option.
  */
 class ConversationProfileFragment : Fragment() {
 
@@ -58,42 +57,87 @@ class ConversationProfileFragment : Fragment() {
         binding.tvContactName.text = contactName
         binding.tvContactInitial.text = contactName.firstOrNull()?.uppercase() ?: "?"
 
-        // Load conversation and display fingerprint
+        // Ephemeral row → picker dialog
+        binding.rowEphemeral.setOnClickListener { showEphemeralPicker() }
+
+        // Fingerprint row → navigate to fingerprint sub-screen
+        binding.rowFingerprint.setOnClickListener {
+            findNavController().navigate(
+                R.id.action_conversationProfile_to_fingerprint,
+                bundleOf(
+                    "conversationId" to conversationId,
+                    "contactName" to contactName
+                )
+            )
+        }
+
+        // Delete row → confirmation dialog
+        binding.rowDelete.setOnClickListener { showDeleteConfirmation() }
+
+        // Load conversation data
+        loadConversationData()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (_binding != null) loadConversationData()
+    }
+
+    private fun loadConversationData() {
         lifecycleScope.launch {
             val conversation = repository.getConversation(conversationId) ?: return@launch
 
-            binding.tvFingerprint.text = conversation.sharedFingerprint
+            // Ephemeral summary
+            binding.tvEphemeralSummary.text =
+                EphemeralManager.getLabelForDuration(conversation.ephemeralDuration)
 
-            updateVerificationUI(conversation.fingerprintVerified)
-
-            binding.btnVerifyFingerprint.setOnClickListener {
-                lifecycleScope.launch {
-                    repository.verifyFingerprint(conversationId, true)
-                    updateVerificationUI(true)
-                    Toast.makeText(
-                        requireContext(),
-                        "Empreinte vérifiée ✓",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+            // Fingerprint summary
+            if (conversation.fingerprintVerified) {
+                binding.tvFingerprintSummary.text = "✅ Vérifié"
+            } else {
+                binding.tvFingerprintSummary.text = "⚠\uFE0F Non vérifié"
             }
         }
     }
 
-    private fun updateVerificationUI(verified: Boolean) {
-        if (verified) {
-            binding.tvVerificationStatus.text = "✅ Vérifié"
-            binding.tvVerificationStatus.setTextColor(
-                ContextCompat.getColor(requireContext(), R.color.green_verified)
-            )
-            binding.btnVerifyFingerprint.visibility = View.GONE
-        } else {
-            binding.tvVerificationStatus.text = "⚠️ Non vérifié"
-            binding.tvVerificationStatus.setTextColor(
-                ContextCompat.getColor(requireContext(), R.color.orange_warning)
-            )
-            binding.btnVerifyFingerprint.visibility = View.VISIBLE
+    private fun showEphemeralPicker() {
+        val labels = EphemeralManager.DURATION_LABELS
+        val durations = EphemeralManager.DURATION_OPTIONS
+
+        lifecycleScope.launch {
+            val conversation = repository.getConversation(conversationId) ?: return@launch
+            val currentIndex = durations.toList().indexOf(conversation.ephemeralDuration).coerceAtLeast(0)
+
+            AlertDialog.Builder(requireContext())
+                .setTitle("Messages éphémères")
+                .setSingleChoiceItems(labels, currentIndex) { dialog: android.content.DialogInterface, which: Int ->
+                    val chosen = durations[which]
+                    lifecycleScope.launch {
+                        repository.setEphemeralDuration(conversationId, chosen)
+                        binding.tvEphemeralSummary.text =
+                            EphemeralManager.getLabelForDuration(chosen)
+                    }
+                    dialog.dismiss()
+                }
+                .setNegativeButton("Annuler", null)
+                .show()
         }
+    }
+
+    private fun showDeleteConfirmation() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Supprimer la conversation")
+            .setMessage("Tous les messages seront définitivement supprimés de cet appareil.")
+            .setPositiveButton("Supprimer") { _, _ ->
+                lifecycleScope.launch {
+                    repository.deleteConversation(conversationId)
+                    Toast.makeText(requireContext(), "Conversation supprimée", Toast.LENGTH_SHORT).show()
+                    // Pop back to conversations list
+                    findNavController().popBackStack(R.id.conversationsFragment, false)
+                }
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 
     override fun onDestroyView() {

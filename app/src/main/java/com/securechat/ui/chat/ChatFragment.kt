@@ -1,9 +1,13 @@
 package com.securechat.ui.chat
 
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.PopupWindow
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
@@ -12,8 +16,10 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.securechat.R
+import com.securechat.data.model.MessageLocal
 import com.securechat.data.repository.ChatRepository
 import com.securechat.databinding.FragmentChatBinding
+import com.securechat.util.EphemeralManager
 import kotlinx.coroutines.launch
 
 /**
@@ -85,7 +91,7 @@ class ChatFragment : Fragment() {
         // Load fingerprint badge
         loadFingerprintBadge()
 
-        adapter = MessagesAdapter()
+        adapter = MessagesAdapter { message -> showReactionPicker(message) }
         binding.rvMessages.adapter = adapter
 
         // Initialize ViewModel with conversation ID
@@ -127,6 +133,18 @@ class ChatFragment : Fragment() {
                 Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
             }
         }
+
+        // Observe ephemeral duration changes (real-time sync from other user)
+        viewModel.ephemeralDuration.observe(viewLifecycleOwner) { duration ->
+            if (_binding != null) {
+                if (duration > 0) {
+                    binding.tvEphemeralBadge.visibility = View.VISIBLE
+                    binding.tvEphemeralBadge.text = "⏱ ${EphemeralManager.getShortLabel(duration)}"
+                } else {
+                    binding.tvEphemeralBadge.visibility = View.GONE
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -152,8 +170,46 @@ class ChatFragment : Fragment() {
                         ContextCompat.getColor(requireContext(), R.color.orange_warning)
                     )
                 }
+
+                // Ephemeral badge
+                if (conversation.ephemeralDuration > 0) {
+                    binding.tvEphemeralBadge.visibility = View.VISIBLE
+                    binding.tvEphemeralBadge.text = "⏱ ${EphemeralManager.getShortLabel(conversation.ephemeralDuration)}"
+                } else {
+                    binding.tvEphemeralBadge.visibility = View.GONE
+                }
             }
         }
+    }
+
+    private fun showReactionPicker(message: MessageLocal) {
+        val emojis = listOf("👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "👎")
+        val container = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(16, 12, 16, 12)
+            setBackgroundResource(R.drawable.bg_reaction_badge)
+            elevation = 8f
+        }
+        val popup = PopupWindow(
+            container,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            true
+        )
+        for (emoji in emojis) {
+            val tv = TextView(requireContext()).apply {
+                text = emoji
+                textSize = 22f
+                setPadding(12, 8, 12, 8)
+                setOnClickListener {
+                    val newReaction = if (message.reaction == emoji) "" else emoji
+                    viewModel.toggleReaction(message.localId, newReaction)
+                    popup.dismiss()
+                }
+            }
+            container.addView(tv)
+        }
+        popup.showAtLocation(binding.root, Gravity.CENTER, 0, 0)
     }
 
     override fun onDestroyView() {

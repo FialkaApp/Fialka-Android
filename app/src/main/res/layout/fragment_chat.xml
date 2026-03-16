@@ -46,6 +46,15 @@
                 android:textSize="12sp"
                 android:singleLine="true" />
 
+            <TextView
+                android:id="@+id/tvEphemeralBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#B2DFDB"
+                android:textSize="11sp"
+                android:singleLine="true"
+                android:visibility="gone" />
+
         </LinearLayout>
 
     </com.google.android.material.appbar.MaterialToolbar>

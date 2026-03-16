@@ -68,6 +68,9 @@
         <argument
             android:name="contactName"
             app:argType="string" />
+        <action
+            android:id="@+id/action_conversationProfile_to_fingerprint"
+            app:destination="@id/fingerprintFragment" />
     </fragment>
 
     <fragment
@@ -97,6 +100,56 @@
         android:id="@+id/settingsFragment"
         android:name="com.securechat.ui.settings.SettingsFragment"
         android:label="Paramètres"
-        tools:layout="@layout/fragment_settings" />
+        tools:layout="@layout/fragment_settings">
+        <action
+            android:id="@+id/action_settings_to_appearance"
+            app:destination="@id/appearanceFragment" />
+        <action
+            android:id="@+id/action_settings_to_notifications"
+            app:destination="@id/notificationsFragment" />
+        <action
+            android:id="@+id/action_settings_to_security"
+            app:destination="@id/securityFragment" />
+        <action
+            android:id="@+id/action_settings_to_ephemeral"
+            app:destination="@id/ephemeralSettingsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/appearanceFragment"
+        android:name="com.securechat.ui.settings.AppearanceFragment"
+        android:label="Apparence"
+        tools:layout="@layout/fragment_settings_appearance" />
+
+    <fragment
+        android:id="@+id/notificationsFragment"
+        android:name="com.securechat.ui.settings.NotificationsFragment"
+        android:label="Notifications"
+        tools:layout="@layout/fragment_settings_notifications" />
+
+    <fragment
+        android:id="@+id/securityFragment"
+        android:name="com.securechat.ui.settings.SecurityFragment"
+        android:label="Verrouillage"
+        tools:layout="@layout/fragment_settings_security" />
+
+    <fragment
+        android:id="@+id/ephemeralSettingsFragment"
+        android:name="com.securechat.ui.settings.EphemeralSettingsFragment"
+        android:label="Messages éphémères"
+        tools:layout="@layout/fragment_settings_ephemeral" />
+
+    <fragment
+        android:id="@+id/fingerprintFragment"
+        android:name="com.securechat.ui.chat.FingerprintFragment"
+        android:label="Empreinte de sécurité"
+        tools:layout="@layout/fragment_fingerprint">
+        <argument
+            android:name="conversationId"
+            app:argType="string" />
+        <argument
+            android:name="contactName"
+            app:argType="string" />
+    </fragment>
 
 </navigation>

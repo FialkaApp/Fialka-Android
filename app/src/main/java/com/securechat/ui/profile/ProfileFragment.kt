@@ -50,6 +50,7 @@ class ProfileFragment : Fragment() {
                 binding.etDisplayName.setText(user.displayName)
                 binding.tvPublicKey.text = user.publicKey
                 binding.tvInitial.text = user.displayName.firstOrNull()?.uppercase() ?: "?"
+                binding.tvDisplayNameHeader.text = user.displayName
 
                 // Generate QR code from public key
                 try {

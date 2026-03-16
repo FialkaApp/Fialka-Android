@@ -1,29 +1,28 @@
 package com.securechat.data.model
 
 /**
- * Firebase message model.
- * This is what gets stored on Firebase — only ciphertext, never plaintext.
+ * Firebase message model — metadata-hardened.
+ * Only ciphertext + minimal routing info transit on Firebase.
  *
- * Fields:
- *  - senderPublicKey: identifies who sent the message
- *  - ciphertext: Base64-encoded AES-256-GCM encrypted content
- *  - iv: Base64-encoded initialization vector / nonce
- *  - messageIndex: ratchet chain index (for PFS key derivation)
- *  - createdAt: server timestamp
+ * Removed from wire format (V1.1 metadata hardening):
+ *  - senderPublicKey: was leaking identity-key-level info (unnecessary in 1-to-1)
+ *  - messageIndex: now embedded inside AES-GCM ciphertext (trial decryption)
+ *
+ * Remaining fields:
+ *  - ciphertext: Base64 AES-256-GCM (contains "index|plaintext")
+ *  - iv: Base64 12-byte nonce
+ *  - createdAt: server timestamp (needed for ordering + TTL cleanup)
+ *  - senderUid: Firebase anonymous UID (needed for Cloud Function push routing)
  */
 data class FirebaseMessage(
-    val senderPublicKey: String = "",
     val ciphertext: String = "",
     val iv: String = "",
-    val messageIndex: Int = 0,
     val createdAt: Long = 0L,
     val senderUid: String = ""
 ) {
     fun toMap(): Map<String, Any> = mapOf(
-        "senderPublicKey" to senderPublicKey,
         "ciphertext" to ciphertext,
         "iv" to iv,
-        "messageIndex" to messageIndex,
         "createdAt" to createdAt,
         "senderUid" to senderUid
     )

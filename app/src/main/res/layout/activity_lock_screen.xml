@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/primary_dark">
+
+    <!-- Lock icon -->
+    <TextView
+        android:id="@+id/tvLockIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="60dp"
+        android:text="🔐"
+        android:textSize="48sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvLockTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Entrez votre code"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvLockIcon" />
+
+    <!-- PIN dots -->
+    <LinearLayout
+        android:id="@+id/dotsContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvLockTitle">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginHorizontal="12dp"
+            android:contentDescription="PIN dot 1"
+            android:src="@drawable/dot_empty" />
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginHorizontal="12dp"
+            android:contentDescription="PIN dot 2"
+            android:src="@drawable/dot_empty" />
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginHorizontal="12dp"
+            android:contentDescription="PIN dot 3"
+            android:src="@drawable/dot_empty" />
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginHorizontal="12dp"
+            android:contentDescription="PIN dot 4"
+            android:src="@drawable/dot_empty" />
+    </LinearLayout>
+
+    <!-- Number pad -->
+    <GridLayout
+        android:id="@+id/numpad"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:columnCount="3"
+        android:rowCount="4"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dotsContainer">
+
+        <!-- Row 1: 1 2 3 -->
+        <TextView
+            android:id="@+id/btn1"
+            style="@style/PinButton"
+            android:text="1" />
+
+        <TextView
+            android:id="@+id/btn2"
+            style="@style/PinButton"
+            android:text="2" />
+
+        <TextView
+            android:id="@+id/btn3"
+            style="@style/PinButton"
+            android:text="3" />
+
+        <!-- Row 2: 4 5 6 -->
+        <TextView
+            android:id="@+id/btn4"
+            style="@style/PinButton"
+            android:text="4" />
+
+        <TextView
+            android:id="@+id/btn5"
+            style="@style/PinButton"
+            android:text="5" />
+
+        <TextView
+            android:id="@+id/btn6"
+            style="@style/PinButton"
+            android:text="6" />
+
+        <!-- Row 3: 7 8 9 -->
+        <TextView
+            android:id="@+id/btn7"
+            style="@style/PinButton"
+            android:text="7" />
+
+        <TextView
+            android:id="@+id/btn8"
+            style="@style/PinButton"
+            android:text="8" />
+
+        <TextView
+            android:id="@+id/btn9"
+            style="@style/PinButton"
+            android:text="9" />
+
+        <!-- Row 4: biometric 0 backspace -->
+        <ImageView
+            android:id="@+id/btnBiometric"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_margin="8dp"
+            android:contentDescription="Biometric"
+            android:padding="20dp"
+            android:src="@drawable/ic_fingerprint"
+            android:visibility="gone"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/white" />
+
+        <TextView
+            android:id="@+id/btn0"
+            style="@style/PinButton"
+            android:text="0" />
+
+        <ImageView
+            android:id="@+id/btnBackspace"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_margin="8dp"
+            android:contentDescription="Backspace"
+            android:padding="20dp"
+            android:src="@drawable/ic_backspace"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/white" />
+    </GridLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

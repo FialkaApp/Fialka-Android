@@ -1,41 +1,21 @@
 package com.securechat.ui.settings
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import com.google.firebase.messaging.FirebaseMessaging
-import com.securechat.data.remote.FirebaseRelay
-import com.securechat.data.repository.ChatRepository
+import com.securechat.R
 import com.securechat.databinding.FragmentSettingsBinding
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import com.securechat.util.AppLockManager
+import com.securechat.util.EphemeralManager
+import com.securechat.util.ThemeManager
 
 class SettingsFragment : Fragment() {
 
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
-
-    private val repository by lazy { ChatRepository(requireContext()) }
-
-    private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                enablePush()
-            } else {
-                binding.switchPush.isChecked = false
-                updateStatusText(false)
-            }
-        }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -49,78 +29,62 @@ class SettingsFragment : Fragment() {
 
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
 
-        // Load current setting
-        val prefs = requireContext().getSharedPreferences(PREFS_NAME, 0)
-        val pushEnabled = prefs.getBoolean(KEY_PUSH_ENABLED, false)
-        binding.switchPush.isChecked = pushEnabled
-        updateStatusText(pushEnabled)
-
-        binding.switchPush.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                // Request notification permission on Android 13+
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED
-                ) {
-                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    enablePush()
-                }
-            } else {
-                disablePush()
-            }
+        // Navigation to sub-screens
+        binding.rowAppearance.setOnClickListener {
+            findNavController().navigate(R.id.action_settings_to_appearance)
         }
+
+        binding.rowNotifications.setOnClickListener {
+            findNavController().navigate(R.id.action_settings_to_notifications)
+        }
+
+        binding.rowSecurity.setOnClickListener {
+            findNavController().navigate(R.id.action_settings_to_security)
+        }
+
+        binding.rowEphemeral.setOnClickListener {
+            findNavController().navigate(R.id.action_settings_to_ephemeral)
+        }
+
+        // Version
+        try {
+            val info = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+            binding.tvVersion.text = info.versionName ?: "1.0"
+        } catch (_: Exception) { }
     }
 
-    private fun enablePush() {
-        savePref(true)
-        updateStatusText(true)
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val token = FirebaseMessaging.getInstance().token.await()
-                if (!FirebaseRelay.isAuthenticated()) {
-                    FirebaseRelay.signInAnonymously()
-                }
-                repository.storeFcmToken(token)
-            } catch (_: Exception) { }
-        }
+    override fun onResume() {
+        super.onResume()
+        updateSummaries()
     }
 
-    private fun disablePush() {
-        savePref(false)
-        updateStatusText(false)
+    private fun updateSummaries() {
+        // Theme summary
+        binding.tvThemeSummary.text = ThemeManager.getThemeLabel(ThemeManager.getTheme(requireContext()))
 
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                if (!FirebaseRelay.isAuthenticated()) {
-                    FirebaseRelay.signInAnonymously()
-                }
-                repository.deleteFcmToken()
-            } catch (_: Exception) { }
+        // Notifications summary
+        val prefs = requireContext().getSharedPreferences("securechat_settings", 0)
+        val pushEnabled = prefs.getBoolean("push_notifications_enabled", false)
+        binding.tvNotifSummary.text = if (pushEnabled) "Activées" else "Désactivées"
+
+        // Security summary
+        val pinSet = AppLockManager.isPinSet(requireContext())
+        val bioEnabled = AppLockManager.isBiometricEnabled(requireContext())
+        val lockLabel = AppLockManager.getAutoLockLabel(requireContext()).lowercase()
+        binding.tvSecuritySummary.text = when {
+            pinSet && bioEnabled -> "PIN + Biométrie · $lockLabel"
+            pinSet -> "PIN activé · $lockLabel"
+            else -> "Désactivé"
         }
-    }
 
-    private fun savePref(enabled: Boolean) {
-        requireContext().getSharedPreferences(PREFS_NAME, 0)
-            .edit().putBoolean(KEY_PUSH_ENABLED, enabled).apply()
-    }
-
-    private fun updateStatusText(enabled: Boolean) {
-        binding.tvPushStatus.text = if (enabled) {
-            "✅ Activé — vous recevrez des notifications de nouveaux messages"
-        } else {
-            "\uD83D\uDD12 Désactivé par défaut pour protéger votre vie privée"
-        }
+        // Ephemeral summary
+        val ephDuration = EphemeralManager.getDefaultDuration(requireContext())
+        binding.tvEphemeralSummary.text = if (ephDuration > 0)
+            EphemeralManager.getLabelForDuration(ephDuration) else "Désactivé"
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    companion object {
-        const val PREFS_NAME = "securechat_settings"
-        const val KEY_PUSH_ENABLED = "push_notifications_enabled"
     }
 }

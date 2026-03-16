@@ -42,6 +42,9 @@ class ChatRepository(context: Context) {
         // serialize ratchet operations on the same conversation.
         private val ratchetMutexes = mutableMapOf<String, Mutex>()
 
+        /** Max ratchet steps to try during trial decryption (messageIndex hidden in ciphertext). */
+        private const val MAX_RATCHET_SKIP = 100
+
         internal fun getMutex(conversationId: String): Mutex {
             return synchronized(ratchetMutexes) {
                 ratchetMutexes.getOrPut(conversationId) { Mutex() }
@@ -233,15 +236,14 @@ class ChatRepository(context: Context) {
             val (newSendChainKey, messageKey) = SymmetricRatchet.advanceChain(ratchetState.sendChainKey)
             val messageIndex = ratchetState.sendIndex
 
-            // 2. Encrypt with unique message key
-            val encryptedData = CryptoManager.encrypt(plaintext, messageKey)
+            // 2. Embed messageIndex in plaintext for metadata privacy, then encrypt
+            val augmentedPlaintext = "$messageIndex|$plaintext"
+            val encryptedData = CryptoManager.encrypt(augmentedPlaintext, messageKey)
 
-            // 3. Send to Firebase — if this fails, ratchet state is NOT updated
+            // 3. Send to Firebase — metadata-hardened: no senderPublicKey, no messageIndex
             val firebaseMessage = FirebaseMessage(
-                senderPublicKey = user.publicKey,
                 ciphertext = encryptedData.ciphertext,
                 iv = encryptedData.iv,
-                messageIndex = messageIndex,
                 createdAt = System.currentTimeMillis(),
                 senderUid = FirebaseRelay.getCurrentUid() ?: ""
             )
@@ -255,13 +257,17 @@ class ChatRepository(context: Context) {
                 )
             )
 
-            // 5. Save plaintext locally
+            // 5. Save plaintext locally (with ephemeral timing if enabled)
+            val ephDuration = conversation.ephemeralDuration
+            val expiresAt = if (ephDuration > 0) System.currentTimeMillis() + ephDuration else 0L
             val localMessage = MessageLocal(
                 localId = UUID.randomUUID().toString(),
                 conversationId = conversationId,
                 senderPublicKey = user.publicKey,
                 plaintext = plaintext,
-                isMine = true
+                isMine = true,
+                ephemeralDuration = ephDuration,
+                expiresAt = expiresAt
             )
             messageDao.insertMessage(localMessage)
             updateConversationLastMessage(conversationId, plaintext)
@@ -272,6 +278,9 @@ class ChatRepository(context: Context) {
 
     /**
      * Decrypt a received message with Perfect Forward Secrecy.
+     * Uses trial decryption since messageIndex is embedded in the ciphertext
+     * (metadata hardening — Firebase cannot see ratchet position).
+     *
      * Protected by a per-conversation Mutex to prevent ratchet desynchronization
      * when multiple Firebase messages arrive simultaneously.
      */
@@ -279,16 +288,15 @@ class ChatRepository(context: Context) {
         conversationId: String,
         firebaseMessage: FirebaseMessage
     ): MessageLocal? {
-        val user = userDao.getUser() ?: return null
+        val myUid = FirebaseRelay.getCurrentUid() ?: ""
 
         // Skip own messages (fast check before acquiring mutex)
-        if (firebaseMessage.senderPublicKey == user.publicKey) return null
+        if (myUid.isNotEmpty() && firebaseMessage.senderUid == myUid) return null
 
         return getMutex(conversationId).withLock {
-            // Skip duplicates — check by sender + timestamp
-            val exists = messageDao.messageExists(
+            // Skip duplicates — check by conversationId + timestamp (received only)
+            val exists = messageDao.receivedMessageExists(
                 conversationId,
-                firebaseMessage.senderPublicKey,
                 firebaseMessage.createdAt
             )
             if (exists > 0) return@withLock null
@@ -300,50 +308,72 @@ class ChatRepository(context: Context) {
             // Get ratchet state
             val ratchetState = getOrCreateRatchetState(conversationId, conversation.participantPublicKey)
 
-            val targetIndex = firebaseMessage.messageIndex
-            val currentIndex = ratchetState.recvIndex
+            // Trial decryption: messageIndex is embedded in ciphertext as "index|plaintext"
+            var tempChainKey = ratchetState.recvChainKey
+            var decryptedPlaintext: String? = null
+            var finalChainKey: String? = null
+            var foundIndex = -1
 
-            // Already processed this index
-            if (targetIndex < currentIndex) return@withLock null
-
-            // Advance the recv chain
-            val stepsToSkip = targetIndex - currentIndex
-            val (newRecvChainKey, messageKey) = SymmetricRatchet.advanceChainBy(
-                ratchetState.recvChainKey, stepsToSkip
-            )
-
-            // Decrypt
-            val plaintext = try {
-                CryptoManager.decrypt(
-                    CryptoManager.EncryptedData(
-                        ciphertext = firebaseMessage.ciphertext,
-                        iv = firebaseMessage.iv
-                    ),
-                    messageKey
-                )
-            } catch (e: Exception) {
-                "[Échec du déchiffrement]"
+            for (skip in 0..MAX_RATCHET_SKIP) {
+                val (nextChainKey, messageKey) = SymmetricRatchet.advanceChain(tempChainKey)
+                try {
+                    val decrypted = CryptoManager.decrypt(
+                        CryptoManager.EncryptedData(
+                            ciphertext = firebaseMessage.ciphertext,
+                            iv = firebaseMessage.iv
+                        ),
+                        messageKey
+                    )
+                    // Parse embedded "messageIndex|plaintext"
+                    val sep = decrypted.indexOf('|')
+                    if (sep > 0) {
+                        val idx = decrypted.substring(0, sep).toIntOrNull()
+                        if (idx != null && idx == ratchetState.recvIndex + skip) {
+                            decryptedPlaintext = decrypted.substring(sep + 1)
+                            finalChainKey = nextChainKey
+                            foundIndex = idx
+                            break
+                        }
+                    }
+                    // Decrypted but index mismatch — continue trying
+                    tempChainKey = nextChainKey
+                } catch (_: Exception) {
+                    tempChainKey = nextChainKey
+                }
             }
 
-            // Update ratchet state
-            ratchetDao.insertOrUpdate(
-                ratchetState.copy(
-                    recvChainKey = newRecvChainKey,
-                    recvIndex = targetIndex + 1
+            // Update ratchet only on successful decryption
+            if (finalChainKey != null) {
+                ratchetDao.insertOrUpdate(
+                    ratchetState.copy(
+                        recvChainKey = finalChainKey,
+                        recvIndex = foundIndex + 1
+                    )
                 )
-            )
+            }
 
-            // Save locally
+            // Save locally (with ephemeral timing if conversation has it enabled)
+            // For received messages, expiresAt starts at 0 (timer starts on READ).
+            // If the chat is currently open, start the timer immediately.
+            val ephDuration = conversation.ephemeralDuration
+            val isCurrentlyViewing = currentlyViewedConversation == conversationId
+            val expiresAt = if (ephDuration > 0 && isCurrentlyViewing) {
+                System.currentTimeMillis() + ephDuration
+            } else {
+                0L  // Timer will start when chat is opened (activateEphemeralTimers)
+            }
             val localMessage = MessageLocal(
                 localId = UUID.randomUUID().toString(),
                 conversationId = conversationId,
-                senderPublicKey = firebaseMessage.senderPublicKey,
-                plaintext = plaintext,
+                senderPublicKey = conversation.participantPublicKey,
+                plaintext = decryptedPlaintext ?: "[Échec du déchiffrement]",
                 timestamp = firebaseMessage.createdAt,
-                isMine = false
+                isMine = false,
+                ephemeralDuration = ephDuration,
+                expiresAt = expiresAt
             )
             messageDao.insertMessage(localMessage)
-            updateConversationLastMessage(conversationId, plaintext)
+            updateConversationLastMessage(conversationId, localMessage.plaintext)
             if (currentlyViewedConversation != conversationId) {
                 conversationDao.incrementUnreadCount(conversationId)
             }
@@ -537,6 +567,15 @@ class ChatRepository(context: Context) {
         conversationDao.updateFingerprintVerified(conversationId, verified)
     }
 
+    /**
+     * Delete a conversation and all its messages from the local database.
+     */
+    suspend fun deleteConversation(conversationId: String) {
+        messageDao.deleteMessagesForConversation(conversationId)
+        val conversation = conversationDao.getConversationById(conversationId) ?: return
+        conversationDao.deleteConversation(conversation)
+    }
+
     // ========================================================================
     // FIREBASE CLEANUP
     // ========================================================================
@@ -551,6 +590,114 @@ class ChatRepository(context: Context) {
         } catch (_: Exception) {
             // Cleanup is best-effort, don't crash
         }
+    }
+
+    // ========================================================================
+    // EPHEMERAL MESSAGES
+    // ========================================================================
+
+    /**
+     * Set ephemeral duration for a conversation.
+     * Writes to BOTH local DB and Firebase so the other participant sees it too.
+     */
+    suspend fun setEphemeralDuration(conversationId: String, durationMs: Long) {
+        conversationDao.updateEphemeralDuration(conversationId, durationMs)
+        try {
+            FirebaseRelay.setEphemeralDuration(conversationId, durationMs)
+        } catch (_: Exception) { }
+    }
+
+    /**
+     * Listen for remote changes to ephemeral duration (set by the other participant).
+     */
+    fun listenForEphemeralDuration(conversationId: String): Flow<Long> =
+        FirebaseRelay.listenForEphemeralDuration(conversationId)
+
+    /**
+     * Sync ephemeral duration to local DB only (no Firebase write).
+     * Used when receiving a remote change to avoid infinite write loop.
+     */
+    suspend fun syncEphemeralDurationLocally(conversationId: String, durationMs: Long) {
+        conversationDao.updateEphemeralDuration(conversationId, durationMs)
+    }
+
+    /** Delete all expired ephemeral messages. */
+    suspend fun deleteExpiredMessages() {
+        messageDao.deleteExpiredMessages()
+    }
+
+    /**
+     * Activate ephemeral timers on received messages that haven't been read yet.
+     * Called when the user opens the chat — this is when the "read" timer starts.
+     * Only affects received messages (isMine = false) that have a duration but no expiresAt.
+     */
+    suspend fun activateEphemeralTimers(conversationId: String) {
+        messageDao.activateEphemeralTimersForRead(conversationId, System.currentTimeMillis())
+    }
+
+    /** Set expiresAt on a message (for received ephemeral messages). */
+    suspend fun setMessageExpiresAt(messageId: String, expiresAt: Long) {
+        messageDao.setExpiresAt(messageId, expiresAt)
+    }
+
+    // ========================================================================
+    // MESSAGE REACTIONS (SYNCED VIA FIREBASE)
+    // ========================================================================
+
+    /** Toggle a reaction on a message — updates local DB + syncs to Firebase. */
+    suspend fun setReaction(messageId: String, emoji: String, conversationId: String) {
+        messageDao.updateReaction(messageId, emoji)
+        val message = messageDao.getMessageById(messageId) ?: return
+        try {
+            FirebaseRelay.sendReaction(conversationId, message.timestamp, emoji)
+        } catch (_: Exception) { }
+    }
+
+    /**
+     * Listen for remote reaction changes from Firebase.
+     * When the other user reacts to a message, we update our local DB
+     * and insert an info message (like Telegram's reaction notifications).
+     */
+    fun listenForReactions(conversationId: String): Flow<FirebaseRelay.ReactionEvent> =
+        FirebaseRelay.listenForReactions(conversationId)
+
+    /**
+     * Apply a remote reaction from the other user:
+     *  1. Find the target message by timestamp
+     *  2. Update its reaction field
+     *  3. Insert an info message ("ContactName a réagi 👍 au message «…»")
+     */
+    suspend fun applyRemoteReaction(
+        conversationId: String,
+        messageTimestamp: Long,
+        emoji: String,
+        contactDisplayName: String
+    ) {
+        val message = messageDao.getMessageByTimestamp(conversationId, messageTimestamp) ?: return
+        // Skip if reaction is already the same
+        if (message.reaction == emoji) return
+
+        messageDao.updateReaction(message.localId, emoji)
+
+        // Build info message text
+        val infoText = if (emoji.isNotEmpty()) {
+            val preview = message.plaintext.take(25) + if (message.plaintext.length > 25) "…" else ""
+            "$contactDisplayName a réagi $emoji au message « $preview »"
+        } else {
+            val preview = message.plaintext.take(25) + if (message.plaintext.length > 25) "…" else ""
+            "$contactDisplayName a retiré sa réaction du message « $preview »"
+        }
+
+        val infoMessage = MessageLocal(
+            localId = UUID.randomUUID().toString(),
+            conversationId = conversationId,
+            senderPublicKey = "",
+            plaintext = infoText,
+            timestamp = System.currentTimeMillis(),
+            isMine = false,
+            isInfoMessage = true
+        )
+        messageDao.insertMessage(infoMessage)
     }
 
     // ========================================================================
