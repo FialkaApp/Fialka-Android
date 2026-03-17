@@ -38,7 +38,18 @@ class AddContactFragment : Fragment() {
 
     private val qrScannerLauncher = registerForActivityResult(ScanContract()) { result: ScanIntentResult ->
         if (result.contents != null) {
-            binding.etPublicKey.setText(result.contents)
+            val scanned = result.contents
+            if (scanned.startsWith("SECURECHAT:")) {
+                val parts = scanned.removePrefix("SECURECHAT:").split(":", limit = 2)
+                if (parts.size == 2) {
+                    binding.etPublicKey.setText(parts[0])
+                    binding.etContactName.setText(parts[1])
+                } else {
+                    binding.etPublicKey.setText(scanned)
+                }
+            } else {
+                binding.etPublicKey.setText(scanned)
+            }
             Toast.makeText(requireContext(), R.string.qr_scanned_success, Toast.LENGTH_SHORT).show()
         }
     }
@@ -99,7 +110,8 @@ class AddContactFragment : Fragment() {
             setPrompt("Scannez le QR code du contact")
             setCameraId(0)
             setBeepEnabled(false)
-            setOrientationLocked(true)
+            setOrientationLocked(false)
+            setCaptureActivity(CustomScannerActivity::class.java)
         }
         qrScannerLauncher.launch(options)
     }

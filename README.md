@@ -42,7 +42,7 @@
 |----------------|-------------|
 | 🔐 **Chiffrement E2E** | X25519 ECDH + AES-256-GCM — personne ne lit vos messages |
 | 🔄 **Perfect Forward Secrecy** | Double Ratchet (X25519 DH + KDF chains) — healing automatique |
-| 📷 **QR Code** | Ajoutez un contact en scannant son QR code |
+| 📷 **QR Code** | Scan QR → clé publique + pseudo remplis automatiquement (format `SECURECHAT:key:name`) |
 | ✏️ **Saisie manuelle** | Ajoutez un contact en collant sa clé publique |
 | 📨 **Demandes de contact** | Système d'invitation : envoi → notification → accepter/refuser |
 | ⏳ **Conversations en attente** | Les messages ne sont envoyés qu'après acceptation mutuelle |
@@ -466,6 +466,9 @@ SecureChat/
 │       │       │   ├── ConversationsAdapter.kt
 │       │       │   └── ContactRequestsAdapter.kt
 │       │       ├── addcontact/               # Scanner QR + saisie manuelle
+│       │       │   ├── AddContactFragment.kt
+│       │       │   ├── AddContactViewModel.kt
+│       │       │   └── CustomScannerActivity.kt  # Scanner sans laser, orientation libre
 │       │       ├── chat/                     # Messages E2E + bulles
 │       │       │   ├── ChatFragment.kt
 │       │       │   ├── ChatViewModel.kt

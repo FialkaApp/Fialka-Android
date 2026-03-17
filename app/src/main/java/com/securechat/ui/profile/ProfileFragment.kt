@@ -52,9 +52,10 @@ class ProfileFragment : Fragment() {
                 binding.tvInitial.text = user.displayName.firstOrNull()?.uppercase() ?: "?"
                 binding.tvDisplayNameHeader.text = user.displayName
 
-                // Generate QR code from public key
+                // Generate QR code with public key + display name
                 try {
-                    val qrBitmap = QrCodeGenerator.generate(user.publicKey, 512)
+                    val qrContent = "SECURECHAT:${user.publicKey}:${user.displayName}"
+                    val qrBitmap = QrCodeGenerator.generate(qrContent, 512)
                     binding.ivQrCode.setImageBitmap(qrBitmap)
                 } catch (e: Exception) {
                     Log.e("SecureChat", "QR generation failed", e)
