@@ -1,13 +1,17 @@
 package com.securechat.data.model
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * A contact that the user has added.
  * Contains the contact's display name and public key.
  */
-@Entity(tableName = "contacts")
+@Entity(
+    tableName = "contacts",
+    indices = [Index(value = ["publicKey"])]
+)
 data class Contact(
     @PrimaryKey
     val contactId: String,          // UUID

@@ -19,7 +19,8 @@ data class FirebaseMessage(
     val iv: String = "",
     val createdAt: Long = 0L,
     val senderUid: String = "",
-    val ephemeralKey: String = ""   // Base64 X25519 DH public key (Double Ratchet)
+    val ephemeralKey: String = "",  // Base64 X25519 DH public key (Double Ratchet)
+    @Transient val firebaseKey: String = ""  // Local-only: Firebase node key for delete-after-delivery
 ) {
     fun toMap(): Map<String, Any> {
         val map = mutableMapOf<String, Any>(

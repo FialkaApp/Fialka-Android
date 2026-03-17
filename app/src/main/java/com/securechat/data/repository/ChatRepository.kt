@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.Collections
 import java.util.UUID
 
 /**
@@ -28,9 +29,9 @@ import java.util.UUID
  * Thread safety: ratchet operations are serialized per-conversation via Mutex
  * to prevent race conditions when multiple Firebase messages arrive simultaneously.
  */
-class ChatRepository(context: Context) {
+class ChatRepository(private val appContext: Context) {
 
-    private val db = SecureChatDatabase.getInstance(context)
+    private val db = SecureChatDatabase.getInstance(appContext)
     private val userDao = db.userLocalDao()
     private val contactDao = db.contactDao()
     private val conversationDao = db.conversationDao()
@@ -46,6 +47,12 @@ class ChatRepository(context: Context) {
         /** Max ratchet steps to try during trial decryption (messageIndex hidden in ciphertext). */
         private const val MAX_RATCHET_SKIP = 100
 
+        /** Opaque prefix for dummy traffic — silently dropped by receiver after decryption. */
+        internal const val DUMMY_PREFIX = "\u0007\u001B\u0003"
+
+        /** Prefix for file attachment messages sent via the ratchet. */
+        internal const val FILE_PREFIX = "FILE|"
+
         internal fun getMutex(conversationId: String): Mutex {
             return synchronized(ratchetMutexes) {
                 ratchetMutexes.getOrPut(conversationId) { Mutex() }
@@ -55,6 +62,15 @@ class ChatRepository(context: Context) {
         internal fun clearMutexes() {
             synchronized(ratchetMutexes) { ratchetMutexes.clear() }
         }
+
+        /**
+         * Tracks Firebase keys already processed by any listener to prevent
+         * double-processing when both ConversationsViewModel (global) and
+         * ChatViewModel (per-chat) listeners receive the same message.
+         */
+        private val processedFirebaseKeys: MutableSet<String> =
+            Collections.synchronizedSet(mutableSetOf())
+        private const val MAX_PROCESSED_KEYS = 500
 
         /** The conversation currently being viewed. Unread count won't increment for it. */
         @Volatile
@@ -123,6 +139,9 @@ class ChatRepository(context: Context) {
     // ========================================================================
 
     fun getAllConversations(): LiveData<List<Conversation>> = conversationDao.getAllConversations()
+
+    suspend fun getAcceptedConversationsList(): List<Conversation> =
+        conversationDao.getAcceptedConversations()
 
     suspend fun getConversation(conversationId: String): Conversation? =
         conversationDao.getConversationById(conversationId)
@@ -281,7 +300,7 @@ class ChatRepository(context: Context) {
                 ciphertext = encryptedData.ciphertext,
                 iv = encryptedData.iv,
                 createdAt = System.currentTimeMillis(),
-                senderUid = FirebaseRelay.getCurrentUid() ?: "",
+                senderUid = CryptoManager.hashSenderUid(conversationId, FirebaseRelay.getCurrentUid() ?: ""),
                 ephemeralKey = ratchetState.localDhPublic
             )
             FirebaseRelay.sendMessage(conversationId, firebaseMessage)
@@ -314,6 +333,157 @@ class ChatRepository(context: Context) {
     }
 
     /**
+     * Send a dummy message on a conversation to mask real traffic patterns.
+     * Uses the real Double Ratchet (indistinguishable from real messages on the wire).
+     * Receiver detects the DUMMY_PREFIX after decryption and silently drops it.
+     */
+    suspend fun sendDummyMessage(conversationId: String) {
+        try {
+            // Reuse the real send pipeline — the dummy prefix makes the receiver drop it
+            val randomPadding = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
+            val dummyPlaintext = DUMMY_PREFIX + android.util.Base64.encodeToString(randomPadding, android.util.Base64.NO_WRAP)
+            sendMessage(conversationId, dummyPlaintext)
+            // Delete the locally saved dummy message (we don't want it in the UI)
+            val lastMsg = messageDao.getLastMessage(conversationId)
+            if (lastMsg != null && lastMsg.plaintext.startsWith(DUMMY_PREFIX)) {
+                messageDao.deleteMessageById(lastMsg.localId)
+                // Restore the previous real message as lastMessage on the conversation
+                val prevMsg = messageDao.getLastMessage(conversationId)
+                if (prevMsg != null) {
+                    updateConversationLastMessage(conversationId, prevMsg.plaintext)
+                }
+            }
+        } catch (_: Exception) {
+            // Dummy failures are silent — they must never disrupt real messaging
+        }
+    }
+
+    /**
+     * Send a file with E2E encryption.
+     * 1. Encrypt file locally with a random AES-256-GCM key
+     * 2. Upload ciphertext to Firebase Storage
+     * 3. Send metadata (URL + key + IV + filename + size) as a ratcheted message
+     *
+     * The receiver downloads, decrypts locally, and stores the plaintext file.
+     */
+    suspend fun sendFile(
+        conversationId: String,
+        fileBytes: ByteArray,
+        fileName: String
+    ): MessageLocal {
+        // 1. Encrypt file client-side
+        val encResult = CryptoManager.encryptFile(fileBytes)
+
+        // 2. Upload encrypted bytes to Firebase Storage
+        val ext = fileName.substringAfterLast('.', "bin")
+        val downloadUrl = FirebaseRelay.uploadEncryptedFile(conversationId, encResult.encryptedBytes, ext)
+
+        // 3. Build metadata plaintext: FILE|url|key|iv|filename|size
+        val metadata = "${FILE_PREFIX}${downloadUrl}|${encResult.keyBase64}|${encResult.ivBase64}|${fileName}|${fileBytes.size}"
+
+        // 4. Send via the normal ratchet pipeline (E2E encrypted metadata)
+        val sentMessage = sendMessage(conversationId, metadata)
+
+        // 5. Save the decrypted file locally
+        val localFile = saveFileLocally(conversationId, fileName, fileBytes)
+
+        // 6. Update the local message with file info
+        val fileMessage = sentMessage.copy(
+            plaintext = "\uD83D\uDCCE $fileName",  // 📎 emoji + filename for display
+            fileName = fileName,
+            fileSize = fileBytes.size.toLong(),
+            localFilePath = localFile.absolutePath
+        )
+        messageDao.insertMessage(fileMessage)  // REPLACE because same localId
+
+        return fileMessage
+    }
+
+    /**
+     * Save decrypted file to app-private storage.
+     * Path: /data/data/com.securechat/files/received_files/{conversationId}/{fileName}
+     */
+    private fun saveFileLocally(
+        conversationId: String,
+        fileName: String,
+        fileBytes: ByteArray
+    ): java.io.File {
+        val dir = java.io.File(appContext.filesDir, "received_files/$conversationId")
+        dir.mkdirs()
+        // Sanitize filename to prevent path traversal
+        val safeName = fileName.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+        val file = java.io.File(dir, safeName)
+        file.writeBytes(fileBytes)
+        return file
+    }
+
+    /**
+     * Parse and process a received file attachment message.
+     * Downloads encrypted file from Firebase Storage, decrypts locally, saves to disk.
+     * Format: FILE|downloadUrl|keyBase64|ivBase64|fileName|fileSize
+     */
+    private suspend fun handleReceivedFile(
+        conversationId: String,
+        conversation: Conversation,
+        decryptedPlaintext: String,
+        timestamp: Long
+    ): MessageLocal? {
+        return try {
+            // Parse: strip FILE_PREFIX, then split remaining by |
+            val payload = decryptedPlaintext.removePrefix(FILE_PREFIX)
+            val parts = payload.split("|", limit = 5)
+            if (parts.size < 5) return null
+
+            val downloadUrl = parts[0]
+            val keyBase64 = parts[1]
+            val ivBase64 = parts[2]
+            val fileName = parts[3]
+            val fileSize = parts[4].toLongOrNull() ?: 0L
+
+            // Download encrypted bytes from Firebase Storage
+            val encryptedBytes = FirebaseRelay.downloadEncryptedFile(downloadUrl)
+
+            // Decrypt locally
+            val decryptedBytes = CryptoManager.decryptFile(encryptedBytes, keyBase64, ivBase64)
+
+            // Save to disk
+            val localFile = saveFileLocally(conversationId, fileName, decryptedBytes)
+
+            // Delete encrypted file from Storage (ephemeral storage)
+            FirebaseRelay.deleteEncryptedFile(downloadUrl)
+
+            // Save message locally
+            val ephDuration = conversation.ephemeralDuration
+            val isCurrentlyViewing = currentlyViewedConversation == conversationId
+            val expiresAt = if (ephDuration > 0 && isCurrentlyViewing) {
+                System.currentTimeMillis() + ephDuration
+            } else { 0L }
+
+            val localMessage = MessageLocal(
+                localId = UUID.randomUUID().toString(),
+                conversationId = conversationId,
+                senderPublicKey = conversation.participantPublicKey,
+                plaintext = "\uD83D\uDCCE $fileName",
+                timestamp = timestamp,
+                isMine = false,
+                ephemeralDuration = ephDuration,
+                expiresAt = expiresAt,
+                fileName = fileName,
+                fileSize = fileSize,
+                localFilePath = localFile.absolutePath
+            )
+            messageDao.insertMessage(localMessage)
+            updateConversationLastMessage(conversationId, localMessage.plaintext)
+            if (currentlyViewedConversation != conversationId) {
+                conversationDao.incrementUnreadCount(conversationId)
+            }
+            localMessage
+        } catch (_: Exception) {
+            null  // File download/decrypt failed — don't crash
+        }
+    }
+
+    /**
      * Decrypt a received message with Perfect Forward Secrecy.
      * Uses trial decryption since messageIndex is embedded in the ciphertext
      * (metadata hardening — Firebase cannot see ratchet position).
@@ -327,10 +497,21 @@ class ChatRepository(context: Context) {
     ): MessageLocal? {
         val myUid = FirebaseRelay.getCurrentUid() ?: ""
 
-        // Skip own messages (fast check before acquiring mutex)
-        if (myUid.isNotEmpty() && firebaseMessage.senderUid == myUid) return null
+        // Skip own messages — compare hashed UID (matches what we send)
+        val myHashedUid = CryptoManager.hashSenderUid(conversationId, myUid)
+        if (myUid.isNotEmpty() && firebaseMessage.senderUid == myHashedUid) return null
 
         return getMutex(conversationId).withLock {
+            // Guard against double-processing by parallel listeners (global + per-chat)
+            if (firebaseMessage.firebaseKey.isNotEmpty() &&
+                !processedFirebaseKeys.add(firebaseMessage.firebaseKey)
+            ) {
+                return@withLock null
+            }
+            if (processedFirebaseKeys.size > MAX_PROCESSED_KEYS) {
+                processedFirebaseKeys.clear()
+            }
+
             // Skip duplicates — check by conversationId + timestamp (received only)
             val exists = messageDao.receivedMessageExists(
                 conversationId,
@@ -409,6 +590,21 @@ class ChatRepository(context: Context) {
                         recvChainKey = finalChainKey,
                         recvIndex = foundIndex + 1
                     )
+                )
+                // Delete-after-delivery: remove ciphertext from Firebase
+                FirebaseRelay.deleteMessage(conversationId, firebaseMessage.firebaseKey)
+            }
+
+            // Silently drop dummy traffic messages (used to mask real activity patterns)
+            if (decryptedPlaintext != null && decryptedPlaintext.startsWith(DUMMY_PREFIX)) {
+                return@withLock null
+            }
+
+            // Handle file attachment messages
+            if (decryptedPlaintext != null && decryptedPlaintext.startsWith(FILE_PREFIX)) {
+                return@withLock handleReceivedFile(
+                    conversationId, conversation, decryptedPlaintext,
+                    firebaseMessage.createdAt
                 )
             }
 

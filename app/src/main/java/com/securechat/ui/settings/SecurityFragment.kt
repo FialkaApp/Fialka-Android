@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.securechat.databinding.FragmentSettingsSecurityBinding
 import com.securechat.util.AppLockManager
+import com.securechat.util.DummyTrafficManager
 
 class SecurityFragment : Fragment() {
 
@@ -32,6 +33,26 @@ class SecurityFragment : Fragment() {
         setupPin()
         setupBiometric()
         setupAutoLock()
+        setupDummyTraffic()
+    }
+
+    private fun setupDummyTraffic() {
+        val enabled = DummyTrafficManager.isEnabled(requireContext())
+        binding.switchDummy.isChecked = enabled
+        updateDummyStatus(enabled)
+
+        binding.switchDummy.setOnCheckedChangeListener { _, isChecked ->
+            DummyTrafficManager.setEnabled(requireContext(), isChecked)
+            updateDummyStatus(isChecked)
+        }
+    }
+
+    private fun updateDummyStatus(enabled: Boolean) {
+        binding.tvDummyStatus.text = if (enabled) {
+            "✅ Actif — trafic masqué en temps réel"
+        } else {
+            "Envoie des messages chiffrés factices"
+        }
     }
 
     private fun setupAutoLock() {

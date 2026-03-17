@@ -59,6 +59,10 @@
 - **BIP-39** backup (24 mots)
 - Clé privée dans **Android Keystore**
 - Base locale chiffrée **SQLCipher**
+- **Message padding** taille fixe (256/1K/4K/16K)
+- **PBKDF2** PIN (600K itérations)
+- **Dummy traffic** (trafic factice configurable)
+- **Fichiers E2E** chiffrés AES-256-GCM
 
 </td>
 <td width="50%">
@@ -96,11 +100,16 @@
 | 🔐 | **Chiffrement E2E** | X25519 ECDH + AES-256-GCM |
 | 🔄 | **Perfect Forward Secrecy** | Double Ratchet (DH + KDF chains) |
 | 🔏 | **Fingerprint emojis** | 96-bit, 16 emojis, anti-MITM |
-| 🕵️ | **Metadata hardening** | senderPublicKey + messageIndex supprimés |
+| 🕵️ | **Metadata hardening** | senderUid hashé HMAC + messageIndex chiffré |
 | 🛡️ | **Zero-knowledge relay** | Firebase ne voit que du ciphertext |
 | 🔑 | **Keystore-backed** | Clé privée dans EncryptedSharedPreferences |
 | 🗄️ | **SQLCipher** | Base Room chiffrée AES-256 |
 | 🧹 | **Zeroing mémoire** | Clés intermédiaires remplies de zéros |
+| 📏 | **Message padding** | Taille fixe (256/1K/4K/16K) anti-analyse de trafic |
+| 🗑️ | **Delete-after-delivery** | Messages supprimés de Firebase après déchiffrement |
+| 👻 | **Dummy traffic** | Messages factices périodiques (configurable) |
+| 📎 | **Fichiers E2E** | Chiffrement AES-256-GCM par fichier via Firebase Storage |
+| 🔒 | **PBKDF2 PIN** | 600K itérations + salt (remplace SHA-256) |
 
 </details>
 
@@ -116,7 +125,10 @@
 | 🔄 | **Temps réel** | Messages reçus même app en arrière-plan |
 | 🔔 | **Push notifications** | Opt-in, zéro contenu message |
 | ⏱️ | **Messages éphémères** | 10 durées (30s → 1 mois), synchro Firebase |
-| 💀 | **Détection convo morte** | Auto-détection + nettoyage + re-invitation |
+| � | **Partage de fichiers E2E** | Chiffrés AES-256-GCM, 25 Mo max |
+| 👻 | **Trafic factice** | Messages indistinguables pour masquer l'activité |
+| 🗑️ | **Delete-after-delivery** | Ciphertext supprimé de Firebase après réception |
+| �💀 | **Détection convo morte** | Auto-détection + nettoyage + re-invitation |
 
 </details>
 
@@ -214,6 +226,13 @@ cd SecureChat
 | Mutex par conversation (thread-safe) | ✅ |
 | SQLCipher (base locale chiffrée AES-256) | ✅ |
 | Metadata hardening (trial decryption) | ✅ |
+| senderUid hashé HMAC-SHA256 par conversation | ✅ |
+| Message padding taille fixe (anti traffic analysis) | ✅ |
+| Delete-after-delivery (Firebase auto-cleanup) | ✅ |
+| Dummy traffic configurable (trafic factice) | ✅ |
+| Fichiers E2E (AES-256-GCM + Firebase Storage) | ✅ |
+| PBKDF2 PIN (600K itérations + salt) | ✅ |
+| R8/ProGuard obfuscation + log stripping | ✅ |
 | Fingerprint emojis 96-bit anti-MITM | ✅ |
 | App Lock (PIN + biométrie) | ✅ |
 | Firebase security rules restrictives | ✅ |
@@ -236,7 +255,8 @@ cd SecureChat
 | **V2** | Crypto Upgrade — Full Double Ratchet X25519, Curve25519 natif | ✅ Done |
 | **V2.1** | Account Lifecycle — BIP-39 backup, restauration, suppression, dead convo | ✅ Done |
 | **V2.2** | UI Modernization — 5 thèmes, animations, CoordinatorLayout, zero hardcoded colors | ✅ Done |
-| **V3** | Planned — Signature ECDSA, groupes, suppression pour tous, typing indicators | 🔜 |
+| **V3** | Security Hardening — R8, delete-after-delivery, padding, HMAC UID, PBKDF2, dummy traffic, fichiers E2E | ✅ Done |
+| **V3.1** | Planned — Signature ECDSA, groupes, suppression pour tous, typing indicators | 🔜 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
 
@@ -283,7 +303,7 @@ Fourni à des fins **éducatives**. Utilisez-le comme base pour comprendre le ch
 
 <br/>
 
-<img src="https://img.shields.io/badge/SecureChat-V2.2-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/SecureChat-V3.0-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

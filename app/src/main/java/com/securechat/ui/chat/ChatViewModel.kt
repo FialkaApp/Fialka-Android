@@ -183,6 +183,29 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Send a file with E2E encryption.
+     * The file is encrypted locally, uploaded to Firebase Storage as ciphertext,
+     * and the decryption key is sent via the Double Ratchet.
+     */
+    fun sendFile(fileBytes: ByteArray, fileName: String) {
+        if (conversationId.isEmpty()) return
+
+        if (_isAccepted.value != true) {
+            _sendError.value = "En attente d'acceptation par le contact"
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                repository.sendFile(conversationId, fileBytes, fileName)
+                _sendError.value = null
+            } catch (e: Exception) {
+                _sendError.value = "Échec de l'envoi du fichier: ${e.message}"
+            }
+        }
+    }
+
     /** Ephemeral duration LiveData — updated when either user changes the setting. */
     private val _ephemeralDuration = MutableLiveData<Long>(0L)
     val ephemeralDuration: LiveData<Long> = _ephemeralDuration

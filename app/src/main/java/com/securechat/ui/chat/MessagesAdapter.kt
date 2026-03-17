@@ -1,9 +1,11 @@
 package com.securechat.ui.chat
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
+import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -12,6 +14,7 @@ import com.securechat.data.model.MessageLocal
 import com.securechat.databinding.ItemMessageReceivedBinding
 import com.securechat.databinding.ItemMessageSentBinding
 import com.securechat.util.EphemeralManager
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -35,6 +38,25 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
         private const val VIEW_TYPE_UNREAD_DIVIDER = 2
         private const val VIEW_TYPE_INFO = 3
         private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+        /** Open a decrypted file using the system file viewer. */
+        private fun openFile(view: View, filePath: String) {
+            try {
+                val file = File(filePath)
+                if (!file.exists()) return
+                val context = view.context
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, context.contentResolver.getType(uri) ?: "*/*")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(intent)
+            } catch (_: Exception) { }
+        }
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -114,6 +136,13 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
             binding.tvMessageSent.text = message.plaintext
             binding.tvTimeSent.text = timeFormat.format(Date(message.timestamp))
 
+            // File attachment — click to open
+            if (message.localFilePath != null) {
+                binding.root.setOnClickListener { openFile(it, message.localFilePath) }
+            } else {
+                binding.root.setOnClickListener(null)
+            }
+
             // Ephemeral indicator
             if (message.ephemeralDuration > 0) {
                 binding.tvEphemeralSent.visibility = View.VISIBLE
@@ -130,6 +159,13 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
         fun bind(message: MessageLocal) {
             binding.tvMessageReceived.text = message.plaintext
             binding.tvTimeReceived.text = timeFormat.format(Date(message.timestamp))
+
+            // File attachment — click to open
+            if (message.localFilePath != null) {
+                binding.root.setOnClickListener { openFile(it, message.localFilePath) }
+            } else {
+                binding.root.setOnClickListener(null)
+            }
 
             // Ephemeral indicator
             if (message.ephemeralDuration > 0) {

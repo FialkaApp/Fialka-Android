@@ -233,6 +233,41 @@ object CryptoManager {
     // 5. AES-256-GCM ENCRYPTION / DECRYPTION
     // ========================================================================
 
+    // Padding buckets (bytes). 2-byte length header included in bucket.
+    private val PADDING_BUCKETS = intArrayOf(256, 1024, 4096, 16384)
+
+    /**
+     * Pad plaintext into fixed-size buckets to prevent traffic analysis.
+     * Format: [2 bytes big-endian real length][UTF-8 plaintext][random padding to bucket boundary]
+     */
+    private fun padPlaintext(plaintextBytes: ByteArray): ByteArray {
+        val payloadSize = 2 + plaintextBytes.size  // 2-byte header + content
+        val bucket = PADDING_BUCKETS.firstOrNull { it >= payloadSize } ?: payloadSize
+        val padded = ByteArray(bucket)
+        // Write real length as 2-byte big-endian header
+        padded[0] = ((plaintextBytes.size shr 8) and 0xFF).toByte()
+        padded[1] = (plaintextBytes.size and 0xFF).toByte()
+        // Copy plaintext after header
+        plaintextBytes.copyInto(padded, destinationOffset = 2)
+        // Fill remaining bytes with random data (not zeros — avoids pattern)
+        if (bucket > payloadSize) {
+            val randomPad = ByteArray(bucket - payloadSize)
+            secureRandom.nextBytes(randomPad)
+            randomPad.copyInto(padded, destinationOffset = payloadSize)
+            randomPad.fill(0)
+        }
+        return padded
+    }
+
+    /**
+     * Strip padding to recover original plaintext bytes.
+     */
+    private fun unpadPlaintext(padded: ByteArray): ByteArray {
+        val realLength = ((padded[0].toInt() and 0xFF) shl 8) or (padded[1].toInt() and 0xFF)
+        require(realLength >= 0 && realLength <= padded.size - 2) { "Invalid padding header" }
+        return padded.copyOfRange(2, 2 + realLength)
+    }
+
     fun encrypt(plaintext: String, key: SecretKey): EncryptedData {
         val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
         val iv = ByteArray(GCM_IV_LENGTH_BYTES)
@@ -240,8 +275,10 @@ object CryptoManager {
 
         cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
         val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
-        val ciphertextBytes = cipher.doFinal(plaintextBytes)
+        val paddedBytes = padPlaintext(plaintextBytes)
         plaintextBytes.fill(0)
+        val ciphertextBytes = cipher.doFinal(paddedBytes)
+        paddedBytes.fill(0)
 
         val result = EncryptedData(
             ciphertext = Base64.encodeToString(ciphertextBytes, Base64.NO_WRAP),
@@ -258,17 +295,71 @@ object CryptoManager {
         val ciphertextBytes = Base64.decode(encryptedData.ciphertext, Base64.NO_WRAP)
 
         cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
-        val plaintextBytes = cipher.doFinal(ciphertextBytes)
+        val paddedBytes = cipher.doFinal(ciphertextBytes)
+        val plaintextBytes = unpadPlaintext(paddedBytes)
         val plaintext = String(plaintextBytes, Charsets.UTF_8)
 
         iv.fill(0)
         ciphertextBytes.fill(0)
+        paddedBytes.fill(0)
         plaintextBytes.fill(0)
         return plaintext
     }
 
     // ========================================================================
-    // 6. UTILITIES
+    // 6. FILE ENCRYPTION (AES-256-GCM, one-shot key per file)
+    // ========================================================================
+
+    data class FileEncryptionResult(
+        val encryptedBytes: ByteArray,
+        val keyBase64: String,    // Random AES-256 key (to embed in E2E message)
+        val ivBase64: String      // IV used for this file
+    )
+
+    /**
+     * Encrypt raw file bytes with a fresh random AES-256-GCM key.
+     * Returns the ciphertext + key + IV (key/IV are sent via the ratchet).
+     */
+    fun encryptFile(fileBytes: ByteArray): FileEncryptionResult {
+        val keyBytes = ByteArray(32)
+        secureRandom.nextBytes(keyBytes)
+        val key = SecretKeySpec(keyBytes, "AES")
+        val iv = ByteArray(GCM_IV_LENGTH_BYTES)
+        secureRandom.nextBytes(iv)
+
+        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
+        cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        val encrypted = cipher.doFinal(fileBytes)
+
+        val result = FileEncryptionResult(
+            encryptedBytes = encrypted,
+            keyBase64 = Base64.encodeToString(keyBytes, Base64.NO_WRAP),
+            ivBase64 = Base64.encodeToString(iv, Base64.NO_WRAP)
+        )
+        keyBytes.fill(0)
+        iv.fill(0)
+        return result
+    }
+
+    /**
+     * Decrypt file bytes using the provided key and IV.
+     */
+    fun decryptFile(encryptedBytes: ByteArray, keyBase64: String, ivBase64: String): ByteArray {
+        val keyBytes = Base64.decode(keyBase64, Base64.NO_WRAP)
+        val iv = Base64.decode(ivBase64, Base64.NO_WRAP)
+        val key = SecretKeySpec(keyBytes, "AES")
+
+        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
+        cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        val decrypted = cipher.doFinal(encryptedBytes)
+
+        keyBytes.fill(0)
+        iv.fill(0)
+        return decrypted
+    }
+
+    // ========================================================================
+    // 7. UTILITIES
     // ========================================================================
 
     fun isValidPublicKey(publicKeyBase64: String): Boolean {
@@ -316,6 +407,19 @@ object CryptoManager {
         val mac = javax.crypto.Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(key, "HmacSHA256"))
         return mac.doFinal(data)
+    }
+
+    /**
+     * Derive a per-conversation pseudonymous sender ID.
+     * HMAC-SHA256(conversationId, uid) truncated to 32 hex chars.
+     * Prevents cross-conversation UID correlation on Firebase.
+     */
+    fun hashSenderUid(conversationId: String, uid: String): String {
+        val hash = hmacSha256(
+            conversationId.toByteArray(Charsets.UTF_8),
+            uid.toByteArray(Charsets.UTF_8)
+        )
+        return hash.take(16).joinToString("") { "%02x".format(it) }
     }
 
     data class EncryptedData(

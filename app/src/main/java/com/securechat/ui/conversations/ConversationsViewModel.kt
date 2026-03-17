@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.securechat.data.model.Conversation
 import com.securechat.data.remote.FirebaseRelay
 import com.securechat.data.repository.ChatRepository
+import com.securechat.util.DummyTrafficManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -44,11 +45,13 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
         listenForIncomingRequests()
         listenForAcceptances()
         conversations.observeForever(conversationsObserver)
+        DummyTrafficManager.start(viewModelScope, application, repository)
     }
 
     override fun onCleared() {
         super.onCleared()
         conversations.removeObserver(conversationsObserver)
+        DummyTrafficManager.stop()
     }
 
     /**

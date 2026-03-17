@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
@@ -38,6 +39,38 @@ class ChatFragment : Fragment() {
 
     private var conversationId: String = ""
     private var contactName: String = ""
+
+    /** Max file size for E2E file sharing (25 MB). */
+    private val MAX_FILE_SIZE = 25L * 1024 * 1024
+
+    private val filePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri ?: return@registerForActivityResult
+        try {
+            val contentResolver = requireContext().contentResolver
+            val fileBytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: return@registerForActivityResult
+
+            if (fileBytes.size > MAX_FILE_SIZE) {
+                Toast.makeText(requireContext(), "Fichier trop volumineux (max 25 Mo)", Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+
+            // Extract filename from URI
+            val cursor = contentResolver.query(uri, null, null, null, null)
+            val fileName = cursor?.use {
+                if (it.moveToFirst()) {
+                    val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (nameIndex >= 0) it.getString(nameIndex) else null
+                } else null
+            } ?: "file_${System.currentTimeMillis()}"
+
+            viewModel.sendFile(fileBytes, fileName)
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -121,6 +154,11 @@ class ChatFragment : Fragment() {
                 viewModel.sendMessage(text)
                 binding.etMessage.text?.clear()
             }
+        }
+
+        // Attach file button
+        binding.btnAttach.setOnClickListener {
+            filePickerLauncher.launch("*/*")
         }
 
         // Error handling

@@ -59,6 +59,10 @@
 - **BIP-39** backup (24 words)
 - Private key in **Android Keystore**
 - Encrypted local DB **SQLCipher**
+- **Message padding** fixed-size (256/1K/4K/16K)
+- **PBKDF2** PIN (600K iterations)
+- **Dummy traffic** (configurable cover traffic)
+- **E2E file sharing** AES-256-GCM encrypted
 
 </td>
 <td width="50%">
@@ -96,11 +100,16 @@
 | 🔐 | **E2E Encryption** | X25519 ECDH + AES-256-GCM |
 | 🔄 | **Perfect Forward Secrecy** | Double Ratchet (DH + KDF chains) |
 | 🔏 | **Fingerprint emojis** | 96-bit, 16 emojis, anti-MITM |
-| 🕵️ | **Metadata hardening** | senderPublicKey + messageIndex removed |
+| 🕵️ | **Metadata hardening** | senderUid HMAC-hashed + messageIndex encrypted |
 | 🛡️ | **Zero-knowledge relay** | Firebase only sees ciphertext |
 | 🔑 | **Keystore-backed** | Private key in EncryptedSharedPreferences |
 | 🗄️ | **SQLCipher** | Room DB encrypted with AES-256 |
 | 🧹 | **Memory zeroing** | Intermediate keys filled with zeros |
+| 📏 | **Message padding** | Fixed-size (256/1K/4K/16K) anti-traffic analysis |
+| 🗑️ | **Delete-after-delivery** | Messages removed from Firebase after decryption |
+| 👻 | **Dummy traffic** | Periodic cover messages (configurable toggle) |
+| 📎 | **E2E file sharing** | Per-file AES-256-GCM via Firebase Storage |
+| 🔒 | **PBKDF2 PIN** | 600K iterations + salt (replaces SHA-256) |
 
 </details>
 
@@ -116,7 +125,10 @@
 | 🔄 | **Real-time** | Receive messages even in background |
 | 🔔 | **Push notifications** | Opt-in, zero message content |
 | ⏱️ | **Disappearing msgs** | 10 durations (30s → 1 mo), Firebase sync |
-| 💀 | **Dead convo detection** | Auto-detect + clean up + re-invite |
+| � | **E2E file sharing** | AES-256-GCM encrypted, 25 MB max |
+| 👻 | **Dummy traffic** | Indistinguishable cover messages to mask activity |
+| 🗑️ | **Delete-after-delivery** | Ciphertext removed from Firebase after receipt |
+| �💀 | **Dead convo detection** | Auto-detect + clean up + re-invite |
 
 </details>
 
@@ -214,6 +226,13 @@ cd SecureChat
 | Conversation Mutex (thread-safe) | ✅ |
 | SQLCipher (local DB AES-256 encrypted) | ✅ |
 | Metadata hardening (trial decryption) | ✅ |
+| senderUid HMAC-SHA256 hashed per conversation | ✅ |
+| Fixed-size message padding (anti traffic analysis) | ✅ |
+| Delete-after-delivery (Firebase auto-cleanup) | ✅ |
+| Configurable dummy traffic (cover traffic) | ✅ |
+| E2E file sharing (AES-256-GCM + Firebase Storage) | ✅ |
+| PBKDF2 PIN (600K iterations + salt) | ✅ |
+| R8/ProGuard obfuscation + log stripping | ✅ |
 | Fingerprint emojis 96-bit anti-MITM | ✅ |
 | App Lock (PIN + biometrics) | ✅ |
 | Restrictive Firebase security rules | ✅ |
@@ -236,7 +255,8 @@ cd SecureChat
 | **V2** | Crypto Upgrade — Full Double Ratchet X25519, native Curve25519 | ✅ Done |
 | **V2.1** | Account Lifecycle — BIP-39 backup, restore, delete, dead convo | ✅ Done |
 | **V2.2** | UI Modernization — 5 themes, animations, CoordinatorLayout, zero hardcoded colors | ✅ Done |
-| **V3** | Planned — ECDSA signatures, groups, delete for all, typing indicators | 🔜 |
+| **V3** | Security Hardening — R8, delete-after-delivery, padding, HMAC UID, PBKDF2, dummy traffic, E2E files | ✅ Done |
+| **V3.1** | Planned — ECDSA signatures, groups, delete for all, typing indicators | 🔜 |
 
 > 📖 **Details** — [Full Changelog](docs/en/CHANGELOG.md)
 
@@ -283,7 +303,7 @@ Provided for **educational** purposes. Use it as a definitive base to understand
 
 <br/>
 
-<img src="https://img.shields.io/badge/SecureChat-V2.2-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/SecureChat-V3.0-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

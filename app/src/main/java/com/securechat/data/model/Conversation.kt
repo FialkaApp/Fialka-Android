@@ -1,6 +1,7 @@
 package com.securechat.data.model
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
@@ -8,7 +9,10 @@ import androidx.room.PrimaryKey
  * The conversationId is derived from: SHA-256(min(pubKeyA, pubKeyB) + max(pubKeyA, pubKeyB))
  * This ensures both participants compute the same ID.
  */
-@Entity(tableName = "conversations")
+@Entity(
+    tableName = "conversations",
+    indices = [Index(value = ["accepted"])]
+)
 data class Conversation(
     @PrimaryKey
     val conversationId: String,

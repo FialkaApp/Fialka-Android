@@ -2,8 +2,19 @@ const { onValueCreated } = require("firebase-functions/v2/database");
 const { initializeApp } = require("firebase-admin/app");
 const { getDatabase } = require("firebase-admin/database");
 const { getMessaging } = require("firebase-admin/messaging");
+const crypto = require("crypto");
 
 initializeApp();
+
+/**
+ * Compute HMAC-SHA256(conversationId, uid) truncated to 16 bytes hex.
+ * Must match CryptoManager.hashSenderUid() on the Android client.
+ */
+function hashSenderUid(conversationId, uid) {
+  const hmac = crypto.createHmac("sha256", conversationId);
+  hmac.update(uid);
+  return hmac.digest("hex").substring(0, 32);
+}
 
 /**
  * Cloud Function triggered when a new message is written to Firebase RTDB.
@@ -13,7 +24,7 @@ initializeApp();
  * Only includes: conversationId + sender display name.
  *
  * Requirements:
- *   - Message must include "senderUid" field (Firebase anonymous UID)
+ *   - Message must include "senderUid" field (HMAC-hashed per conversation)
  *   - Recipient must have "fcm_token" stored at /users/{uid}/fcm_token
  *   - Sender's display name stored at /users/{uid}/displayName
  */
@@ -31,14 +42,8 @@ exports.onNewMessage = onValueCreated(
       return null;
     }
 
-    const senderUid = message.senderUid;
+    const senderHashedUid = message.senderUid;
     const db = getDatabase();
-
-    // Get sender display name
-    const senderSnap = await db
-      .ref(`users/${senderUid}/displayName`)
-      .once("value");
-    const senderName = senderSnap.val() || "Un contact";
 
     // Get all participants of this conversation
     const participantsSnap = await db
@@ -50,11 +55,29 @@ exports.onNewMessage = onValueCreated(
       return null;
     }
 
+    // Identify the real sender by matching HMAC hash against participants
+    let realSenderUid = null;
+    for (const uid of Object.keys(participants)) {
+      if (hashSenderUid(conversationId, uid) === senderHashedUid) {
+        realSenderUid = uid;
+        break;
+      }
+    }
+
+    // Get sender display name (if sender identified)
+    let senderName = "Un contact";
+    if (realSenderUid) {
+      const senderSnap = await db
+        .ref(`users/${realSenderUid}/displayName`)
+        .once("value");
+      senderName = senderSnap.val() || "Un contact";
+    }
+
     const sendPromises = [];
 
     for (const uid of Object.keys(participants)) {
       // Skip the sender
-      if (uid === senderUid) {
+      if (uid === realSenderUid) {
         continue;
       }
 

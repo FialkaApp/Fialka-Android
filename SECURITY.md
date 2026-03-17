@@ -4,8 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 2.1.x   | ✅ Current |
-| 2.0.x   | ⚠️ Outdated |
+| 3.0.x   | ✅ Current |
+| 2.2.x   | ⚠️ Outdated |
+| 2.0–2.1 | ⚠️ Outdated |
 | 1.x     | ❌ Unsupported |
 
 ## Reporting a Vulnerability
@@ -29,10 +30,15 @@ SecureChat uses the following cryptographic primitives:
 | Key derivation | HKDF-SHA256 | Root key → send/recv chain keys |
 | Message keys | HMAC-SHA256 KDF chain | Double Ratchet (DH ratchet + KDF chains, PFS + healing) |
 | DH Ratchet | X25519 ephemeral keys | New key pair per direction change → post-compromise healing |
-| Message encryption | AES-256-GCM | 12-byte random IV, 128-bit auth tag |
+| Message encryption | AES-256-GCM | 12-byte random IV, 128-bit auth tag, padded to fixed-size buckets |
+| Message padding | 256 / 1024 / 4096 / 16384 bytes | 2-byte big-endian length header + random fill |
 | Conversation ID | SHA-256 | Hash of sorted public keys |
 | Fingerprint emojis | SHA-256 → 64-palette × 16 | 96-bit entropy, anti-MITM |
+| senderUid hashing | HMAC-SHA256 | Keyed by conversationId, truncated to 128 bits |
+| PIN hashing | PBKDF2-HMAC-SHA256 | 600,000 iterations, 16-byte random salt |
+| File encryption | AES-256-GCM (per-file random key) | Encrypted at rest in Firebase Storage |
 | Local DB encryption | SQLCipher (AES-256-CBC) | 256-bit passphrase via EncryptedSharedPreferences |
+| Build hardening | R8/ProGuard | Code obfuscation + resource shrinking + log stripping (d/v/i) |
 
 ## Known Limitations (V1)
 
@@ -42,7 +48,7 @@ SecureChat uses the following cryptographic primitives:
 
 3. **Plaintext in local DB** — ~~Decrypted messages are stored in Room (SQLite) without encryption. A rooted device or full disk backup could expose message history.~~ **FIXED in V1:** SQLCipher encrypts the entire Room database with a 256-bit passphrase stored in EncryptedSharedPreferences (Keystore-backed AES-256-GCM).
 
-4. **Metadata visible** — ~~Firebase sees who communicates with whom and when (conversation IDs, timestamps).~~ **PARTIALLY FIXED in V1.1:** `senderPublicKey` and `messageIndex` removed from wire format. Firebase still sees: `senderUid` (anonymous), `createdAt` (timestamps), conversation IDs, participant UIDs. Full metadata privacy would require a mix network or onion routing (V3+).
+4. **Metadata visible** — ~~Firebase sees who communicates with whom and when (conversation IDs, timestamps).~~ **PARTIALLY FIXED in V1.1:** `senderPublicKey` and `messageIndex` removed from wire format. **IMPROVED in V3:** `senderUid` is now HMAC-SHA256 hashed per conversation (not the raw Firebase UID). Messages are padded to fixed-size buckets (256/1K/4K/16K bytes) to prevent size-based traffic analysis. Dummy traffic sends periodic indistinguishable cover messages. Firebase still sees: hashed senderUid, `createdAt` (timestamps), conversation IDs, participant UIDs. Full metadata privacy would require a mix network or onion routing.
 
 5. **No message authentication beyond GCM** — Messages are not signed with the sender's identity key, only authenticated by GCM tag (which proves knowledge of the shared secret). In 1-to-1 conversations this is acceptable (only 2 participants share the key). For future group chats, ECDSA signatures will be required (V3 planned).
 
@@ -75,7 +81,8 @@ SecureChat uses the following cryptographic primitives:
 - ✅ SQLCipher: entire Room database encrypted (AES-256-CBC, 256-bit key)
 - ✅ DB passphrase generated via SecureRandom, stored in EncryptedSharedPreferences (Keystore-backed)
 - ✅ DB file unreadable without Android Keystore access (protects against rooted device / backup dump)
-- ✅ App Lock: 4-digit PIN (SHA-256 hash stored in EncryptedSharedPreferences)
+- ✅ App Lock: 4-digit PIN (PBKDF2-HMAC-SHA256, 600K iterations, 16-byte random salt, stored in EncryptedSharedPreferences)
+- ✅ App Lock: auto-migration from legacy SHA-256 hashes to PBKDF2 on successful verification
 - ✅ Biometric unlock: opt-in via BiometricPrompt (BIOMETRIC_STRONG | BIOMETRIC_WEAK)
 - ✅ Auto-lock timeout: configurable (5s, 15s, 30s, 1min, 5min), default 5 seconds
 - ✅ Lock screen bypasses disabled (`onBackPressed` → `finishAffinity`)
@@ -92,3 +99,18 @@ SecureChat uses the following cryptographic primitives:
 - ✅ Dead conversation detection: `conversationExists()` returns false on PERMISSION_DENIED (deleted conversation)
 - ✅ Stale contact cleanup: dead conversations cleaned from local DB (messages, ratchet state, contact) before re-invitation
 - ✅ Orphaned profile cleanup: `removeOldUserByPublicKey()` removes old `/users/` node on account restore
+
+### V3 Security Additions
+
+- ✅ **R8/ProGuard**: code obfuscation, resource shrinking, repackaging in release builds
+- ✅ **Log stripping**: `Log.d()`, `Log.v()`, `Log.i()` removed by ProGuard in release (assumenosideeffects)
+- ✅ **Delete-after-delivery**: ciphertext removed from Firebase RTDB immediately after successful decryption
+- ✅ **Message padding**: plaintext padded to fixed-size buckets (256/1024/4096/16384 bytes) with 2-byte length header + SecureRandom fill, preventing size-based traffic analysis
+- ✅ **senderUid HMAC hashing**: `senderUid` field is HMAC-SHA256(conversationId, raw UID) truncated to 128 bits — Firebase cannot correlate the same user across different conversations
+- ✅ **Room DB indexes**: composite indexes on messages(conversationId, timestamp), messages(expiresAt), conversations(accepted), contacts(publicKey) for performance
+- ✅ **PBKDF2 PIN**: replaced SHA-256 with PBKDF2-HMAC-SHA256 (600,000 iterations, 16-byte random salt); auto-migrates legacy hashes
+- ✅ **Dummy traffic**: periodic cover messages (45–120s random interval) sent via real Double Ratchet — indistinguishable from real messages on the wire; configurable toggle in security settings; receiver detects and silently drops after decryption
+- ✅ **E2E file sharing**: files encrypted client-side with random AES-256-GCM key, uploaded to Firebase Storage; metadata (URL + key + IV + filename + size) sent via the ratchet; receiver downloads, decrypts locally, stores to app-private storage; 25 MB limit; encrypted file deleted from Storage after delivery
+- ✅ **Firebase Storage security rules**: authenticated-only access, 50 MB max upload, restricted to `/encrypted_files/` path
+- ✅ **Double-listener guard**: `processedFirebaseKeys` set prevents ratchet desynchronization when global and per-chat Firebase listeners process the same message simultaneously
+- ✅ **Opaque dummy prefix**: dummy message marker uses non-printable control bytes (`\u0007\u001B\u0003`) instead of readable text, not identifiable in memory dumps

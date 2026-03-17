@@ -3,12 +3,15 @@ package com.securechat.util
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import java.security.MessageDigest
+import java.security.SecureRandom
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.PBEKeySpec
 
 /**
  * Manages app lock (PIN code + biometric preference).
  *
- * PIN is stored as SHA-256 hash in EncryptedSharedPreferences (Keystore-backed).
+ * PIN is stored as PBKDF2-HMAC-SHA256 hash (600k iterations + 16-byte salt)
+ * in EncryptedSharedPreferences (Keystore-backed).
  * The user never stores plaintext PINs.
  */
 object AppLockManager {
@@ -17,6 +20,9 @@ object AppLockManager {
     private const val KEY_PIN_HASH = "pin_hash"
     private const val KEY_BIOMETRIC_ENABLED = "biometric_enabled"
     private const val KEY_AUTO_LOCK_DELAY = "auto_lock_delay"
+    private const val PBKDF2_ITERATIONS = 600_000
+    private const val PBKDF2_KEY_LENGTH = 256  // bits
+    private const val SALT_LENGTH = 16  // bytes
 
     /** Auto-lock delay options in milliseconds. */
     val AUTO_LOCK_OPTIONS = longArrayOf(0L, 5_000L, 15_000L, 30_000L, 60_000L, 300_000L)
@@ -40,15 +46,28 @@ object AppLockManager {
         return getPrefs(context).getString(KEY_PIN_HASH, null) != null
     }
 
-    /** Set or update the PIN code (stored as SHA-256 hash). */
+    /** Set or update the PIN code (stored as PBKDF2 hash with salt). */
     fun setPin(context: Context, pin: String) {
         getPrefs(context).edit().putString(KEY_PIN_HASH, hashPin(pin)).apply()
     }
 
-    /** Verify the entered PIN against the stored hash. */
+    /** Verify the entered PIN against the stored hash. Handles legacy SHA-256 migration. */
     fun verifyPin(context: Context, pin: String): Boolean {
         val stored = getPrefs(context).getString(KEY_PIN_HASH, null) ?: return false
-        return stored == hashPin(pin)
+        if (stored.contains(":")) {
+            // New PBKDF2 format: "salt_hex:hash_hex"
+            return stored == hashPinWithSalt(pin, stored.substringBefore(":"))
+        }
+        // Legacy SHA-256 format (no colon) — verify and auto-migrate
+        val legacyHash = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(pin.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        if (stored == legacyHash) {
+            // Migrate to PBKDF2 on successful verification
+            setPin(context, pin)
+            return true
+        }
+        return false
     }
 
     /** Remove the PIN code (disables app lock). */
@@ -86,8 +105,20 @@ object AppLockManager {
         getPrefs(context).edit().putBoolean(KEY_BIOMETRIC_ENABLED, enabled).apply()
     }
 
+    /** Hash PIN with PBKDF2-HMAC-SHA256 using a fresh random salt. */
     private fun hashPin(pin: String): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(pin.toByteArray(Charsets.UTF_8))
-        return digest.joinToString("") { "%02x".format(it) }
+        val salt = ByteArray(SALT_LENGTH)
+        SecureRandom().nextBytes(salt)
+        return hashPinWithSalt(pin, salt.joinToString("") { "%02x".format(it) })
+    }
+
+    /** Hash PIN with PBKDF2-HMAC-SHA256 using provided hex salt. Returns "salt_hex:hash_hex". */
+    private fun hashPinWithSalt(pin: String, saltHex: String): String {
+        val saltBytes = saltHex.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+        val spec = PBEKeySpec(pin.toCharArray(), saltBytes, PBKDF2_ITERATIONS, PBKDF2_KEY_LENGTH)
+        val factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
+        val hash = factory.generateSecret(spec).encoded
+        spec.clearPassword()
+        return "$saltHex:${hash.joinToString("") { "%02x".format(it) }}"
     }
 }

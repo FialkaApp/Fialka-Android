@@ -18,6 +18,9 @@ interface MessageLocalDao {
     @Query("DELETE FROM messages WHERE conversationId = :conversationId")
     suspend fun deleteMessagesForConversation(conversationId: String)
 
+    @Query("DELETE FROM messages WHERE localId = :messageId")
+    suspend fun deleteMessageById(messageId: String)
+
     @Query("SELECT COUNT(*) FROM messages WHERE conversationId = :conversationId AND senderPublicKey = :senderKey AND timestamp = :timestamp")
     suspend fun messageExists(conversationId: String, senderKey: String, timestamp: Long): Int
 

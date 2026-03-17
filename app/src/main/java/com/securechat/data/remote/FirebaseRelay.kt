@@ -1,12 +1,15 @@
 package com.securechat.data.remote
 
+import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import com.google.firebase.storage.FirebaseStorage
 import com.securechat.data.model.FirebaseMessage
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.tasks.await
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -165,7 +168,8 @@ object FirebaseRelay {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                 val message = snapshot.getValue(FirebaseMessage::class.java)
                 if (message != null) {
-                    trySend(message)
+                    // Attach Firebase node key so receiver can delete after decryption
+                    trySend(message.copy(firebaseKey = snapshot.key ?: ""))
                 }
             }
 
@@ -441,7 +445,7 @@ object FirebaseRelay {
                         for (child in snapshot.children) {
                             val message = child.getValue(FirebaseMessage::class.java)
                             if (message != null) {
-                                messages.add(message)
+                                messages.add(message.copy(firebaseKey = child.key ?: ""))
                             }
                         }
                         cont.resume(messages)
@@ -452,6 +456,69 @@ object FirebaseRelay {
                     }
                 })
         }
+
+    // ========================================================================
+    // DELETE-AFTER-DELIVERY
+    // ========================================================================
+
+    /**
+     * Delete a single message from Firebase after successful decryption.
+     * Minimizes ciphertext retention on Google servers.
+     */
+    fun deleteMessage(conversationId: String, messageKey: String) {
+        if (messageKey.isEmpty()) return
+        database.reference
+            .child("conversations")
+            .child(conversationId)
+            .child("messages")
+            .child(messageKey)
+            .removeValue()
+    }
+
+    // ========================================================================
+    // ENCRYPTED FILE STORAGE
+    // ========================================================================
+
+    private val storage = FirebaseStorage.getInstance()
+
+    /**
+     * Upload pre-encrypted file bytes to Firebase Storage.
+     * Path: /encrypted_files/{conversationId}/{uuid}
+     * Returns the download URL (safe — file is AES-256-GCM encrypted client-side).
+     */
+    suspend fun uploadEncryptedFile(
+        conversationId: String,
+        encryptedBytes: ByteArray,
+        fileExtension: String
+    ): String {
+        val fileId = java.util.UUID.randomUUID().toString()
+        val ref = storage.reference
+            .child("encrypted_files")
+            .child(conversationId)
+            .child("$fileId.$fileExtension.enc")
+
+        ref.putBytes(encryptedBytes).await()
+        return ref.downloadUrl.await().toString()
+    }
+
+    /**
+     * Download encrypted file bytes from Firebase Storage URL.
+     * Max 50 MB to prevent abuse.
+     */
+    suspend fun downloadEncryptedFile(downloadUrl: String): ByteArray {
+        val ref = storage.getReferenceFromUrl(downloadUrl)
+        val maxSize = 50L * 1024 * 1024  // 50 MB
+        return ref.getBytes(maxSize).await()
+    }
+
+    /**
+     * Delete an encrypted file from Firebase Storage after download.
+     */
+    fun deleteEncryptedFile(downloadUrl: String) {
+        try {
+            storage.getReferenceFromUrl(downloadUrl).delete()
+        } catch (_: Exception) { }
+    }
 
     // ========================================================================
     // CLEANUP

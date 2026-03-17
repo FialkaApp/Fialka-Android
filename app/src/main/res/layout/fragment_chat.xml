@@ -117,6 +117,17 @@
             android:textSize="15sp" />
 
         <ImageButton
+            android:id="@+id/btnAttach"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Attach file"
+            android:src="@drawable/ic_attach"
+            android:scaleType="center"
+            android:tint="?attr/colorOnSurface" />
+
+        <ImageButton
             android:id="@+id/btnSend"
             android:layout_width="48dp"
             android:layout_height="48dp"
