@@ -1,3 +1,7 @@
+<div align="right">
+  🇫🇷 Français | <a href="CRYPTO-en.md">🇬🇧 English</a>
+</div>
+
 <div align="center">
 
 # 🔐 Protocole Cryptographique

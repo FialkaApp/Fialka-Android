@@ -1,3 +1,7 @@
+<div align="right">
+  🇫🇷 Français | <a href="SETUP-en.md">🇬🇧 English</a>
+</div>
+
 <div align="center">
 
 # 🛠 Installation & Configuration
