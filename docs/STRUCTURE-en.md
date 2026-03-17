@@ -1,3 +1,7 @@
+<div align="right">
+  <a href="STRUCTURE.md">🇫🇷 Français</a> | 🇬🇧 English
+</div>
+
 <div align="center">
 
 # 📂 Project Structure

@@ -1,3 +1,7 @@
+<div align="right">
+  <a href="ARCHITECTURE.md">🇫🇷 Français</a> | 🇬🇧 English
+</div>
+
 <div align="center">
 
 # 🏗 Architecture

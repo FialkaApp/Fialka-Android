@@ -1,3 +1,7 @@
+<div align="right">
+  <a href="CHANGELOG.md">🇫🇷 Français</a> | 🇬🇧 English
+</div>
+
 <div align="center">
 
 # 🗺 Changelog & Roadmap
