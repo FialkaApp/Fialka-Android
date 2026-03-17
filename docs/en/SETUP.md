@@ -1,5 +1,5 @@
 <div align="right">
-  <a href="SETUP.md">🇫🇷 Français</a> | 🇬🇧 English
+  <a href="../fr/SETUP.md">🇫🇷 Français</a> | 🇬🇧 English
 </div>
 
 <div align="center">
@@ -104,6 +104,6 @@ Or open in Android Studio → **Run** on an emulator or physical device.
 
 <div align="center">
 
-[← Back to README](../README-en.md)
+[← Back to README](../../README-en.md)
 
 </div>

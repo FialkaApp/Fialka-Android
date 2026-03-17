@@ -1,5 +1,5 @@
 <div align="right">
-  🇫🇷 Français | <a href="STRUCTURE-en.md">🇬🇧 English</a>
+  🇫🇷 Français | <a href="../en/STRUCTURE.md">🇬🇧 English</a>
 </div>
 
 <div align="center">
@@ -131,6 +131,6 @@ SecureChat/
 
 <div align="center">
 
-[← Retour au README](../README.md)
+[← Retour au README](../../README.md)
 
 </div>

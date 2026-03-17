@@ -14,7 +14,7 @@
 
 [![Android](https://img.shields.io/badge/Android-33%2B-a855f7?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7c3aed?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-[![E2E](https://img.shields.io/badge/X25519-AES--256--GCM-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/CRYPTO.md)
+[![E2E](https://img.shields.io/badge/X25519-AES--256--GCM-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/fr/CRYPTO.md)
 [![License](https://img.shields.io/badge/GPLv3-License-8b5cf6?style=for-the-badge)](LICENSE)
 
 <br/>
@@ -174,7 +174,7 @@
 └────────────────┴────────────────┴────────────────┘
 ```
 
-> 📖 **Détails** — [Architecture complète](docs/ARCHITECTURE.md) · [Protocole crypto](docs/CRYPTO.md) · [Structure du projet](docs/STRUCTURE.md)
+> 📖 **Détails** — [Architecture complète](docs/fr/ARCHITECTURE.md) · [Protocole crypto](docs/fr/CRYPTO.md) · [Structure du projet](docs/fr/STRUCTURE.md)
 
 ---
 
@@ -195,7 +195,7 @@ cd SecureChat
 ./gradlew assembleDebug
 ```
 
-> 📖 **Guide complet** — [Installation & Configuration Firebase](docs/SETUP.md)
+> 📖 **Guide complet** — [Installation & Configuration Firebase](docs/fr/SETUP.md)
 
 ---
 
@@ -220,7 +220,7 @@ cd SecureChat
 | BIP-39 backup/restore (24 mots) | ✅ |
 | `allowBackup=false`, zéro logs sensibles | ✅ |
 
-> 📖 **Analyse complète** — [`SECURITY.md`](SECURITY.md) · [Protocole crypto](docs/CRYPTO.md)
+> 📖 **Analyse complète** — [`SECURITY.md`](SECURITY.md) · [Protocole crypto](docs/fr/CRYPTO.md)
 
 ---
 
@@ -238,7 +238,7 @@ cd SecureChat
 | **V2.2** | UI Modernization — 5 thèmes, animations, CoordinatorLayout, zero hardcoded colors | ✅ Done |
 | **V3** | Planned — Signature ECDSA, groupes, suppression pour tous, typing indicators | 🔜 |
 
-> 📖 **Détails** — [Changelog complet](docs/CHANGELOG.md)
+> 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
 
 ---
 
@@ -264,11 +264,11 @@ cd SecureChat
 
 | Document | Contenu |
 |----------|---------|
-| [**Architecture**](docs/ARCHITECTURE.md) | Patterns, layers, flux des demandes, cycle de vie |
-| [**Protocole Crypto**](docs/CRYPTO.md) | X25519, Double Ratchet, fingerprint, modèle de menace |
-| [**Installation**](docs/SETUP.md) | Prérequis, Firebase, build, dépendances |
-| [**Structure**](docs/STRUCTURE.md) | Arbre complet du projet |
-| [**Changelog**](docs/CHANGELOG.md) | Historique V1 → V2.2 + roadmap V3 |
+| [**Architecture**](docs/fr/ARCHITECTURE.md) | Patterns, layers, flux des demandes, cycle de vie |
+| [**Protocole Crypto**](docs/fr/CRYPTO.md) | X25519, Double Ratchet, fingerprint, modèle de menace |
+| [**Installation**](docs/fr/SETUP.md) | Prérequis, Firebase, build, dépendances |
+| [**Structure**](docs/fr/STRUCTURE.md) | Arbre complet du projet |
+| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V2.2 + roadmap V3 |
 | [**Sécurité**](SECURITY.md) | Audit complet, limites connues |
 
 </div>

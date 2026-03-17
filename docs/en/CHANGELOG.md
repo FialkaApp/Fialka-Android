@@ -1,5 +1,5 @@
 <div align="right">
-  <a href="CHANGELOG.md">🇫🇷 Français</a> | 🇬🇧 English
+  <a href="../fr/CHANGELOG.md">🇫🇷 Français</a> | 🇬🇧 English
 </div>
 
 <div align="center">
@@ -112,6 +112,6 @@
 
 <div align="center">
 
-[← Back to README](../README-en.md)
+[← Back to README](../../README-en.md)
 
 </div>

@@ -1,5 +1,5 @@
 <div align="right">
-  🇫🇷 Français | <a href="ARCHITECTURE-en.md">🇬🇧 English</a>
+  🇫🇷 Français | <a href="../en/ARCHITECTURE.md">🇬🇧 English</a>
 </div>
 
 <div align="center">
@@ -128,6 +128,6 @@ Réception d'invitation (convo locale stale) :
 
 <div align="center">
 
-[← Retour au README](../README.md)
+[← Retour au README](../../README.md)
 
 </div>

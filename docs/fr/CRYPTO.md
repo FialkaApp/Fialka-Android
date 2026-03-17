@@ -1,5 +1,5 @@
 <div align="right">
-  🇫🇷 Français | <a href="CRYPTO-en.md">🇬🇧 English</a>
+  🇫🇷 Français | <a href="../en/CRYPTO.md">🇬🇧 English</a>
 </div>
 
 <div align="center">
@@ -168,12 +168,12 @@ DH Ratchet (healing) — quand l'éphémère remote change :
 | Perte du téléphone | ✅ | Phrase mnémonique 24 mots (BIP-39) pour restaurer l'identité |
 | Contact supprime son compte | ✅ | Détection automatique conversation morte + nettoyage + re-invitation |
 
-> Voir aussi [`SECURITY.md`](../SECURITY.md) pour l'analyse complète des mesures de sécurité.
+> Voir aussi [`SECURITY.md`](../../SECURITY.md) pour l'analyse complète des mesures de sécurité.
 
 ---
 
 <div align="center">
 
-[← Retour au README](../README.md)
+[← Retour au README](../../README.md)
 
 </div>
