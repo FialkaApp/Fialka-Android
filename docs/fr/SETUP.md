@@ -49,6 +49,12 @@ cd SecureChat
 3. Firebase Console → **Realtime Database** → Créer (région la plus proche)
 4. Onglet **Règles** → coller le contenu de [`firebase-rules.json`](../firebase-rules.json)
 
+### Étape 2b — Firebase Storage (partage de fichiers E2E)
+
+1. Firebase Console → **Storage** → Activer
+2. Onglet **Rules** → coller le contenu de [`storage.rules`](../../storage.rules)
+3. Vérifier que le bucket est dans la bonne région
+
 ### Étape 3 — Déployer la Cloud Function (push notifications)
 
 ```bash
@@ -92,7 +98,8 @@ Ou ouvrir dans Android Studio → **Run** sur un émulateur ou device physique.
 | AndroidX Lifecycle | 2.8.7 | ViewModels, LiveData, coroutines |
 | Room + KSP | 2.7.1 | Base de données locale SQLite |
 | SQLCipher | 4.5.4 | Chiffrement AES-256 de la base Room |
-| Firebase BOM | 34.10.0 | Auth anonyme + Realtime Database + Cloud Messaging |
+| Firebase BOM | 34.10.0 | Auth anonyme + Realtime Database + Cloud Messaging + Storage |
+| Firebase Storage | (via BOM) | Stockage fichiers chiffrés E2E |
 | firebase-functions (Node.js) | 7.0.0 | Cloud Function trigger (push notifications) |
 | firebase-admin (Node.js) | 13.6.0 | Admin SDK pour RTDB + FCM côté serveur |
 | AndroidX Security Crypto | 1.1.0-alpha06 | Stockage sécurisé |

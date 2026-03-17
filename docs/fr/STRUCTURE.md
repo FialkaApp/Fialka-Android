@@ -21,16 +21,24 @@ SecureChat/
 ├── README.md
 ├── SECURITY.md
 ├── firebase-rules.json
+├── storage.rules                             # Règles Firebase Storage
 ├── build.gradle.kts                          # Config Gradle racine
 ├── settings.gradle.kts
 ├── gradle.properties
 │
 ├── docs/                                     # Documentation détaillée
-│   ├── ARCHITECTURE.md                       # Architecture, patterns, flux
-│   ├── CRYPTO.md                             # Protocole cryptographique complet
-│   ├── SETUP.md                              # Installation + config Firebase
-│   ├── STRUCTURE.md                          # Ce fichier
-│   └── CHANGELOG.md                          # Historique des versions
+│   ├── fr/                                   # Documentation française
+│   │   ├── ARCHITECTURE.md                   # Architecture, patterns, flux
+│   │   ├── CRYPTO.md                         # Protocole cryptographique complet
+│   │   ├── SETUP.md                          # Installation + config Firebase
+│   │   ├── STRUCTURE.md                      # Ce fichier
+│   │   └── CHANGELOG.md                      # Historique des versions
+│   └── en/                                   # English documentation
+│       ├── ARCHITECTURE.md
+│       ├── CRYPTO.md
+│       ├── SETUP.md
+│       ├── STRUCTURE.md
+│       └── CHANGELOG.md
 │
 ├── app/
 │   ├── build.gradle.kts                      # Dépendances app
@@ -54,7 +62,7 @@ SecureChat/
 │       │   │
 │       │   ├── data/
 │       │   │   ├── local/
-│       │   │   │   ├── SecureChatDatabase.kt # Room DB v10 (SQLCipher)
+│       │   │   │   ├── SecureChatDatabase.kt # Room DB v12 (SQLCipher)
 │       │   │   │   ├── UserLocalDao.kt
 │       │   │   │   ├── ContactDao.kt
 │       │   │   │   ├── ConversationDao.kt
@@ -79,7 +87,8 @@ SecureChat/
 │       │   │   ├── QrCodeGenerator.kt        # Génération QR codes (ZXing)
 │       │   │   ├── ThemeManager.kt           # 5 thèmes (Midnight/Hacker/Phantom/Aurora/Daylight)
 │       │   │   ├── AppLockManager.kt         # PIN, biométrie, auto-lock timeout
-│       │   │   └── EphemeralManager.kt       # Durées éphémères (30s → 1 mois)
+│       │   │   ├── EphemeralManager.kt       # Durées éphémères (30s → 1 mois)
+│       │   │   └── DummyTrafficManager.kt    # Faux trafic (anti analyse de trafic)
 │       │   │
 │       │   └── ui/
 │       │       ├── onboarding/               # Création d'identité + backup + restauration
@@ -113,11 +122,12 @@ SecureChat/
 │       │
 │       └── res/
 │           ├── anim/                         # 10 animations (slide, fade, bubble, cascade)
-│           ├── drawable/                     # Bulles, badges, icônes, backgrounds
+│           ├── drawable/                     # Bulles, badges, icônes, backgrounds, ic_attach
 │           ├── layout/                       # 22 layouts XML (fragments + items)
 │           ├── menu/                         # Menu conversations
 │           ├── navigation/nav_graph.xml      # 15 destinations, transitions animées
 │           ├── raw/bip39_english.txt         # Wordlist BIP-39 (2048 mots)
+│           ├── xml/file_paths.xml            # FileProvider paths (partage fichiers)
 │           ├── values/                       # Couleurs, strings, thèmes, 22 attrs custom
 │           └── values-night/                 # Couleurs dark mode
 │

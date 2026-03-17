@@ -43,6 +43,8 @@
 | **Aucun accès Firebase depuis l'UI** | Tout passe par Repository → FirebaseRelay |
 | **Mutex par conversation** | Les opérations ratchet sont sérialisées (thread-safe) |
 | **Envoi atomique** | Le ratchet n'avance que si Firebase confirme l'envoi |
+| **Delete-after-delivery** | Le ciphertext est supprimé de Firebase après déchiffrement |
+| **Double-listener guard** | `processedFirebaseKeys` empêche le double-traitement |
 | **Système d'invitation** | Demande → notification inbox → acceptation → conversation active |
 
 ---
@@ -54,9 +56,9 @@
 | **UI** | Écrans, navigation, interactions | `ui/` — Fragments, ViewModels, Adapters |
 | **Repository** | Coordination local/crypto/remote | `data/repository/ChatRepository.kt` |
 | **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39 | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
-| **Local DB** | Room v10 — users, contacts, messages, ratchet | `data/local/` — DAOs, Database (SQLCipher) |
-| **Remote** | Relay Firebase (ciphertext only) | `data/remote/FirebaseRelay.kt` |
-| **Util** | QR, 5 thèmes, app lock, éphémère | `util/ThemeManager.kt`, `AppLockManager.kt`, `EphemeralManager.kt` |
+| **Local DB** | Room v12 — users, contacts, messages, ratchet (indexes composites) | `data/local/` — DAOs, Database (SQLCipher) |
+| **Remote** | Relay Firebase RTDB + Storage (ciphertext only) | `data/remote/FirebaseRelay.kt` |
+| **Util** | QR, 5 thèmes, app lock, éphémère, dummy traffic | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt` |
 
 ---
 
@@ -122,6 +124,45 @@ Suppression de compte (A supprime) :
 Réception d'invitation (convo locale stale) :
   Inbox listener → conversation locale existe? → isConversationAliveOnFirebase()
   → si morte: deleteStaleConversation() → affiche comme nouvelle demande
+```
+
+---
+
+## Dummy Traffic (anti analyse de trafic)
+
+```
+DummyTrafficManager.start(context):
+  → isEnabled(context)? → Non: return
+  → Oui: boucle CoroutineScope(Dispatchers.IO)
+    → délai aléatoire 30–90 s
+    → pour chaque conversation active (Room)
+      → generateDummyMessage() : préfixe opaque + random bytes
+      → chiffre avec Double Ratchet (même pipeline)
+      → envoie sur Firebase RTDB (/messages/{convId})
+      → le récepteur détecte le préfixe → drop silencieux (pas d'insertion Room)
+
+Toggle: SecurityFragment → SharedPreferences("securechat_settings") → "dummy_traffic_enabled"
+```
+
+---
+
+## Partage de fichier E2E
+
+```
+Envoi (ChatViewModel.sendFile):
+  fichier → generateFileKey() (AES-256-GCM, clé aléatoire)
+  → encryptFile(fileKey, plainBytes) → cipherBytes
+  → uploadToFirebaseStorage(/chat_files/{convId}/{uuid}) → downloadUrl
+  → message texte = "FILE|" + downloadUrl + "|" + Base64(fileKey) + "|" + fileName
+  → chiffre avec Double Ratchet → envoie sur Firebase RTDB
+
+Réception (ChatRepository):
+  → déchiffre message → détecte préfixe "FILE|"
+  → parse: url, fileKey (Base64), fileName
+  → downloadFromFirebaseStorage(url) → cipherBytes
+  → decryptFile(fileKey, cipherBytes) → plainBytes
+  → sauvegarde dans stockage interne app
+  → affiche lien cliquable dans le chat
 ```
 
 ---

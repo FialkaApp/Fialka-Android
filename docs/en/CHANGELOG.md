@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V2.2-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V3.0-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Next-V3.1-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -100,7 +100,39 @@
 
 ---
 
-## 🔜 V3 — Planned
+## ✅ V3.0 — Security Hardening
+
+> Complete security hardening: reinforced encryption, traffic analysis countermeasures, E2E file sharing.
+
+### 🛡️ Build & Obfuscation
+- [x] **R8/ProGuard** — `isMinifyEnabled=true`, `isShrinkResources=true`, repackaging in release builds
+- [x] **Log stripping** — `Log.d()`, `Log.v()`, `Log.i()` removed by ProGuard (`assumenosideeffects`)
+
+### 🔐 Crypto & Metadata
+- [x] **Delete-after-delivery** — Ciphertext removed from Firebase RTDB immediately after successful decryption
+- [x] **Message padding** — Plaintext padded to fixed-size buckets (256/1K/4K/16K bytes) with 2-byte header + SecureRandom fill
+- [x] **senderUid HMAC** — `senderUid` = HMAC-SHA256(conversationId, UID) truncated to 128 bits — Firebase cannot correlate the same user across conversations
+- [x] **PBKDF2 PIN** — SHA-256 replaced with PBKDF2-HMAC-SHA256 (600K iterations, 16-byte salt); auto-migrates legacy hashes
+
+### 👻 Traffic Analysis Countermeasures
+- [x] **Dummy traffic** — Periodic cover messages (45–120s random interval) via real Double Ratchet — indistinguishable from real messages on the wire
+- [x] **Configurable toggle** — Enable/disable in Settings → Security → Cover Traffic
+- [x] **Opaque prefix** — Dummy marker uses non-printable control bytes (`\u0007\u001B\u0003`)
+
+### 📎 E2E File Sharing
+- [x] **Per-file encryption** — Random AES-256-GCM key per file, encrypted client-side
+- [x] **Firebase Storage** — Upload encrypted, metadata (URL + key + IV + name + size) sent via the ratchet
+- [x] **Auto-receive** — Download + local decryption + app-private storage; Storage file deleted after delivery
+- [x] **Attach UI** — 📎 button in chat, file picker, 25 MB limit, tap to open
+- [x] **Storage rules** — Authenticated-only access, 50 MB max, restricted to `/encrypted_files/` path
+
+### 🗄️ Database
+- [x] **Room indexes** — Composite indexes: messages(conversationId, timestamp), messages(expiresAt), conversations(accepted), contacts(publicKey)
+- [x] **Double-listener guard** — `processedFirebaseKeys` prevents ratchet desync when 2 listeners process the same message
+
+---
+
+## 🔜 V3.1 — Planned
 
 - [ ] **ECDSA Signature** — Dedicated signature key (PURPOSE_SIGN) to authenticate each message
 - [ ] **Groups** — 3+ participant conversations

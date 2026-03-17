@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V2.2-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V3.0-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Next-V3.1-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -100,7 +100,39 @@
 
 ---
 
-## 🔜 V3 — Planned
+## ✅ V3.0 — Security Hardening
+
+> Durcissement sécuritaire complet : chiffrement renforcé, anti-analyse de trafic, partage de fichiers E2E.
+
+### 🛡️ Build & Obfuscation
+- [x] **R8/ProGuard** — `isMinifyEnabled=true`, `isShrinkResources=true`, repackaging en release
+- [x] **Log stripping** — `Log.d()`, `Log.v()`, `Log.i()` supprimés par ProGuard (`assumenosideeffects`)
+
+### 🔐 Crypto & Métadonnées
+- [x] **Delete-after-delivery** — Ciphertext supprimé de Firebase RTDB immédiatement après déchiffrement réussi
+- [x] **Message padding** — Plaintext paddé à taille fixe (256/1K/4K/16K octets) avec header 2 octets + remplissage SecureRandom
+- [x] **senderUid HMAC** — `senderUid` = HMAC-SHA256(conversationId, UID) tronqué 128 bits — Firebase ne peut plus corréler le même utilisateur entre conversations
+- [x] **PBKDF2 PIN** — SHA-256 remplacé par PBKDF2-HMAC-SHA256 (600K itérations, salt 16 octets) ; migration auto des anciens hashes
+
+### 👻 Anti-analyse de trafic
+- [x] **Dummy traffic** — Messages factices périodiques (45–120s aléatoire) via le vrai Double Ratchet — indistinguables des vrais messages sur le réseau
+- [x] **Toggle configurable** — Activation/désactivation dans Paramètres → Sécurité → Trafic factice
+- [x] **Prefix opaque** — Marqueur dummy en octets de contrôle non-imprimables (`\u0007\u001B\u0003`)
+
+### 📎 Partage de fichiers E2E
+- [x] **Chiffrement par fichier** — Clé AES-256-GCM aléatoire par fichier, chiffré côté client
+- [x] **Firebase Storage** — Upload chiffré, métadonnées (URL + clé + IV + nom + taille) envoyées via le ratchet
+- [x] **Réception auto** — Download + déchiffrement local + stockage app-private ; fichier Storage supprimé après livraison
+- [x] **UI attach** — Bouton 📎 dans le chat, file picker, limite 25 Mo, clic pour ouvrir
+- [x] **Storage rules** — Accès authentifié uniquement, 50 Mo max, chemin `/encrypted_files/`
+
+### 🗄️ Base de données
+- [x] **Index Room** — Index composites : messages(conversationId, timestamp), messages(expiresAt), conversations(accepted), contacts(publicKey)
+- [x] **Double-listener guard** — `processedFirebaseKeys` empêche la désynchronisation ratchet quand 2 listeners traitent le même message
+
+---
+
+## 🔜 V3.1 — Planned
 
 - [ ] **Signature ECDSA** — Clé de signature dédiée (PURPOSE_SIGN) pour authentifier chaque message
 - [ ] **Groupes** — Conversations à 3+ participants

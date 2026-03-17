@@ -100,8 +100,23 @@ DH Ratchet (healing) — when remote ephemeral changes:
   new_chain    = HKDF(root_key || dh_secret, "chain-ratchet")
   → New local ephemeral key generated
 
-  plaintext → AES-256-GCM(message_key[N], random_iv_12B) → ciphertext
+  plaintext → pad(plaintext) → AES-256-GCM(message_key[N], random_iv_12B) → ciphertext
 ```
+
+### Padding (size analysis countermeasure)
+
+Before encryption, each message is padded to the next bucket:
+
+| Message size | Bucket |
+|--------------|--------|
+| ≤ 256 B      | 256 B  |
+| ≤ 1 KB       | 1 KB   |
+| ≤ 4 KB       | 4 KB   |
+| > 4 KB       | 16 KB  |
+
+- Header: 2 bytes (Big-Endian) = actual plaintext length
+- Fill: `SecureRandom` bytes up to bucket size
+- Unpadding on receive via 2-byte header
 
 ### Properties
 
@@ -123,9 +138,13 @@ DH Ratchet (healing) — when remote ephemeral changes:
   "ciphertext": "a3F4bWx...",
   "iv": "dG9rZW4...",
   "createdAt": 1700000000000,
-  "senderUid": "firebase-anonymous-uid"
+  "senderUid": "HMAC-SHA256(uid, conversationId)"  // V3.0: hashed, not raw
 }
 ```
+
+- **V3.0**: `senderUid` = `HMAC-SHA256(firebaseUid, conversationId)` → raw UID no longer visible
+- **V3.0**: Messages are **deleted from Firebase** upon receipt (`deleteMessageFromFirebase()`)
+- **V3.0**: Padded message (see Padding section) is encrypted → uniform size on the wire
 
 ### Ephemeral Sync Settings
 
@@ -139,6 +158,21 @@ DH Ratchet (healing) — when remote ephemeral changes:
 - `messageIndex` — encrypted in AES-GCM payload (trial decryption on receiver side)
 
 **Never sent:** plaintext, private keys, chain keys, ratchet position.
+
+### File Encryption (V3.0)
+
+```
+Send:
+  file → random AES-256-GCM key (fileKey)
+  → encrypt file (encryptFile) → upload Firebase Storage (/chat_files/{convId}/{uuid})
+  → message = "FILE|" + downloadUrl + "|" + Base64(fileKey) + "|" + fileName
+  → encrypt message with Double Ratchet → send to RTDB
+
+Receive:
+  → decrypt message → detect "FILE|" prefix
+  → download encrypted file from Storage
+  → decrypt with fileKey → save to internal storage
+```
 
 ### Contact request (Firebase inbox)
 
@@ -164,8 +198,11 @@ DH Ratchet (healing) — when remote ephemeral changes:
 | MITM Attack | ✅ | 96-bit fingerprint emojis (visual check) |
 | Phone stolen unlocked | ✅ | Keystore, SQLCipher, App Lock PIN + biometrics, auto-lock |
 | Sensitive messages left | ✅ | Disappearing messages (timer on send / read) |
-| Metadata (who/when) | ⚠️ | senderPublicKey + messageIndex removed; senderUid + timestamps remain |
-| Phone lost | ✅ | 24-word piece mnemonic (BIP-39) to restore identity |
+| Metadata (who/when) | ✅ | senderUid → HMAC-SHA256, uniform padding, dummy traffic, delete-after-delivery |
+| Traffic analysis | ✅ | Dummy traffic (30–90 s, same pipeline), bucket padding, delete on receipt |
+| Intercepted files | ✅ | Per-file AES-256-GCM encryption, key transmitted inside E2E channel |
+| Phone lost | ✅ | 24-word mnemonic (BIP-39) to restore identity |
+| App Lock brute-force | ✅ | PBKDF2 600,000 iterations + biometric lock |
 | Contact deletes account | ✅ | Auto-detect dead convo + cleanup + re-invite |
 
 > See [`SECURITY.md`](../../SECURITY.md) for full security analysis.

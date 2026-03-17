@@ -20,18 +20,26 @@ SecureChat/
 ├── LICENSE
 ├── README-en.md
 ├── README.md
-├── SECURITY-en.md                            # Only one SECURITY file
+├── SECURITY.md
 ├── firebase-rules.json
+├── storage.rules                             # Firebase Storage rules
 ├── build.gradle.kts                          # Root Gradle config
 ├── settings.gradle.kts
 ├── gradle.properties
 │
 ├── docs/                                     # Detailed Documentation
-│   ├── ARCHITECTURE-en.md                    # Architecture, patterns, flows
-│   ├── CRYPTO-en.md                          # Full cryptographic protocol
-│   ├── SETUP-en.md                           # Installation + Firebase config
-│   ├── STRUCTURE-en.md                       # This file
-│   └── CHANGELOG-en.md                       # Version history
+│   ├── fr/                                   # French documentation
+│   │   ├── ARCHITECTURE.md
+│   │   ├── CRYPTO.md
+│   │   ├── SETUP.md
+│   │   ├── STRUCTURE.md
+│   │   └── CHANGELOG.md
+│   └── en/                                   # English documentation
+│       ├── ARCHITECTURE.md                   # Architecture, patterns, flows
+│       ├── CRYPTO.md                         # Full cryptographic protocol
+│       ├── SETUP.md                          # Installation + Firebase config
+│       ├── STRUCTURE.md                      # This file
+│       └── CHANGELOG.md                      # Version history
 │
 ├── app/
 │   ├── build.gradle.kts                      # App dependencies
@@ -55,7 +63,7 @@ SecureChat/
 │       │   │
 │       │   ├── data/
 │       │   │   ├── local/
-│       │   │   │   ├── SecureChatDatabase.kt # Room DB v10 (SQLCipher)
+│       │   │   │   ├── SecureChatDatabase.kt # Room DB v12 (SQLCipher)
 │       │   │   │   ├── UserLocalDao.kt
 │       │   │   │   ├── ContactDao.kt
 │       │   │   │   ├── ConversationDao.kt
@@ -80,7 +88,8 @@ SecureChat/
 │       │   │   ├── QrCodeGenerator.kt        # QR codes generation (ZXing)
 │       │   │   ├── ThemeManager.kt           # 5 themes (Midnight/Hacker/Phantom/Aurora/Daylight)
 │       │   │   ├── AppLockManager.kt         # PIN, biometrics, auto-lock timeout
-│       │   │   └── EphemeralManager.kt       # Ephemeral durations (30s → 1 month)
+│       │   │   ├── EphemeralManager.kt       # Ephemeral durations (30s → 1 month)
+│       │   │   └── DummyTrafficManager.kt    # Dummy traffic (traffic analysis countermeasure)
 │       │   │
 │       │   └── ui/
 │       │       ├── onboarding/               # Identity creation + backup + restore
@@ -114,11 +123,12 @@ SecureChat/
 │       │
 │       └── res/
 │           ├── anim/                         # 12 animations (slide, fade, bubble, cascade)
-│           ├── drawable/                     # Bubbles, badges, icons, backgrounds
+│           ├── drawable/                     # Bubbles, badges, icons, backgrounds, ic_attach
 │           ├── layout/                       # 22 XML layouts (fragments + items)
 │           ├── menu/                         # Conversations menu
 │           ├── navigation/nav_graph.xml      # 15 destinations, animated transitions
 │           ├── raw/bip39_english.txt         # BIP-39 Wordlist (2048 words)
+│           ├── xml/file_paths.xml            # FileProvider paths (file sharing)
 │           ├── values/                       # Colors, strings, themes, 22 custom attrs
 │           └── values-night/                 # Dark mode colors
 │
