@@ -3,18 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="?android:attr/colorBackground">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        android:elevation="4dp"
+        android:background="?attr/colorToolbarBackground"
+        android:elevation="0dp"
         app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@color/white"
+        app:navigationIconTint="?attr/colorToolbarIcon"
         app:title="@string/profile_title"
-        app:titleTextColor="@color/white" />
+        app:titleTextColor="?attr/colorToolbarTitle" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -32,7 +32,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/primary"
+                android:background="?attr/colorSurface"
                 android:gravity="center_horizontal"
                 android:orientation="vertical"
                 android:paddingTop="24dp"
@@ -54,6 +54,7 @@
                         android:layout_height="80dp"
                         android:layout_gravity="center"
                         android:background="@drawable/bg_circle"
+                        android:backgroundTint="?attr/colorAvatarBackground"
                         android:gravity="center"
                         android:textColor="@color/white"
                         android:textSize="36sp"
@@ -65,7 +66,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:textColor="@color/white"
+                    android:textColor="?android:attr/textColorPrimary"
                     android:textSize="20sp"
                     android:textStyle="bold" />
             </LinearLayout>

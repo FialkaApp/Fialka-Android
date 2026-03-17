@@ -10,6 +10,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import com.securechat.R
 import com.securechat.util.AppLockManager
+import com.securechat.util.ThemeManager
 
 /**
  * Single-activity architecture. Navigation is handled by the NavHostFragment.
@@ -35,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        ThemeManager.applyToActivity(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 

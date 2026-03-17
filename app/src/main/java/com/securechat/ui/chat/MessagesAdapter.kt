@@ -3,6 +3,7 @@ package com.securechat.ui.chat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -25,6 +26,8 @@ sealed class ChatItem {
 }
 
 class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
+
+    private var lastAnimatedPosition = -1
 
     companion object {
         private const val VIEW_TYPE_SENT = 0
@@ -85,6 +88,23 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
             }
             is UnreadDividerViewHolder -> { /* static view, nothing to bind */ }
         }
+
+        // Animate new items only
+        if (position > lastAnimatedPosition) {
+            val animRes = when (holder) {
+                is SentViewHolder -> R.anim.bubble_in_sent
+                is ReceivedViewHolder -> R.anim.bubble_in_received
+                else -> R.anim.fade_in
+            }
+            val anim = AnimationUtils.loadAnimation(holder.itemView.context, animRes)
+            holder.itemView.startAnimation(anim)
+            lastAnimatedPosition = position
+        }
+    }
+
+    override fun onViewDetachedFromWindow(holder: RecyclerView.ViewHolder) {
+        holder.itemView.clearAnimation()
+        super.onViewDetachedFromWindow(holder)
     }
 
     class SentViewHolder(

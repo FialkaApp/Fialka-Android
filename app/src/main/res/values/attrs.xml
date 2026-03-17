@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Custom theme color attributes for multi-theme support -->
+    <attr name="colorToolbarBackground" format="color" />
+    <attr name="colorToolbarTitle" format="color" />
+    <attr name="colorToolbarIcon" format="color" />
+    <attr name="colorSurface" format="color" />
+    <attr name="colorChatBackground" format="color" />
+    <attr name="colorBubbleSent" format="color" />
+    <attr name="colorBubbleReceived" format="color" />
+    <attr name="colorBubbleSentText" format="color" />
+    <attr name="colorBubbleReceivedText" format="color" />
+    <attr name="colorInputBar" format="color" />
+    <attr name="colorInputField" format="color" />
+    <attr name="colorTextPrimary" format="color" />
+    <attr name="colorTextSecondary" format="color" />
+    <attr name="colorStatusBar" format="color" />
+    <attr name="colorNavBar" format="color" />
+    <attr name="colorGreenVerified" format="color" />
+    <attr name="colorOrangeWarning" format="color" />
+    <attr name="colorInfoBoxBackground" format="color" />
+    <attr name="colorInfoBoxStroke" format="color" />
+    <attr name="colorDivider" format="color" />
+    <attr name="colorAvatarBackground" format="color" />
+    <attr name="colorBadge" format="color" />
+</resources>

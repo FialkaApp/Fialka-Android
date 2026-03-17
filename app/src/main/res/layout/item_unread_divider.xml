@@ -12,14 +12,14 @@
         android:layout_width="0dp"
         android:layout_height="1dp"
         android:layout_weight="1"
-        android:background="#FF4CAF50" />
+        android:background="?attr/colorPrimary" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="12dp"
         android:text="Nouveaux messages"
-        android:textColor="#FF1B5E20"
+        android:textColor="?attr/colorPrimary"
         android:textSize="13sp"
         android:textStyle="bold" />
 
@@ -27,6 +27,6 @@
         android:layout_width="0dp"
         android:layout_height="1dp"
         android:layout_weight="1"
-        android:background="#FF4CAF50" />
+        android:background="?attr/colorPrimary" />
 
 </LinearLayout>

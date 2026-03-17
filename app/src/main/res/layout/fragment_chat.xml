@@ -4,20 +4,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="?android:attr/colorBackground">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        android:elevation="4dp"
+        android:background="?attr/colorToolbarBackground"
+        android:elevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:navigationIcon="@drawable/ic_arrow_back"
         app:menu="@menu/menu_chat"
-        app:titleTextColor="@color/white">
+        app:titleTextColor="?attr/colorToolbarTitle">
 
         <!-- Custom clickable toolbar content -->
         <LinearLayout
@@ -34,7 +34,7 @@
                 android:id="@+id/tvToolbarTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/white"
+                android:textColor="?attr/colorToolbarTitle"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:singleLine="true" />
@@ -63,7 +63,7 @@
         android:id="@+id/rvMessages"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@color/chat_background"
+        android:background="?attr/colorChatBackground"
         android:clipToPadding="false"
         android:padding="4dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
@@ -77,12 +77,12 @@
         android:id="@+id/tvPendingBanner"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#FFF3E0"
+        android:background="?attr/colorInfoBoxBackground"
         android:gravity="center"
         android:paddingVertical="14dp"
         android:paddingHorizontal="16dp"
         android:text="@string/pending_acceptance"
-        android:textColor="#E65100"
+        android:textColor="?attr/colorOrangeWarning"
         android:textSize="14sp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -93,8 +93,8 @@
         android:id="@+id/inputBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@color/surface"
-        android:elevation="8dp"
+        android:background="?attr/colorInputBar"
+        android:elevation="2dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="8dp"
@@ -122,6 +122,7 @@
             android:layout_height="48dp"
             android:layout_marginStart="6dp"
             android:background="@drawable/bg_circle"
+            android:backgroundTint="?attr/colorPrimary"
             android:contentDescription="@string/send"
             android:src="@drawable/ic_send"
             android:scaleType="center" />

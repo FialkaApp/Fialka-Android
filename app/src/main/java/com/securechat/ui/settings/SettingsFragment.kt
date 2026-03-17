@@ -60,7 +60,7 @@ class SettingsFragment : Fragment() {
 
     private fun updateSummaries() {
         // Theme summary
-        binding.tvThemeSummary.text = ThemeManager.getThemeLabel(ThemeManager.getTheme(requireContext()))
+        binding.tvThemeSummary.text = getString(ThemeManager.getThemeInfo(ThemeManager.getTheme(requireContext())).nameRes)
 
         // Notifications summary
         val prefs = requireContext().getSharedPreferences("securechat_settings", 0)

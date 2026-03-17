@@ -10,12 +10,12 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        android:elevation="4dp"
+        android:background="?attr/colorToolbarBackground"
+        android:elevation="0dp"
         app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@color/white"
+        app:navigationIconTint="?attr/colorToolbarIcon"
         app:title="Profil du contact"
-        app:titleTextColor="@color/white" />
+        app:titleTextColor="?attr/colorToolbarTitle" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -31,7 +31,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@color/primary"
+                android:background="?attr/colorSurface"
                 android:gravity="center_horizontal"
                 android:orientation="vertical"
                 android:paddingTop="24dp"
@@ -43,7 +43,7 @@
                     android:layout_height="88dp"
                     android:background="@drawable/bg_avatar_ring"
                     android:gravity="center"
-                    android:textColor="@color/white"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="36sp"
                     android:textStyle="bold" />
 
@@ -52,7 +52,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:textColor="@color/white"
+                    android:textColor="?android:attr/textColorPrimary"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
@@ -61,7 +61,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="🔒 Chiffré de bout en bout"
-                    android:textColor="#B2DFDB"
+                    android:textColor="?attr/colorTextSecondary"
                     android:textSize="13sp" />
             </LinearLayout>
 

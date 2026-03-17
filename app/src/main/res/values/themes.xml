@@ -1,13 +1,200 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.SecureChat" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/primary</item>
-        <item name="colorPrimaryDark">@color/primary_dark</item>
-        <item name="colorAccent">@color/accent</item>
-        <item name="android:statusBarColor">@color/primary_dark</item>
+
+    <!-- ============================================================
+         BASE THEME — dark, teal/cyan accent ("Midnight")  DEFAULT
+         ============================================================ -->
+    <style name="Theme.SecureChat" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">#00BFA5</item>
+        <item name="colorPrimaryDark">#0A0A0A</item>
+        <item name="colorAccent">#00E5FF</item>
+        <item name="android:statusBarColor">#0A0A0A</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:navigationBarColor">@color/nav_bar</item>
-        <item name="android:windowBackground">@color/background</item>
+        <item name="android:navigationBarColor">#0D0D0D</item>
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:colorBackground">#0D0D0D</item>
+        <item name="android:textColorPrimary">#E8E8E8</item>
+        <item name="android:textColorSecondary">#8A8A8A</item>
+
+        <!-- Custom attrs — Midnight -->
+        <item name="colorToolbarBackground">#161616</item>
+        <item name="colorToolbarTitle">#E8E8E8</item>
+        <item name="colorToolbarIcon">#E8E8E8</item>
+        <item name="colorSurface">#161616</item>
+        <item name="colorChatBackground">#0A0A0A</item>
+        <item name="colorBubbleSent">#004D40</item>
+        <item name="colorBubbleReceived">#1E1E1E</item>
+        <item name="colorBubbleSentText">#E0F2F1</item>
+        <item name="colorBubbleReceivedText">#E8E8E8</item>
+        <item name="colorInputBar">#161616</item>
+        <item name="colorInputField">#222222</item>
+        <item name="colorTextPrimary">#E8E8E8</item>
+        <item name="colorTextSecondary">#8A8A8A</item>
+        <item name="colorStatusBar">#0A0A0A</item>
+        <item name="colorNavBar">#0D0D0D</item>
+        <item name="colorGreenVerified">#00E676</item>
+        <item name="colorOrangeWarning">#FFAB40</item>
+        <item name="colorInfoBoxBackground">#112233</item>
+        <item name="colorInfoBoxStroke">#1A3A5C</item>
+        <item name="colorDivider">#1E1E1E</item>
+        <item name="colorAvatarBackground">#00BFA5</item>
+        <item name="colorBadge">#00E5FF</item>
+    </style>
+
+    <!-- ============================================================
+         HACKER — pure black AMOLED, Matrix-green accent
+         ============================================================ -->
+    <style name="Theme.SecureChat.Hacker" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">#00E676</item>
+        <item name="colorPrimaryDark">#000000</item>
+        <item name="colorAccent">#76FF03</item>
+        <item name="android:statusBarColor">#000000</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">#000000</item>
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="android:textColorPrimary">#C8E6C9</item>
+        <item name="android:textColorSecondary">#66BB6A</item>
+
+        <item name="colorToolbarBackground">#0A0A0A</item>
+        <item name="colorToolbarTitle">#00E676</item>
+        <item name="colorToolbarIcon">#00E676</item>
+        <item name="colorSurface">#0A0A0A</item>
+        <item name="colorChatBackground">#000000</item>
+        <item name="colorBubbleSent">#1B5E20</item>
+        <item name="colorBubbleReceived">#0A0A0A</item>
+        <item name="colorBubbleSentText">#C8E6C9</item>
+        <item name="colorBubbleReceivedText">#A5D6A7</item>
+        <item name="colorInputBar">#0A0A0A</item>
+        <item name="colorInputField">#111111</item>
+        <item name="colorTextPrimary">#C8E6C9</item>
+        <item name="colorTextSecondary">#66BB6A</item>
+        <item name="colorStatusBar">#000000</item>
+        <item name="colorNavBar">#000000</item>
+        <item name="colorGreenVerified">#00E676</item>
+        <item name="colorOrangeWarning">#FFAB40</item>
+        <item name="colorInfoBoxBackground">#0A1A0A</item>
+        <item name="colorInfoBoxStroke">#1B5E20</item>
+        <item name="colorDivider">#112211</item>
+        <item name="colorAvatarBackground">#1B5E20</item>
+        <item name="colorBadge">#76FF03</item>
+    </style>
+
+    <!-- ============================================================
+         PHANTOM — dark anthracite, purple/pink accent
+         ============================================================ -->
+    <style name="Theme.SecureChat.Phantom" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">#BB86FC</item>
+        <item name="colorPrimaryDark">#0F0F14</item>
+        <item name="colorAccent">#CF6679</item>
+        <item name="android:statusBarColor">#0F0F14</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">#0F0F14</item>
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:colorBackground">#0F0F14</item>
+        <item name="android:textColorPrimary">#E8E0F0</item>
+        <item name="android:textColorSecondary">#9E8CB0</item>
+
+        <item name="colorToolbarBackground">#1A1A24</item>
+        <item name="colorToolbarTitle">#E8E0F0</item>
+        <item name="colorToolbarIcon">#E8E0F0</item>
+        <item name="colorSurface">#1A1A24</item>
+        <item name="colorChatBackground">#0F0F14</item>
+        <item name="colorBubbleSent">#2D1B4E</item>
+        <item name="colorBubbleReceived">#1A1A24</item>
+        <item name="colorBubbleSentText">#E8E0F0</item>
+        <item name="colorBubbleReceivedText">#E0D8E8</item>
+        <item name="colorInputBar">#1A1A24</item>
+        <item name="colorInputField">#24243A</item>
+        <item name="colorTextPrimary">#E8E0F0</item>
+        <item name="colorTextSecondary">#9E8CB0</item>
+        <item name="colorStatusBar">#0F0F14</item>
+        <item name="colorNavBar">#0F0F14</item>
+        <item name="colorGreenVerified">#BB86FC</item>
+        <item name="colorOrangeWarning">#CF6679</item>
+        <item name="colorInfoBoxBackground">#1A1530</item>
+        <item name="colorInfoBoxStroke">#3A2A60</item>
+        <item name="colorDivider">#24243A</item>
+        <item name="colorAvatarBackground">#7C4DFF</item>
+        <item name="colorBadge">#CF6679</item>
+    </style>
+
+    <!-- ============================================================
+         AURORA — dark with warm amber/orange accent
+         ============================================================ -->
+    <style name="Theme.SecureChat.Aurora" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">#FFB74D</item>
+        <item name="colorPrimaryDark">#0D0D0D</item>
+        <item name="colorAccent">#FF7043</item>
+        <item name="android:statusBarColor">#0D0D0D</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">#0D0D0D</item>
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:colorBackground">#0D0D0D</item>
+        <item name="android:textColorPrimary">#F5E6D0</item>
+        <item name="android:textColorSecondary">#A08060</item>
+
+        <item name="colorToolbarBackground">#1A1610</item>
+        <item name="colorToolbarTitle">#F5E6D0</item>
+        <item name="colorToolbarIcon">#F5E6D0</item>
+        <item name="colorSurface">#1A1610</item>
+        <item name="colorChatBackground">#0D0D0D</item>
+        <item name="colorBubbleSent">#3E2723</item>
+        <item name="colorBubbleReceived">#1A1610</item>
+        <item name="colorBubbleSentText">#FFF3E0</item>
+        <item name="colorBubbleReceivedText">#F5E6D0</item>
+        <item name="colorInputBar">#1A1610</item>
+        <item name="colorInputField">#25201A</item>
+        <item name="colorTextPrimary">#F5E6D0</item>
+        <item name="colorTextSecondary">#A08060</item>
+        <item name="colorStatusBar">#0D0D0D</item>
+        <item name="colorNavBar">#0D0D0D</item>
+        <item name="colorGreenVerified">#FFB74D</item>
+        <item name="colorOrangeWarning">#FF7043</item>
+        <item name="colorInfoBoxBackground">#1A1510</item>
+        <item name="colorInfoBoxStroke">#3E2723</item>
+        <item name="colorDivider">#25201A</item>
+        <item name="colorAvatarBackground">#E65100</item>
+        <item name="colorBadge">#FF7043</item>
+    </style>
+
+    <!-- ============================================================
+         DAYLIGHT — clean light theme, blue accent
+         ============================================================ -->
+    <style name="Theme.SecureChat.Daylight" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">#1976D2</item>
+        <item name="colorPrimaryDark">#0D47A1</item>
+        <item name="colorAccent">#448AFF</item>
+        <item name="android:statusBarColor">#F5F5F5</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">#FFFFFF</item>
+        <item name="android:windowBackground">@color/white</item>
+        <item name="android:colorBackground">#FAFAFA</item>
+        <item name="android:textColorPrimary">#1A1A1A</item>
+        <item name="android:textColorSecondary">#757575</item>
+
+        <item name="colorToolbarBackground">#FFFFFF</item>
+        <item name="colorToolbarTitle">#1A1A1A</item>
+        <item name="colorToolbarIcon">#1A1A1A</item>
+        <item name="colorSurface">#FFFFFF</item>
+        <item name="colorChatBackground">#F0F2F5</item>
+        <item name="colorBubbleSent">#DCF8C6</item>
+        <item name="colorBubbleReceived">#FFFFFF</item>
+        <item name="colorBubbleSentText">#1A1A1A</item>
+        <item name="colorBubbleReceivedText">#1A1A1A</item>
+        <item name="colorInputBar">#FFFFFF</item>
+        <item name="colorInputField">#F0F0F0</item>
+        <item name="colorTextPrimary">#1A1A1A</item>
+        <item name="colorTextSecondary">#757575</item>
+        <item name="colorStatusBar">#F5F5F5</item>
+        <item name="colorNavBar">#FFFFFF</item>
+        <item name="colorGreenVerified">#4CAF50</item>
+        <item name="colorOrangeWarning">#FF9800</item>
+        <item name="colorInfoBoxBackground">#E3F2FD</item>
+        <item name="colorInfoBoxStroke">#90CAF9</item>
+        <item name="colorDivider">#E0E0E0</item>
+        <item name="colorAvatarBackground">#1976D2</item>
+        <item name="colorBadge">#448AFF</item>
     </style>
 
     <!-- PIN pad button style -->
@@ -17,7 +204,7 @@
         <item name="android:layout_margin">8dp</item>
         <item name="android:gravity">center</item>
         <item name="android:textSize">28sp</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
         <item name="android:textStyle">bold</item>
         <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
     </style>

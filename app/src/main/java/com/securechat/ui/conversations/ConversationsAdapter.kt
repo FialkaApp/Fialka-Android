@@ -1,5 +1,6 @@
 package com.securechat.ui.conversations
 
+import android.util.TypedValue
 import android.view.View
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -54,11 +55,11 @@ class ConversationsAdapter(
             if (conversation.unreadCount > 0) {
                 binding.tvUnreadBadge.visibility = View.VISIBLE
                 binding.tvUnreadBadge.text = if (conversation.unreadCount > 99) "99+" else conversation.unreadCount.toString()
-                binding.tvContactName.setTextColor(binding.root.context.getColor(R.color.text_primary))
-                binding.tvTimestamp.setTextColor(binding.root.context.getColor(R.color.primary))
+                val tv = TypedValue()
+                binding.root.context.theme.resolveAttribute(R.attr.colorBadge, tv, true)
+                binding.tvTimestamp.setTextColor(tv.data)
             } else {
                 binding.tvUnreadBadge.visibility = View.GONE
-                binding.tvContactName.setTextColor(binding.root.context.getColor(R.color.text_primary))
                 binding.tvTimestamp.setTextColor(binding.root.context.getColor(R.color.text_secondary))
             }
 

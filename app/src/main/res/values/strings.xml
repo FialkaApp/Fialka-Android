@@ -69,4 +69,12 @@
     <!-- Fingerprint -->
     <string name="contact_profile_title">Profil du contact</string>
     <string name="fingerprint_verified">Empreinte vérifiée ✓</string>
+
+    <!-- Theme names -->
+    <string name="theme_midnight">Midnight</string>
+    <string name="theme_hacker">Hacker</string>
+    <string name="theme_phantom">Phantom</string>
+    <string name="theme_aurora">Aurora</string>
+    <string name="theme_daylight">Daylight</string>
+    <string name="theme_section_title">Thème</string>
 </resources>

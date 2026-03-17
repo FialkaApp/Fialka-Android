@@ -7,11 +7,10 @@ import android.os.Build
 import com.google.firebase.FirebaseApp
 import com.securechat.crypto.CryptoManager
 import com.securechat.crypto.MnemonicManager
-import com.securechat.util.ThemeManager
 
 /**
  * Application class for SecureChat.
- * Initializes Firebase, notification channels, and applies saved theme on startup.
+ * Initializes Firebase, notification channels. Theme applied per-Activity.
  */
 class SecureChatApplication : Application() {
     override fun onCreate() {
@@ -19,7 +18,6 @@ class SecureChatApplication : Application() {
         FirebaseApp.initializeApp(this)
         CryptoManager.init(this)
         MnemonicManager.init(this)
-        ThemeManager.applySavedTheme(this)
         createNotificationChannel()
     }
 

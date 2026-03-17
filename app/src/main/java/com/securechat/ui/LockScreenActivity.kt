@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.securechat.R
 import com.securechat.util.AppLockManager
+import com.securechat.util.ThemeManager
 
 /**
  * Lock screen — PIN entry + optional biometric unlock.
@@ -33,12 +34,11 @@ class LockScreenActivity : AppCompatActivity() {
     private var isBiometricShowing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        ThemeManager.applyToActivity(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_lock_screen)
 
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
-        @Suppress("DEPRECATION") // Safe on minSdk 33; no replacement until API 35
-        window.statusBarColor = ContextCompat.getColor(this, R.color.primary_dark)
 
         tvTitle = findViewById(R.id.tvLockTitle)
         dotsContainer = findViewById(R.id.dotsContainer)

@@ -10,12 +10,12 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/primary"
-        android:elevation="4dp"
+        android:background="?attr/colorToolbarBackground"
+        android:elevation="0dp"
         app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@color/white"
+        app:navigationIconTint="?attr/colorToolbarIcon"
         app:title="Verrouillage"
-        app:titleTextColor="@color/white" />
+        app:titleTextColor="?attr/colorToolbarTitle" />
 
     <ScrollView
         android:layout_width="match_parent"

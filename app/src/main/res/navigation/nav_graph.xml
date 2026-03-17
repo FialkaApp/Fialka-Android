@@ -14,15 +14,23 @@
             android:id="@+id/action_onboarding_to_conversations"
             app:destination="@id/conversationsFragment"
             app:popUpTo="@id/onboardingFragment"
-            app:popUpToInclusive="true" />
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
         <action
             android:id="@+id/action_onboarding_to_backup"
             app:destination="@id/backupPhraseFragment"
             app:popUpTo="@id/onboardingFragment"
-            app:popUpToInclusive="true" />
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left" />
         <action
             android:id="@+id/action_onboarding_to_restore"
-            app:destination="@id/restoreFragment" />
+            app:destination="@id/restoreFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -34,7 +42,9 @@
             android:id="@+id/action_backup_to_conversations"
             app:destination="@id/conversationsFragment"
             app:popUpTo="@id/backupPhraseFragment"
-            app:popUpToInclusive="true" />
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
     </fragment>
 
     <fragment
@@ -46,7 +56,9 @@
             android:id="@+id/action_restore_to_conversations"
             app:destination="@id/conversationsFragment"
             app:popUpTo="@id/nav_graph"
-            app:popUpToInclusive="true" />
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
     </fragment>
 
     <fragment
@@ -56,21 +68,39 @@
         tools:layout="@layout/fragment_conversations">
         <action
             android:id="@+id/action_conversations_to_chat"
-            app:destination="@id/chatFragment" />
+            app:destination="@id/chatFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
         <action
             android:id="@+id/action_conversations_to_addContact"
-            app:destination="@id/addContactFragment" />
+            app:destination="@id/addContactFragment"
+            app:enterAnim="@anim/slide_up_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/slide_down_out" />
         <action
             android:id="@+id/action_conversations_to_profile"
-            app:destination="@id/profileFragment" />
+            app:destination="@id/profileFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
         <action
             android:id="@+id/action_conversations_to_settings"
-            app:destination="@id/settingsFragment" />
+            app:destination="@id/settingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
         <action
             android:id="@+id/action_conversations_to_onboarding"
             app:destination="@id/onboardingFragment"
             app:popUpTo="@id/conversationsFragment"
-            app:popUpToInclusive="true" />
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
     </fragment>
 
     <fragment
@@ -86,7 +116,11 @@
             app:argType="string" />
         <action
             android:id="@+id/action_chat_to_conversationProfile"
-            app:destination="@id/conversationProfileFragment" />
+            app:destination="@id/conversationProfileFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -102,7 +136,11 @@
             app:argType="string" />
         <action
             android:id="@+id/action_conversationProfile_to_fingerprint"
-            app:destination="@id/fingerprintFragment" />
+            app:destination="@id/fingerprintFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -113,7 +151,9 @@
         <action
             android:id="@+id/action_addContact_to_chat"
             app:destination="@id/chatFragment"
-            app:popUpTo="@id/conversationsFragment" />
+            app:popUpTo="@id/conversationsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left" />
     </fragment>
 
     <fragment
@@ -125,7 +165,9 @@
             android:id="@+id/action_profile_to_onboarding"
             app:destination="@id/onboardingFragment"
             app:popUpTo="@id/nav_graph"
-            app:popUpToInclusive="true" />
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
     </fragment>
 
     <fragment
@@ -135,16 +177,32 @@
         tools:layout="@layout/fragment_settings">
         <action
             android:id="@+id/action_settings_to_appearance"
-            app:destination="@id/appearanceFragment" />
+            app:destination="@id/appearanceFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
         <action
             android:id="@+id/action_settings_to_notifications"
-            app:destination="@id/notificationsFragment" />
+            app:destination="@id/notificationsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
         <action
             android:id="@+id/action_settings_to_security"
-            app:destination="@id/securityFragment" />
+            app:destination="@id/securityFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
         <action
             android:id="@+id/action_settings_to_ephemeral"
-            app:destination="@id/ephemeralSettingsFragment" />
+            app:destination="@id/ephemeralSettingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
