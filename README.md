@@ -1,6 +1,10 @@
-<div align="center">
+<div align="right">
+  🇫🇷 Français | <a href="README-en.md">🇬🇧 English</a>
+</div>
 
 <br/>
+
+<div align="center">
 
 # 🔐 SecureChat
 
