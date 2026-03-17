@@ -153,7 +153,7 @@
 
 | | Feature | Détail |
 |---|---------|--------|
-| 🔒 | **App Lock** | PIN 4 chiffres + biométrie opt-in |
+| 🔒 | **App Lock** | PIN 6 chiffres + biométrie opt-in |
 | ⏰ | **Auto-lock** | Timeout configurable (5s → 5min) |
 | 🔑 | **Backup BIP-39** | 24 mots pour sauvegarder la clé d'identité |
 | ♻️ | **Restauration** | Restaurer sur un nouvel appareil via phrase |
@@ -256,7 +256,8 @@ cd SecureChat
 | **V2.1** | Account Lifecycle — BIP-39 backup, restauration, suppression, dead convo | ✅ Done |
 | **V2.2** | UI Modernization — 5 thèmes, animations, CoordinatorLayout, zero hardcoded colors | ✅ Done |
 | **V3** | Security Hardening — R8, delete-after-delivery, padding, HMAC UID, PBKDF2, dummy traffic, fichiers E2E | ✅ Done |
-| **V3.1** | Planned — Signature ECDSA, groupes, suppression pour tous, typing indicators | 🔜 |
+| **V3.1** | Settings Redesign — Paramètres Signal-like, PIN 6 chiffres, sous-écran Confidentialité, coroutines PIN | ✅ Done |
+| **V3.2** | Planned — Signature ECDSA, groupes, suppression pour tous, typing indicators | 🔜 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
 
@@ -288,7 +289,7 @@ cd SecureChat
 | [**Protocole Crypto**](docs/fr/CRYPTO.md) | X25519, Double Ratchet, fingerprint, modèle de menace |
 | [**Installation**](docs/fr/SETUP.md) | Prérequis, Firebase, build, dépendances |
 | [**Structure**](docs/fr/STRUCTURE.md) | Arbre complet du projet |
-| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V2.2 + roadmap V3 |
+| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V3.1 |
 | [**Sécurité**](SECURITY.md) | Audit complet, limites connues |
 
 </div>
@@ -303,7 +304,7 @@ Fourni à des fins **éducatives**. Utilisez-le comme base pour comprendre le ch
 
 <br/>
 
-<img src="https://img.shields.io/badge/SecureChat-V3.0-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/SecureChat-V3.1-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

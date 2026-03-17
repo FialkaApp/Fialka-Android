@@ -12,9 +12,11 @@ import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import com.securechat.R
 import com.securechat.util.AppLockManager
 import com.securechat.util.ThemeManager
+import kotlinx.coroutines.launch
 
 /**
  * Lock screen — PIN entry + optional biometric unlock.
@@ -23,7 +25,7 @@ import com.securechat.util.ThemeManager
 class LockScreenActivity : AppCompatActivity() {
 
     private var enteredPin = ""
-    private val pinLength = 4
+    private val pinLength = 6
 
     private lateinit var tvTitle: TextView
     private lateinit var dotsContainer: LinearLayout
@@ -43,7 +45,7 @@ class LockScreenActivity : AppCompatActivity() {
         tvTitle = findViewById(R.id.tvLockTitle)
         dotsContainer = findViewById(R.id.dotsContainer)
 
-        // Create 4 dot indicators
+        // Create 6 dot indicators
         dots = (0 until pinLength).map { i ->
             dotsContainer.getChildAt(i) as ImageView
         }
@@ -76,15 +78,17 @@ class LockScreenActivity : AppCompatActivity() {
         updateDots()
 
         if (enteredPin.length == pinLength) {
-            if (AppLockManager.verifyPin(this, enteredPin)) {
-                unlock()
-            } else {
-                // Wrong PIN — shake and reset
-                val shake = AnimationUtils.loadAnimation(this, R.anim.shake)
-                dotsContainer.startAnimation(shake)
-                Toast.makeText(this, "Code incorrect", Toast.LENGTH_SHORT).show()
-                enteredPin = ""
-                dotsContainer.postDelayed({ updateDots() }, 300)
+            lifecycleScope.launch {
+                val valid = AppLockManager.verifyPin(this@LockScreenActivity, enteredPin)
+                if (valid) {
+                    unlock()
+                } else {
+                    val shake = AnimationUtils.loadAnimation(this@LockScreenActivity, R.anim.shake)
+                    dotsContainer.startAnimation(shake)
+                    Toast.makeText(this@LockScreenActivity, "Code incorrect", Toast.LENGTH_SHORT).show()
+                    enteredPin = ""
+                    dotsContainer.postDelayed({ updateDots() }, 300)
+                }
             }
         }
     }

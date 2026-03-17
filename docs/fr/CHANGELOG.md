@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V3.0-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3.1-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V3.1-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Next-V3.2-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -41,7 +41,7 @@
 - [x] Profil du contact (empreinte, vérification manuelle, badge chat)
 - [x] SQLCipher — Chiffrement de la base Room locale (256-bit, EncryptedSharedPreferences)
 - [x] Metadata hardening — senderPublicKey + messageIndex supprimés de Firebase (trial decryption)
-- [x] App Lock — Code PIN 4 chiffres + déverrouillage biométrique opt-in
+- [x] App Lock — Code PIN 6 chiffres + déverrouillage biométrique opt-in
 - [x] Profil amélioré — Cards, en-tête avatar, zone danger, UX modernisée
 - [x] Paramètres améliorés — Sections verrouillage / notifications / sécurité
 - [x] Messages éphémères — Timer côté envoi + côté lecture, durée synchro Firebase
@@ -132,7 +132,26 @@
 
 ---
 
-## 🔜 V3.1 — Planned
+## ✅ V3.1 — Settings Redesign & PIN Upgrade
+
+> Paramètres repensés Signal/Telegram, PIN 6 chiffres, sous-écran Confidentialité, performance PIN.
+
+### ⚙️ Paramètres
+- [x] **Redesign complet** — Hiérarchie Signal-like : Général (Apparence, Notifications), Confidentialité, Sécurité, À propos
+- [x] **Sous-écran Confidentialité** — Messages éphémères, delete-after-delivery, dummy traffic regroupés
+- [x] **PrivacyFragment** — Nouveau fragment dédié avec navigation intégrée
+- [x] **Section À propos** — Version dynamique, info chiffrement, licence GPLv3
+
+### 🔐 Sécurité PIN
+- [x] **PIN 6 chiffres** — Remplacement du code à 4 chiffres, 6 dots sur l’écran de verrouillage
+- [x] **Suppression legacy** — Retrait du support SHA-256 et backward compat 4 chiffres
+- [x] **Coroutines PIN** — Vérification PBKDF2 (600K itérations) sur `Dispatchers.Default`, zéro freeze UI
+- [x] **Cache EncryptedSharedPreferences** — Double-checked locking, plus d’init Keystore répétée
+- [x] **Vérification unique** — Check uniquement au 6ème chiffre (plus de check intermédiaire)
+
+---
+
+## 🔜 V3.2 — Planned
 
 - [ ] **Signature ECDSA** — Clé de signature dédiée (PURPOSE_SIGN) pour authentifier chaque message
 - [ ] **Groupes** — Conversations à 3+ participants

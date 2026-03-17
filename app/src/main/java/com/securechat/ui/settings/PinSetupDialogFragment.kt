@@ -8,11 +8,13 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import com.securechat.R
 import com.securechat.util.AppLockManager
+import kotlinx.coroutines.launch
 
 /**
- * Full-screen dialog for creating or changing a 4-digit PIN.
+ * Full-screen dialog for creating or changing a 6-digit PIN.
  * Flow: Enter PIN → Confirm PIN → Done.
  * If changing: Verify old PIN → Enter new PIN → Confirm new PIN → Done.
  */
@@ -20,8 +22,9 @@ class PinSetupDialogFragment : DialogFragment() {
 
     private var firstPin: String? = null
     private var enteredPin = ""
-    private val pinLength = 4
+    private val pinLength = 6
     private var isChanging = false
+    private var verifyingOldPin = false
 
     private lateinit var tvTitle: TextView
     private lateinit var dotsContainer: LinearLayout
@@ -46,8 +49,9 @@ class PinSetupDialogFragment : DialogFragment() {
 
         if (isChanging) {
             tvTitle.text = "Entrez votre code actuel"
+            verifyingOldPin = true
         } else {
-            tvTitle.text = "Choisissez un code à 4 chiffres"
+            tvTitle.text = "Choisissez un code à 6 chiffres"
         }
 
         val padIds = listOf(
@@ -71,7 +75,23 @@ class PinSetupDialogFragment : DialogFragment() {
         enteredPin += digit
         updateDots()
 
-        if (enteredPin.length == pinLength) {
+        if (verifyingOldPin) {
+            if (enteredPin.length == pinLength) {
+                val ctx = context ?: return
+                lifecycleScope.launch {
+                    val valid = AppLockManager.verifyPin(ctx, enteredPin)
+                    if (valid) {
+                        verifyingOldPin = false
+                        enteredPin = ""
+                        tvTitle.text = "Choisissez un nouveau code à 6 chiffres"
+                        updateDots()
+                    } else {
+                        shakeAndReset("Code actuel incorrect")
+                        verifyingOldPin = true
+                    }
+                }
+            }
+        } else if (enteredPin.length == pinLength) {
             dotsContainer.postDelayed({ handlePinComplete() }, 200)
         }
     }
@@ -80,15 +100,7 @@ class PinSetupDialogFragment : DialogFragment() {
         val ctx = context ?: return
 
         if (isChanging && firstPin == null) {
-            // Step 1 (change): verify old PIN
-            if (AppLockManager.verifyPin(ctx, enteredPin)) {
-                isChanging = false // now proceed as new setup
-                enteredPin = ""
-                tvTitle.text = "Choisissez un nouveau code"
-                updateDots()
-            } else {
-                shakeAndReset("Code actuel incorrect")
-            }
+            // This path is no longer used; old PIN verification happens in onDigitPressed
             return
         }
 
@@ -101,14 +113,16 @@ class PinSetupDialogFragment : DialogFragment() {
         } else {
             // Step 2: confirm
             if (enteredPin == firstPin) {
-                AppLockManager.setPin(ctx, enteredPin)
-                Toast.makeText(ctx, "Code de verrouillage activé ✓", Toast.LENGTH_SHORT).show()
-                onPinSet?.invoke()
-                dismiss()
+                lifecycleScope.launch {
+                    AppLockManager.setPin(ctx, enteredPin)
+                    Toast.makeText(ctx, "Code de verrouillage activé ✓", Toast.LENGTH_SHORT).show()
+                    onPinSet?.invoke()
+                    dismiss()
+                }
             } else {
                 shakeAndReset("Les codes ne correspondent pas")
                 firstPin = null
-                tvTitle.text = "Choisissez un code à 4 chiffres"
+                tvTitle.text = "Choisissez un code à 6 chiffres"
             }
         }
     }

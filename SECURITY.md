@@ -4,9 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 3.0.x   | ✅ Current |
-| 2.2.x   | ⚠️ Outdated |
-| 2.0–2.1 | ⚠️ Outdated |
+| 3.1.x   | ✅ Current |
+| 3.0.x   | ⚠️ Outdated |
+| 2.x     | ⚠️ Outdated |
 | 1.x     | ❌ Unsupported |
 
 ## Reporting a Vulnerability
@@ -81,8 +81,7 @@ SecureChat uses the following cryptographic primitives:
 - ✅ SQLCipher: entire Room database encrypted (AES-256-CBC, 256-bit key)
 - ✅ DB passphrase generated via SecureRandom, stored in EncryptedSharedPreferences (Keystore-backed)
 - ✅ DB file unreadable without Android Keystore access (protects against rooted device / backup dump)
-- ✅ App Lock: 4-digit PIN (PBKDF2-HMAC-SHA256, 600K iterations, 16-byte random salt, stored in EncryptedSharedPreferences)
-- ✅ App Lock: auto-migration from legacy SHA-256 hashes to PBKDF2 on successful verification
+- ✅ App Lock: 6-digit PIN (PBKDF2-HMAC-SHA256, 600K iterations, 16-byte random salt, stored in EncryptedSharedPreferences)
 - ✅ Biometric unlock: opt-in via BiometricPrompt (BIOMETRIC_STRONG | BIOMETRIC_WEAK)
 - ✅ Auto-lock timeout: configurable (5s, 15s, 30s, 1min, 5min), default 5 seconds
 - ✅ Lock screen bypasses disabled (`onBackPressed` → `finishAffinity`)
@@ -108,9 +107,17 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **Message padding**: plaintext padded to fixed-size buckets (256/1024/4096/16384 bytes) with 2-byte length header + SecureRandom fill, preventing size-based traffic analysis
 - ✅ **senderUid HMAC hashing**: `senderUid` field is HMAC-SHA256(conversationId, raw UID) truncated to 128 bits — Firebase cannot correlate the same user across different conversations
 - ✅ **Room DB indexes**: composite indexes on messages(conversationId, timestamp), messages(expiresAt), conversations(accepted), contacts(publicKey) for performance
-- ✅ **PBKDF2 PIN**: replaced SHA-256 with PBKDF2-HMAC-SHA256 (600,000 iterations, 16-byte random salt); auto-migrates legacy hashes
+- ✅ **PBKDF2 PIN**: PBKDF2-HMAC-SHA256 (600,000 iterations, 16-byte random salt); 6-digit PIN enforced
 - ✅ **Dummy traffic**: periodic cover messages (45–120s random interval) sent via real Double Ratchet — indistinguishable from real messages on the wire; configurable toggle in security settings; receiver detects and silently drops after decryption
 - ✅ **E2E file sharing**: files encrypted client-side with random AES-256-GCM key, uploaded to Firebase Storage; metadata (URL + key + IV + filename + size) sent via the ratchet; receiver downloads, decrypts locally, stores to app-private storage; 25 MB limit; encrypted file deleted from Storage after delivery
 - ✅ **Firebase Storage security rules**: authenticated-only access, 50 MB max upload, restricted to `/encrypted_files/` path
 - ✅ **Double-listener guard**: `processedFirebaseKeys` set prevents ratchet desynchronization when global and per-chat Firebase listeners process the same message simultaneously
 - ✅ **Opaque dummy prefix**: dummy message marker uses non-printable control bytes (`\u0007\u001B\u0003`) instead of readable text, not identifiable in memory dumps
+
+### V3.1 Settings & PIN Improvements
+
+- ✅ **Settings redesign**: Signal/Telegram-style settings hierarchy (Général, Confidentialité, Sécurité, À propos)
+- ✅ **Privacy sub-screen**: dedicated Confidentialité screen (ephemeral messages, delete-after-delivery, dummy traffic)
+- ✅ **6-digit PIN**: upgraded from 4-digit, removed legacy 4-digit/SHA-256 backward compatibility
+- ✅ **PIN coroutines**: PBKDF2 verification runs on `Dispatchers.Default` (off UI thread), zero freeze on digit entry
+- ✅ **Cached EncryptedSharedPreferences**: double-checked locking pattern avoids repeated Keystore initialization

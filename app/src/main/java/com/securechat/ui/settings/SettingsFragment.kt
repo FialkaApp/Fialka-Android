@@ -9,6 +9,7 @@ import androidx.navigation.fragment.findNavController
 import com.securechat.R
 import com.securechat.databinding.FragmentSettingsBinding
 import com.securechat.util.AppLockManager
+import com.securechat.util.DummyTrafficManager
 import com.securechat.util.EphemeralManager
 import com.securechat.util.ThemeManager
 
@@ -42,8 +43,8 @@ class SettingsFragment : Fragment() {
             findNavController().navigate(R.id.action_settings_to_security)
         }
 
-        binding.rowEphemeral.setOnClickListener {
-            findNavController().navigate(R.id.action_settings_to_ephemeral)
+        binding.rowPrivacy.setOnClickListener {
+            findNavController().navigate(R.id.action_settings_to_privacy)
         }
 
         // Version
@@ -67,6 +68,17 @@ class SettingsFragment : Fragment() {
         val pushEnabled = prefs.getBoolean("push_notifications_enabled", false)
         binding.tvNotifSummary.text = if (pushEnabled) "Activées" else "Désactivées"
 
+        // Privacy summary
+        val ephDuration = EphemeralManager.getDefaultDuration(requireContext())
+        val ephLabel = if (ephDuration > 0) EphemeralManager.getLabelForDuration(ephDuration) else "off"
+        val dummyEnabled = DummyTrafficManager.isEnabled(requireContext())
+        binding.tvPrivacySummary.text = when {
+            ephDuration > 0 && dummyEnabled -> "Éphémère: $ephLabel · Trafic factice"
+            ephDuration > 0 -> "Éphémère: $ephLabel"
+            dummyEnabled -> "Trafic factice activé"
+            else -> "Messages éphémères, trafic factice"
+        }
+
         // Security summary
         val pinSet = AppLockManager.isPinSet(requireContext())
         val bioEnabled = AppLockManager.isBiometricEnabled(requireContext())
@@ -76,11 +88,6 @@ class SettingsFragment : Fragment() {
             pinSet -> "PIN activé · $lockLabel"
             else -> "Désactivé"
         }
-
-        // Ephemeral summary
-        val ephDuration = EphemeralManager.getDefaultDuration(requireContext())
-        binding.tvEphemeralSummary.text = if (ephDuration > 0)
-            EphemeralManager.getLabelForDuration(ephDuration) else "Désactivé"
     }
 
     override fun onDestroyView() {

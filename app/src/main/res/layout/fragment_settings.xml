@@ -161,9 +161,9 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
-            <!-- Messages éphémères -->
+            <!-- Confidentialité → sub-screen -->
             <LinearLayout
-                android:id="@+id/rowEphemeral"
+                android:id="@+id/rowPrivacy"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackground"
@@ -178,7 +178,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:importantForAccessibility="no"
-                    android:src="@drawable/ic_timer"
+                    android:src="@drawable/ic_shield"
                     app:tint="?android:attr/textColorPrimary" />
 
                 <LinearLayout
@@ -191,16 +191,16 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Messages éphémères"
+                        android:text="Confidentialité"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="16sp" />
 
                     <TextView
-                        android:id="@+id/tvEphemeralSummary"
+                        android:id="@+id/tvPrivacySummary"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Désactivé"
+                        android:text="Messages éphémères, trafic factice"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -255,7 +255,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Verrouillage de l'app"
+                        android:text="Sécurité"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="16sp" />
 
@@ -371,6 +371,52 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:text="X25519 · AES-256-GCM · Double Ratchet"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="56dp"
+                android:background="@color/grey_medium" />
+
+            <!-- Licence -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_shield"
+                    app:tint="?android:attr/textColorPrimary" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Licence"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="GPLv3 — Code source ouvert"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>

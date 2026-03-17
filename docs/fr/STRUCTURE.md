@@ -6,8 +6,8 @@
 
 # 📂 Structure du projet
 
-<img src="https://img.shields.io/badge/Fragments-15-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Layouts-22-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Fragments-16-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Layouts-23-9C4DCC?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Animations-10-6A1B9A?style=for-the-badge" />
 
 </div>
@@ -117,15 +117,16 @@ SecureChat/
 │       │           ├── AppearanceFragment.kt
 │       │           ├── NotificationsFragment.kt
 │       │           ├── SecurityFragment.kt
+│       │           ├── PrivacyFragment.kt        # Sous-écran Confidentialité (dummy traffic, éphémère)
 │       │           ├── EphemeralSettingsFragment.kt
 │       │           └── PinSetupDialogFragment.kt
 │       │
 │       └── res/
 │           ├── anim/                         # 10 animations (slide, fade, bubble, cascade)
 │           ├── drawable/                     # Bulles, badges, icônes, backgrounds, ic_attach
-│           ├── layout/                       # 22 layouts XML (fragments + items)
+│           ├── layout/                       # 23 layouts XML (fragments + items)
 │           ├── menu/                         # Menu conversations
-│           ├── navigation/nav_graph.xml      # 15 destinations, transitions animées
+│           ├── navigation/nav_graph.xml      # 16 destinations, transitions animées
 │           ├── raw/bip39_english.txt         # Wordlist BIP-39 (2048 mots)
 │           ├── xml/file_paths.xml            # FileProvider paths (partage fichiers)
 │           ├── values/                       # Couleurs, strings, thèmes, 22 attrs custom

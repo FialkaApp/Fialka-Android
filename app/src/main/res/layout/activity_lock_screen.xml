@@ -45,29 +45,43 @@
         <ImageView
             android:layout_width="20dp"
             android:layout_height="20dp"
-            android:layout_marginHorizontal="12dp"
+            android:layout_marginHorizontal="10dp"
             android:contentDescription="PIN dot 1"
             android:src="@drawable/dot_empty" />
 
         <ImageView
             android:layout_width="20dp"
             android:layout_height="20dp"
-            android:layout_marginHorizontal="12dp"
+            android:layout_marginHorizontal="10dp"
             android:contentDescription="PIN dot 2"
             android:src="@drawable/dot_empty" />
 
         <ImageView
             android:layout_width="20dp"
             android:layout_height="20dp"
-            android:layout_marginHorizontal="12dp"
+            android:layout_marginHorizontal="10dp"
             android:contentDescription="PIN dot 3"
             android:src="@drawable/dot_empty" />
 
         <ImageView
             android:layout_width="20dp"
             android:layout_height="20dp"
-            android:layout_marginHorizontal="12dp"
+            android:layout_marginHorizontal="10dp"
             android:contentDescription="PIN dot 4"
+            android:src="@drawable/dot_empty" />
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginHorizontal="10dp"
+            android:contentDescription="PIN dot 5"
+            android:src="@drawable/dot_empty" />
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginHorizontal="10dp"
+            android:contentDescription="PIN dot 6"
             android:src="@drawable/dot_empty" />
     </LinearLayout>
 

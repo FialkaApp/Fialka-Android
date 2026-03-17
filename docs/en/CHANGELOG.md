@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V3.0-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3.1-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V3.1-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Next-V3.2-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -41,7 +41,7 @@
 - [x] Contact profile (fingerprint, manual verification, chat badge)
 - [x] SQLCipher — Local Room database encryption (256-bit, EncryptedSharedPreferences)
 - [x] Metadata hardening — senderPublicKey + messageIndex removed from Firebase (trial decryption)
-- [x] App Lock — 4-digit PIN + opt-in biometric unlock
+- [x] App Lock — 6-digit PIN + opt-in biometric unlock
 - [x] Profile improvement — Cards, avatar header, danger zone, modernized UX
 - [x] Settings improvement — Lock / notifications / security sections
 - [x] Ephemeral messages — Timer on send + on read, duration synced on Firebase
@@ -112,7 +112,7 @@
 - [x] **Delete-after-delivery** — Ciphertext removed from Firebase RTDB immediately after successful decryption
 - [x] **Message padding** — Plaintext padded to fixed-size buckets (256/1K/4K/16K bytes) with 2-byte header + SecureRandom fill
 - [x] **senderUid HMAC** — `senderUid` = HMAC-SHA256(conversationId, UID) truncated to 128 bits — Firebase cannot correlate the same user across conversations
-- [x] **PBKDF2 PIN** — SHA-256 replaced with PBKDF2-HMAC-SHA256 (600K iterations, 16-byte salt); auto-migrates legacy hashes
+- [x] **PBKDF2 PIN** — PBKDF2-HMAC-SHA256 (600K iterations, 16-byte salt); 6-digit PIN enforced
 
 ### 👻 Traffic Analysis Countermeasures
 - [x] **Dummy traffic** — Periodic cover messages (45–120s random interval) via real Double Ratchet — indistinguishable from real messages on the wire
@@ -132,7 +132,26 @@
 
 ---
 
-## 🔜 V3.1 — Planned
+## ✅ V3.1 — Settings Redesign & PIN Upgrade
+
+> Signal/Telegram-style settings, 6-digit PIN, Privacy sub-screen, PIN performance.
+
+### ⚙️ Settings
+- [x] **Full redesign** — Signal-like hierarchy: General (Appearance, Notifications), Privacy, Security, About
+- [x] **Privacy sub-screen** — Ephemeral messages, delete-after-delivery, dummy traffic grouped together
+- [x] **PrivacyFragment** — Dedicated fragment with integrated navigation
+- [x] **About section** — Dynamic version, encryption info, GPLv3 license
+
+### 🔐 PIN Security
+- [x] **6-digit PIN** — Replaced 4-digit code, 6 dots on lock screen
+- [x] **Legacy removal** — Removed SHA-256 support and 4-digit backward compatibility
+- [x] **PIN coroutines** — PBKDF2 verification (600K iterations) on `Dispatchers.Default`, zero UI freeze
+- [x] **Cached EncryptedSharedPreferences** — Double-checked locking, no repeated Keystore init
+- [x] **Single verification** — Check only at 6th digit (no intermediate checks)
+
+---
+
+## 🔜 V3.2 — Planned
 
 - [ ] **ECDSA Signature** — Dedicated signature key (PURPOSE_SIGN) to authenticate each message
 - [ ] **Groups** — 3+ participant conversations

@@ -1,8 +1,11 @@
 package com.securechat.util
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.security.SecureRandom
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
@@ -13,6 +16,9 @@ import javax.crypto.spec.PBEKeySpec
  * PIN is stored as PBKDF2-HMAC-SHA256 hash (600k iterations + 16-byte salt)
  * in EncryptedSharedPreferences (Keystore-backed).
  * The user never stores plaintext PINs.
+ *
+ * All heavy crypto operations (verify/set PIN) are suspend functions
+ * that run on Dispatchers.Default to avoid UI freezes.
  */
 object AppLockManager {
 
@@ -31,43 +37,40 @@ object AppLockManager {
         "30 secondes", "1 minute", "5 minutes"
     )
 
-    private fun getPrefs(context: Context) = EncryptedSharedPreferences.create(
-        context,
-        PREFS_NAME,
-        MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build(),
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    @Volatile
+    private var cachedPrefs: SharedPreferences? = null
+
+    private fun getPrefs(context: Context): SharedPreferences {
+        return cachedPrefs ?: synchronized(this) {
+            cachedPrefs ?: EncryptedSharedPreferences.create(
+                context.applicationContext,
+                PREFS_NAME,
+                MasterKey.Builder(context.applicationContext)
+                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                    .build(),
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            ).also { cachedPrefs = it }
+        }
+    }
 
     /** Check if a PIN code has been configured. */
     fun isPinSet(context: Context): Boolean {
         return getPrefs(context).getString(KEY_PIN_HASH, null) != null
     }
 
-    /** Set or update the PIN code (stored as PBKDF2 hash with salt). */
-    fun setPin(context: Context, pin: String) {
-        getPrefs(context).edit().putString(KEY_PIN_HASH, hashPin(pin)).apply()
+    /** Set or update the PIN code (stored as PBKDF2 hash with salt). Runs off main thread. */
+    suspend fun setPin(context: Context, pin: String) {
+        val hash = withContext(Dispatchers.Default) { hashPin(pin) }
+        getPrefs(context).edit().putString(KEY_PIN_HASH, hash).apply()
     }
 
-    /** Verify the entered PIN against the stored hash. Handles legacy SHA-256 migration. */
-    fun verifyPin(context: Context, pin: String): Boolean {
+    /** Verify the entered PIN against the stored hash. Runs off main thread. */
+    suspend fun verifyPin(context: Context, pin: String): Boolean {
         val stored = getPrefs(context).getString(KEY_PIN_HASH, null) ?: return false
-        if (stored.contains(":")) {
-            // New PBKDF2 format: "salt_hex:hash_hex"
-            return stored == hashPinWithSalt(pin, stored.substringBefore(":"))
+        return withContext(Dispatchers.Default) {
+            stored == hashPinWithSalt(pin, stored.substringBefore(":"))
         }
-        // Legacy SHA-256 format (no colon) — verify and auto-migrate
-        val legacyHash = java.security.MessageDigest.getInstance("SHA-256")
-            .digest(pin.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
-        if (stored == legacyHash) {
-            // Migrate to PBKDF2 on successful verification
-            setPin(context, pin)
-            return true
-        }
-        return false
     }
 
     /** Remove the PIN code (disables app lock). */

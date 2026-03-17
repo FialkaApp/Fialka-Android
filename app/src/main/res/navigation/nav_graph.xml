@@ -203,6 +203,13 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settings_to_privacy"
+            app:destination="@id/privacyFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -220,8 +227,22 @@
     <fragment
         android:id="@+id/securityFragment"
         android:name="com.securechat.ui.settings.SecurityFragment"
-        android:label="Verrouillage"
+        android:label="Sécurité"
         tools:layout="@layout/fragment_settings_security" />
+
+    <fragment
+        android:id="@+id/privacyFragment"
+        android:name="com.securechat.ui.settings.PrivacyFragment"
+        android:label="Confidentialité"
+        tools:layout="@layout/fragment_settings_privacy">
+        <action
+            android:id="@+id/action_privacy_to_ephemeral"
+            app:destination="@id/ephemeralSettingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
 
     <fragment
         android:id="@+id/ephemeralSettingsFragment"

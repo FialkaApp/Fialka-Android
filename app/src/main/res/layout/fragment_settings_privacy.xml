@@ -14,7 +14,7 @@
         android:elevation="0dp"
         app:navigationIcon="@drawable/ic_arrow_back"
         app:navigationIconTint="?attr/colorToolbarIcon"
-        app:title="Sécurité"
+        app:title="Confidentialité"
         app:titleTextColor="?attr/colorToolbarTitle" />
 
     <ScrollView
@@ -25,20 +25,80 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingTop="16dp"
+            android:paddingTop="8dp"
             android:paddingBottom="32dp">
 
+            <!-- ===== SECTION : MESSAGES ===== -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
+                android:layout_marginTop="8dp"
                 android:layout_marginBottom="4dp"
-                android:text="Code de verrouillage"
+                android:text="Messages"
                 android:textColor="@color/primary"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
-            <!-- PIN toggle -->
+            <!-- Messages éphémères → sub-screen -->
+            <LinearLayout
+                android:id="@+id/rowEphemeral"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_timer"
+                    app:tint="?android:attr/textColorPrimary" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Messages éphémères"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/tvEphemeralSummary"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Désactivé"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="?android:attr/textColorSecondary" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="56dp"
+                android:background="@color/grey_medium" />
+
+            <!-- Delete after delivery info -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -47,104 +107,32 @@
                 android:paddingHorizontal="16dp"
                 android:paddingVertical="14dp">
 
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Activer le code PIN"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textSize="16sp" />
-
-                    <TextView
-                        android:id="@+id/tvPinStatus"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Protégez l'accès à l'application"
-                        android:textColor="?android:attr/textColorSecondary"
-                        android:textSize="13sp" />
-                </LinearLayout>
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switchPin"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="16dp"
-                android:background="@color/grey_medium" />
-
-            <!-- Change PIN -->
-            <LinearLayout
-                android:id="@+id/layoutChangePin"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="14dp"
-                android:visibility="gone">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Changer le code PIN"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:textSize="16sp" />
-
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:importantForAccessibility="no"
-                    android:src="@drawable/ic_chevron_right"
-                    app:tint="?android:attr/textColorSecondary" />
-            </LinearLayout>
-
-            <!-- Auto-lock timeout -->
-            <LinearLayout
-                android:id="@+id/layoutAutoLock"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="14dp"
-                android:visibility="gone">
+                    android:src="@drawable/ic_check_circle"
+                    app:tint="?android:attr/textColorPrimary" />
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Verrouillage automatique"
+                        android:text="Suppression après réception"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="16sp" />
 
                     <TextView
-                        android:id="@+id/tvAutoLockSummary"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Après 3 secondes"
+                        android:text="Les messages sont supprimés du serveur dès réception"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -153,72 +141,69 @@
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:importantForAccessibility="no"
-                    android:src="@drawable/ic_chevron_right"
-                    app:tint="?android:attr/textColorSecondary" />
+                    android:src="@drawable/ic_check_circle"
+                    app:tint="#4CAF50" />
             </LinearLayout>
 
-            <View
-                android:id="@+id/dividerAutoLock"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="16dp"
-                android:background="@color/grey_medium"
-                android:visibility="gone" />
-
-            <!-- Biometric section -->
+            <!-- ===== SECTION : RÉSEAU ===== -->
             <TextView
-                android:id="@+id/tvBiometricHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="4dp"
-                android:text="Biométrie"
+                android:text="Réseau"
                 android:textColor="@color/primary"
                 android:textSize="13sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
+                android:textStyle="bold" />
 
+            <!-- Dummy traffic toggle -->
             <LinearLayout
-                android:id="@+id/layoutBiometric"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:paddingHorizontal="16dp"
-                android:paddingVertical="14dp"
-                android:visibility="gone">
+                android:paddingVertical="14dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_shield"
+                    app:tint="?android:attr/textColorPrimary" />
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
                     android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Déverrouillage biométrique"
+                        android:text="Trafic factice"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="16sp" />
 
                     <TextView
-                        android:id="@+id/tvBiometricStatus"
+                        android:id="@+id/tvDummyStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Empreinte digitale, reconnaissance faciale…"
+                        android:text="Envoie des messages chiffrés factices"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switchBiometric"
+                    android:id="@+id/switchDummy"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content" />
             </LinearLayout>
 
-            <!-- Info card -->
+            <!-- ===== INFO CARD ===== -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -238,7 +223,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🔐 Sécurité du code"
+                        android:text="🛡️ Protections actives"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -248,7 +233,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="3dp"
-                        android:text="Le code PIN est stocké sous forme de hash PBKDF2 (600k itérations) dans un espace chiffré (Keystore).\n\nMême avec un accès root, le code ne peut pas être récupéré en clair.\n\nL'app se re-verrouille automatiquement selon le délai choisi."
+                        android:text="• Chiffrement E2E (X25519 + AES-256-GCM)\n• Double Ratchet avec Perfect Forward Secrecy\n• Padding des messages (taille uniforme)\n• HMAC sur l'identifiant expéditeur\n• Suppression des messages du serveur après réception\n• Trafic factice optionnel contre l'analyse de trafic"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -256,4 +241,5 @@
 
         </LinearLayout>
     </ScrollView>
+
 </LinearLayout>
