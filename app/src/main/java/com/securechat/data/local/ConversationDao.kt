@@ -36,6 +36,12 @@ interface ConversationDao {
     @Query("UPDATE conversations SET ephemeralDuration = :duration WHERE conversationId = :conversationId")
     suspend fun updateEphemeralDuration(conversationId: String, duration: Long)
 
+    @Query("UPDATE conversations SET dummyTrafficEnabled = :enabled WHERE conversationId = :conversationId")
+    suspend fun updateDummyTraffic(conversationId: String, enabled: Boolean)
+
+    @Query("SELECT * FROM conversations WHERE accepted = 1 AND dummyTrafficEnabled = 1")
+    suspend fun getConversationsWithDummyTraffic(): List<Conversation>
+
     @Delete
     suspend fun deleteConversation(conversation: Conversation)
 }

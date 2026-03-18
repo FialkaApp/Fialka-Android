@@ -34,11 +34,14 @@
 -keep class com.journeyapps.** { *; }
 -keep class com.google.zxing.** { *; }
 
-# --- Suppress logs in release (security: no sensitive info in logcat) ---
+# --- Suppress ALL logs in release (security: no sensitive info in logcat) ---
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
     public static *** v(...);
     public static *** i(...);
+    public static *** w(...);
+    public static *** e(...);
+    public static *** wtf(...);
 }
 
 # --- Obfuscation ---

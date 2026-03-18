@@ -8,7 +8,7 @@
 
 <img src="https://img.shields.io/badge/Fragments-16-7B2D8E?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Layouts-23-9C4DCC?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Animations-10-6A1B9A?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Animations-12-6A1B9A?style=for-the-badge" />
 
 </div>
 
@@ -62,7 +62,7 @@ SecureChat/
 │       │   │
 │       │   ├── data/
 │       │   │   ├── local/
-│       │   │   │   ├── SecureChatDatabase.kt # Room DB v12 (SQLCipher)
+│       │   │   │   ├── SecureChatDatabase.kt # Room DB v14 (SQLCipher)
 │       │   │   │   ├── UserLocalDao.kt
 │       │   │   │   ├── ContactDao.kt
 │       │   │   │   ├── ConversationDao.kt
@@ -123,7 +123,7 @@ SecureChat/
 │       │
 │       └── res/
 │           ├── anim/                         # 10 animations (slide, fade, bubble, cascade)
-│           ├── drawable/                     # Bulles, badges, icônes, backgrounds, ic_attach
+│           ├── drawable/                     # Bulles, badges, icônes, backgrounds, ic_attach, ic_add
 │           ├── layout/                       # 23 layouts XML (fragments + items)
 │           ├── menu/                         # Menu conversations
 │           ├── navigation/nav_graph.xml      # 16 destinations, transitions animées

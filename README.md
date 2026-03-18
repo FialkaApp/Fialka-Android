@@ -70,8 +70,10 @@
 
 ### 🎨 UI/UX
 
+- **Material Design 3** — Migration complète des 5 thèmes
 - **5 thèmes** : Midnight · Hacker · **Phantom** · Aurora · Daylight
 - **Animations fluides** — transitions, bulles, cascade
+- **Icônes d'attachement inline** — Style Session, animation slide-up
 - **Toolbar scrollable** + FAB auto-hide
 - **Bulles dynamiques** colorées par thème
 - **App Lock** PIN + biométrie
@@ -146,6 +148,7 @@
 | 🔽 | **FAB auto-hide** | Disparaît au scroll vers le bas |
 | 🫧 | **Bulles dynamiques** | Couleurs adaptées au thème via backgroundTint |
 | 🎭 | **Sélecteur visuel** | Grille MaterialCardView avec prévisualisation |
+| 📎 | **Icônes inline** | Attachement style Session (fichier/photo/caméra) animé |
 
 </details>
 
@@ -234,12 +237,16 @@ cd SecureChat
 | Dummy traffic configurable (trafic factice) | ✅ |
 | Fichiers E2E (AES-256-GCM + Firebase Storage) | ✅ |
 | PBKDF2 PIN (600K itérations + salt) | ✅ |
-| R8/ProGuard obfuscation + log stripping | ✅ |
+| R8/ProGuard obfuscation + log stripping complet (d/v/i/w/e/wtf) | ✅ |
 | Fingerprint emojis 96-bit anti-MITM | ✅ |
 | App Lock (PIN + biométrie) | ✅ |
 | Firebase security rules restrictives | ✅ |
 | BIP-39 backup/restore (24 mots) | ✅ |
 | `allowBackup=false`, zéro logs sensibles | ✅ |
+| Material Design 3 — migration complète des 5 thèmes | ✅ |
+| Icônes d'attachement inline avec animation (style Session) | ✅ |
+| Permissions Android 13+ (READ_MEDIA_IMAGES/AUDIO) | ✅ |
+| Geste prédictif (enableOnBackInvokedCallback) | ✅ |
 | Signature Ed25519 par message (anti-falsification) | ✅ |
 | Nettoyage clés de signature à la suppression de compte | ✅ |
 
@@ -262,8 +269,9 @@ cd SecureChat
 | **V3** | Security Hardening — R8, delete-after-delivery, padding, HMAC UID, PBKDF2, dummy traffic, fichiers E2E | ✅ Done |
 | **V3.1** | Settings Redesign — Paramètres Signal-like, PIN 6 chiffres, sous-écran Confidentialité, coroutines PIN | ✅ Done |
 | **V3.2** | Ed25519 Signing — Signature par message, badge ✅/⚠️, durcissement Firebase rules, nettoyage clés | ✅ Done |
-| **V3.3** | Tor Integration — Routage via Tor, IP masquée, proxy SOCKS5, bootstrap UI, indicateur toolbar | 🔜 |
-| **V3.4** | Planned — Groupes, suppression pour tous, typing indicators, relay privé | 🔜 |
+| **V3.3** | Material 3 + Attachment UX — Migration M3, icônes inline Session, permissions Android 13+, durcissement logs | ✅ Done |
+| **V3.4** | Tor Integration — Routage via Tor, IP masquée, proxy SOCKS5, bootstrap UI, indicateur toolbar | 🔜 |
+| **V3.5** | Planned — Groupes, suppression pour tous, typing indicators, relay privé | 🔜 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
 
@@ -295,7 +303,7 @@ cd SecureChat
 | [**Protocole Crypto**](docs/fr/CRYPTO.md) | X25519, Double Ratchet, fingerprint, modèle de menace |
 | [**Installation**](docs/fr/SETUP.md) | Prérequis, Firebase, build, dépendances |
 | [**Structure**](docs/fr/STRUCTURE.md) | Arbre complet du projet |
-| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V3.2 |
+| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V3.3 |
 | [**Sécurité**](SECURITY.md) | Audit complet, limites connues |
 
 </div>
@@ -310,7 +318,7 @@ Fourni à des fins **éducatives**. Utilisez-le comme base pour comprendre le ch
 
 <br/>
 
-<img src="https://img.shields.io/badge/SecureChat-V3.1-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/SecureChat-V3.3-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

@@ -9,7 +9,6 @@ import androidx.navigation.fragment.findNavController
 import com.securechat.R
 import com.securechat.databinding.FragmentSettingsBinding
 import com.securechat.util.AppLockManager
-import com.securechat.util.DummyTrafficManager
 import com.securechat.util.EphemeralManager
 import com.securechat.util.ThemeManager
 
@@ -70,13 +69,10 @@ class SettingsFragment : Fragment() {
 
         // Privacy summary
         val ephDuration = EphemeralManager.getDefaultDuration(requireContext())
-        val ephLabel = if (ephDuration > 0) EphemeralManager.getLabelForDuration(ephDuration) else "off"
-        val dummyEnabled = DummyTrafficManager.isEnabled(requireContext())
-        binding.tvPrivacySummary.text = when {
-            ephDuration > 0 && dummyEnabled -> "Éphémère: $ephLabel · Trafic factice"
-            ephDuration > 0 -> "Éphémère: $ephLabel"
-            dummyEnabled -> "Trafic factice activé"
-            else -> "Messages éphémères, trafic factice"
+        binding.tvPrivacySummary.text = if (ephDuration > 0) {
+            "Éphémère: ${EphemeralManager.getLabelForDuration(ephDuration)}"
+        } else {
+            "Messages éphémères, trafic factice"
         }
 
         // Security summary

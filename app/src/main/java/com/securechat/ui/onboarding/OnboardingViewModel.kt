@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.securechat.data.model.UserLocal
 import com.securechat.data.remote.FirebaseRelay
 import com.securechat.data.repository.ChatRepository
+import com.securechat.ui.conversations.ConversationsViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
@@ -52,6 +53,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 
                     // Publish Ed25519 signing public key
                     repository.publishSigningPublicKey()
+                    ConversationsViewModel.markSigningKeyPublished()
 
                     _state.value = OnboardingState.Success(user)
                 }

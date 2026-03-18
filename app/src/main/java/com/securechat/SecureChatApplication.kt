@@ -7,7 +7,7 @@ import android.os.Build
 import com.google.firebase.FirebaseApp
 import com.securechat.crypto.CryptoManager
 import com.securechat.crypto.MnemonicManager
-import java.security.Security
+import com.securechat.tor.TorManager
 
 /**
  * Application class for SecureChat.
@@ -16,11 +16,17 @@ import java.security.Security
 class SecureChatApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        Security.removeProvider("BC")
-        Security.insertProviderAt(org.bouncycastle.jce.provider.BouncyCastleProvider(), 1)
+        // BC provider NOT registered — Ed25519 uses BC lightweight API directly,
+        // and registering platform's stripped BC at position 1 breaks TLS/Firebase.
         FirebaseApp.initializeApp(this)
         CryptoManager.init(this)
         MnemonicManager.init(this)
+        TorManager.init(this)
+        // Only auto-start Tor if the user has already made their choice
+        // (first launch: TorBootstrapFragment handles the start)
+        if (TorManager.isTorChoiceMade() && TorManager.isTorEnabled()) {
+            TorManager.start()
+        }
         createNotificationChannel()
     }
 

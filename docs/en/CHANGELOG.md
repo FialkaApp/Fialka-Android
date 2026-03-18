@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V3.2-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3.3-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V3.3-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Next-V3.4-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -169,7 +169,42 @@
 
 ---
 
-## 🔜 V3.3 — Tor Integration
+## ✅ V3.3 — Material 3 Migration, Attachment UX & Log Hardening
+
+> Full Material Design 3 migration, Session-style inline attachment icons, Android 13+ permissions, Firebase & log hardening.
+
+### 🎨 Material Design 3
+- [x] **M2 → M3 Migration** — All 5 themes migrated from `Theme.MaterialComponents` to `Theme.Material3.Dark.NoActionBar` / `Theme.Material3.Light.NoActionBar`
+- [x] **Full M3 color roles** — Added `colorPrimaryContainer`, `colorOnPrimary`, `colorSecondary`, `colorSurfaceVariant`, `colorOutline`, `colorSurfaceContainerHigh/Medium/Low`, `colorError`, etc. across all 5 themes
+- [x] **M3 TextInputLayout** — Migrated to `Widget.Material3.TextInputLayout.OutlinedBox` (Onboarding, Restore, AddContact)
+- [x] **M3 Buttons** — Migrated to `Widget.Material3.Button.TextButton` / `OutlinedButton` (TorBootstrap, Onboarding, Profile)
+- [x] **Predictive back gesture** — `enableOnBackInvokedCallback="true"` in manifest for Android 13+
+
+### 📎 Inline Attachment Icons (Session-style)
+- [x] **BottomSheet replaced** — 3 options (File 📁, Photo 🖼, Camera 📷) appear as animated vertical icons above the + button
+- [x] **Slide-up + fade-in animation** — Icons slide up with fade, + button rotates to × (45° rotation)
+- [x] **Dismiss overlay** — Full-screen transparent view to dismiss icons on tap anywhere
+- [x] **ic_add.xml** — New vector + icon for attachment button
+
+### 📱 Android 13+ Permissions
+- [x] **READ_MEDIA_IMAGES** — Android 13+ permission for photo access
+- [x] **READ_MEDIA_AUDIO** — Android 13+ permission for audio file access
+- [x] **READ_EXTERNAL_STORAGE** — Fallback with `maxSdkVersion="32"` for Android 12 and below
+- [x] **Permission launchers** — Full permission request logic with denial dialog
+
+### 🔥 Firebase Fixes
+- [x] **Firebase sign-out** — Removed `database.goOnline()` after `auth.signOut()` (fixes Firebase permission error)
+- [x] **Firebase locale** — Replaced `useAppLanguage()` with explicit `setLanguageCode(Locale.getDefault().language)` (fixes X-Firebase-Locale null)
+- [x] **Double signing key publish** — `signingKeyPublished` flag + `markSigningKeyPublished()` eliminates redundant publish between OnboardingViewModel and ConversationsViewModel
+
+### 🛡️ Log Hardening
+- [x] **Complete ProGuard stripping** — Added `Log.w()`, `Log.e()`, `Log.wtf()` to `assumenosideeffects` (on top of d/v/i) — total log suppression in release
+- [x] **Log sanitization** — Removed Firebase UIDs, key hashes and key prefixes from debug log messages
+- [x] **Zero sensitive data** — `FirebaseRelay.kt` and `ChatRepository.kt` no longer print Firebase paths or identifiers in logs
+
+---
+
+## 🔜 V3.4 — Tor Integration
 
 > Full traffic routing via Tor — hidden IP, SOCKS5 proxy, cyber bootstrap UI, toolbar indicator.
 
@@ -212,7 +247,7 @@
 
 ---
 
-## 🔜 V3.4 — Planned
+## 🔜 V3.5 — Planned
 
 - [ ] **Groups** — 3+ participant conversations
 - [ ] **Delete for everyone** — Delete a message on local + Firebase

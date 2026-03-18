@@ -3,7 +3,21 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/onboardingFragment">
+    app:startDestination="@id/torBootstrapFragment">
+
+    <fragment
+        android:id="@+id/torBootstrapFragment"
+        android:name="com.securechat.ui.tor.TorBootstrapFragment"
+        android:label="Tor"
+        tools:layout="@layout/fragment_tor_bootstrap">
+        <action
+            android:id="@+id/action_torBootstrap_to_onboarding"
+            app:destination="@id/onboardingFragment"
+            app:popUpTo="@id/torBootstrapFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+    </fragment>
 
     <fragment
         android:id="@+id/onboardingFragment"

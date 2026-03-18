@@ -8,9 +8,15 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.biometric.BiometricManager
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.securechat.databinding.FragmentSettingsSecurityBinding
+import com.securechat.tor.TorManager
+import com.securechat.tor.TorState
 import com.securechat.util.AppLockManager
+import kotlinx.coroutines.launch
 
 class SecurityFragment : Fragment() {
 
@@ -32,6 +38,7 @@ class SecurityFragment : Fragment() {
         setupPin()
         setupBiometric()
         setupAutoLock()
+        setupTor()
     }
 
     private fun setupAutoLock() {
@@ -155,6 +162,67 @@ class SecurityFragment : Fragment() {
             "✅ Activé — utilisez votre empreinte ou visage"
         } else {
             "Empreinte digitale, reconnaissance faciale…"
+        }
+    }
+
+    private fun setupTor() {
+        binding.switchTor.isChecked = TorManager.isTorEnabled()
+
+        binding.switchTor.setOnCheckedChangeListener { _, isChecked ->
+            TorManager.setTorEnabled(isChecked)
+            binding.layoutTorReconnect.visibility = if (isChecked) View.VISIBLE else View.GONE
+        }
+
+        // Show/hide reconnect based on whether Tor is enabled
+        binding.layoutTorReconnect.visibility = if (TorManager.isTorEnabled()) View.VISIBLE else View.GONE
+
+        binding.layoutTorReconnect.setOnClickListener {
+            binding.torProgressIndicator.visibility = View.VISIBLE
+            binding.torProgressIndicator.isIndeterminate = true
+            TorManager.restart()
+        }
+
+        // Observe Tor state in real-time
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                TorManager.state.collect { state ->
+                    if (_binding == null) return@collect
+                    updateTorStatus(state)
+                }
+            }
+        }
+    }
+
+    private fun updateTorStatus(state: TorState) {
+        when (state) {
+            is TorState.IDLE -> {
+                binding.tvTorStatus.text = "Tor désactivé"
+                binding.torProgressIndicator.visibility = View.GONE
+            }
+            is TorState.STARTING -> {
+                binding.tvTorStatus.text = "Démarrage…"
+                binding.torProgressIndicator.visibility = View.VISIBLE
+                binding.torProgressIndicator.isIndeterminate = true
+            }
+            is TorState.BOOTSTRAPPING -> {
+                binding.tvTorStatus.text = "Connexion… ${state.percent}%"
+                binding.torProgressIndicator.visibility = View.VISIBLE
+                binding.torProgressIndicator.isIndeterminate = false
+                binding.torProgressIndicator.max = 100
+                binding.torProgressIndicator.setProgressCompat(state.percent, true)
+            }
+            is TorState.CONNECTED -> {
+                binding.tvTorStatus.text = "✅ Connecté au réseau Tor"
+                binding.torProgressIndicator.visibility = View.GONE
+            }
+            is TorState.ERROR -> {
+                binding.tvTorStatus.text = "❌ ${state.message}"
+                binding.torProgressIndicator.visibility = View.GONE
+            }
+            is TorState.DISCONNECTED -> {
+                binding.tvTorStatus.text = "Déconnecté"
+                binding.torProgressIndicator.visibility = View.GONE
+            }
         }
     }
 

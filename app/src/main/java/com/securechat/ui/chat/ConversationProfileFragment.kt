@@ -60,6 +60,16 @@ class ConversationProfileFragment : Fragment() {
         // Ephemeral row → picker dialog
         binding.rowEphemeral.setOnClickListener { showEphemeralPicker() }
 
+        // Dummy traffic toggle
+        binding.switchDummyTraffic.setOnCheckedChangeListener(null)  // prevent trigger during load
+        binding.switchDummyTraffic.setOnCheckedChangeListener { _, isChecked ->
+            lifecycleScope.launch {
+                repository.setDummyTraffic(conversationId, isChecked)
+                binding.tvDummySummary.text = if (isChecked)
+                    "✅ Actif — trafic masqué en temps réel" else "Masque l'activité réelle"
+            }
+        }
+
         // Fingerprint row → navigate to fingerprint sub-screen
         binding.rowFingerprint.setOnClickListener {
             findNavController().navigate(
@@ -90,6 +100,19 @@ class ConversationProfileFragment : Fragment() {
             // Ephemeral summary
             binding.tvEphemeralSummary.text =
                 EphemeralManager.getLabelForDuration(conversation.ephemeralDuration)
+
+            // Dummy traffic state
+            binding.switchDummyTraffic.setOnCheckedChangeListener(null)
+            binding.switchDummyTraffic.isChecked = conversation.dummyTrafficEnabled
+            binding.tvDummySummary.text = if (conversation.dummyTrafficEnabled)
+                "✅ Actif — trafic masqué en temps réel" else "Masque l'activité réelle"
+            binding.switchDummyTraffic.setOnCheckedChangeListener { _, isChecked ->
+                lifecycleScope.launch {
+                    repository.setDummyTraffic(conversationId, isChecked)
+                    binding.tvDummySummary.text = if (isChecked)
+                        "✅ Actif — trafic masqué en temps réel" else "Masque l'activité réelle"
+                }
+            }
 
             // Fingerprint summary
             if (conversation.fingerprintVerified) {

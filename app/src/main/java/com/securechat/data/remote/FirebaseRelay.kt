@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
 import com.securechat.data.model.FirebaseMessage
+import com.securechat.tor.TorManager
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -42,7 +43,9 @@ object FirebaseRelay {
     }
 
     private val auth: FirebaseAuth by lazy {
-        FirebaseAuth.getInstance()
+        FirebaseAuth.getInstance().also {
+            it.setLanguageCode(java.util.Locale.getDefault().language.ifEmpty { "en" })
+        }
     }
 
     // ========================================================================
@@ -118,7 +121,11 @@ object FirebaseRelay {
     suspend fun sendMessage(
         conversationId: String,
         message: FirebaseMessage
-    ): String = suspendCancellableCoroutine { cont ->
+    ): String {
+        // Wait for Tor connection before sending
+        TorManager.awaitConnection()
+
+        return suspendCancellableCoroutine { cont ->
         val ref = database.reference
             .child("conversations")
             .child(conversationId)
@@ -138,6 +145,7 @@ object FirebaseRelay {
             .addOnFailureListener { exception ->
                 cont.resumeWithException(exception)
             }
+        }
     }
 
     // ========================================================================
@@ -244,7 +252,7 @@ object FirebaseRelay {
             Log.e(TAG, "storeSigningPublicKey: uid is null, cannot store")
             return
         }
-        Log.d(TAG, "storeSigningPublicKey: writing to /users/$uid/signingPublicKey")
+        Log.d(TAG, "storeSigningPublicKey: writing to Firebase")
         suspendCancellableCoroutine { cont ->
             database.reference
                 .child("users")
@@ -290,7 +298,7 @@ object FirebaseRelay {
      */
     suspend fun storeSigningPublicKeyByIdentity(identityPublicKeyBase64: String, signingPublicKeyBase64: String) {
         val pubKeyHash = hashPublicKey(identityPublicKeyBase64)
-        Log.d(TAG, "storeSigningPublicKeyByIdentity: writing to /signing_keys/$pubKeyHash")
+        Log.d(TAG, "storeSigningPublicKeyByIdentity: writing to Firebase")
         suspendCancellableCoroutine { cont ->
             database.reference
                 .child("signing_keys")
@@ -753,7 +761,10 @@ object FirebaseRelay {
      * Sign out from Firebase Authentication.
      */
     fun signOut() {
+        database.goOffline()
         auth.signOut()
+        // Don't call goOnline() — avoids permission errors from orphaned listeners
+        // reconnecting without auth. The process restarts after sign-out anyway.
     }
 
     // ========================================================================

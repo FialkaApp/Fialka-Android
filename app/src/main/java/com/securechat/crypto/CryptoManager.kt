@@ -8,6 +8,12 @@ import androidx.security.crypto.MasterKey
 import java.security.*
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
+import android.util.Log
+import org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator
+import org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters
+import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
+import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
+import org.bouncycastle.crypto.signers.Ed25519Signer
 import javax.crypto.Cipher
 import javax.crypto.KeyAgreement
 import javax.crypto.SecretKey
@@ -433,54 +439,84 @@ object CryptoManager {
 
     /** Cached signing key pair — generated once, reused for all signatures. */
     @Volatile
-    private var cachedSigningKeyPair: KeyPair? = null
+    private var cachedSigningPrivate: Ed25519PrivateKeyParameters? = null
+    @Volatile
+    private var cachedSigningPublic: Ed25519PublicKeyParameters? = null
 
     /**
      * Get or generate an Ed25519 signing key pair.
-     * Generated randomly on first use, then persisted in EncryptedSharedPreferences.
-     * On BIP-39 restore, a new keypair is generated and republished on Firebase.
-     *
-     * Cached in memory for performance (dummy traffic signs frequently).
+     * Uses BouncyCastle lightweight API directly — bypasses JCA provider lookup
+     * which fails on Android because the platform's stripped BC takes priority.
      */
     fun getOrDeriveSigningKeyPair(): KeyPair {
-        cachedSigningKeyPair?.let { return it }
+        // Return cached as JCA KeyPair for API compatibility
+        val priv = cachedSigningPrivate
+        val pub = cachedSigningPublic
+        if (priv != null && pub != null) {
+            return toJcaKeyPair(priv, pub)
+        }
+
         synchronized(this) {
-            cachedSigningKeyPair?.let { return it }
+            val priv2 = cachedSigningPrivate
+            val pub2 = cachedSigningPublic
+            if (priv2 != null && pub2 != null) {
+                return toJcaKeyPair(priv2, pub2)
+            }
 
             // 1. Try loading from EncryptedSharedPreferences
             val storedPub = prefs.getString(KEY_SIGNING_PUBLIC, null)
             val storedPriv = prefs.getString(KEY_SIGNING_PRIVATE, null)
             if (storedPub != null && storedPriv != null) {
                 try {
-                    val kf = KeyFactory.getInstance("Ed25519", "BC")
-                    val publicKey = kf.generatePublic(
-                        X509EncodedKeySpec(Base64.decode(storedPub, Base64.NO_WRAP))
-                    )
-                    val privateKey = kf.generatePrivate(
-                        PKCS8EncodedKeySpec(Base64.decode(storedPriv, Base64.NO_WRAP))
-                    )
-                    val keyPair = KeyPair(publicKey, privateKey)
-                    cachedSigningKeyPair = keyPair
-                    return keyPair
-                } catch (_: Exception) {
-                    // Stored keys are invalid (wrong provider) — regenerate
+                    val privBytes = Base64.decode(storedPriv, Base64.NO_WRAP)
+                    val pubBytes = Base64.decode(storedPub, Base64.NO_WRAP)
+                    val privateKey = Ed25519PrivateKeyParameters(privBytes, 0)
+                    val publicKey = Ed25519PublicKeyParameters(pubBytes, 0)
+                    cachedSigningPrivate = privateKey
+                    cachedSigningPublic = publicKey
+                    return toJcaKeyPair(privateKey, publicKey)
+                } catch (e: Exception) {
+                    Log.w("BC", "Stored Ed25519 keys invalid, regenerating", e)
                     prefs.edit().remove(KEY_SIGNING_PUBLIC).remove(KEY_SIGNING_PRIVATE).apply()
                 }
             }
 
-            // 2. Generate new Ed25519 keypair via BC (Bouncy Castle)
-            val kpg = KeyPairGenerator.getInstance("Ed25519", "BC")
-            val keyPair = kpg.generateKeyPair()
+            // 2. Generate new Ed25519 keypair via BC lightweight API
+            Log.d("BC", "Generating new Ed25519 keypair via BC lightweight API")
+            val generator = Ed25519KeyPairGenerator()
+            generator.init(Ed25519KeyGenerationParameters(SecureRandom()))
+            val keyPairBC = generator.generateKeyPair()
+            val privateKey = keyPairBC.private as Ed25519PrivateKeyParameters
+            val publicKey = keyPairBC.public as Ed25519PublicKeyParameters
 
-            // 3. Persist in EncryptedSharedPreferences
+            // 3. Persist raw key bytes in EncryptedSharedPreferences
             prefs.edit()
-                .putString(KEY_SIGNING_PUBLIC, Base64.encodeToString(keyPair.public.encoded, Base64.NO_WRAP))
-                .putString(KEY_SIGNING_PRIVATE, Base64.encodeToString(keyPair.private.encoded, Base64.NO_WRAP))
+                .putString(KEY_SIGNING_PUBLIC, Base64.encodeToString(publicKey.encoded, Base64.NO_WRAP))
+                .putString(KEY_SIGNING_PRIVATE, Base64.encodeToString(privateKey.encoded, Base64.NO_WRAP))
                 .apply()
 
-            cachedSigningKeyPair = keyPair
-            return keyPair
+            cachedSigningPrivate = privateKey
+            cachedSigningPublic = publicKey
+            return toJcaKeyPair(privateKey, publicKey)
         }
+    }
+
+    /** Convert BC lightweight params to a JCA KeyPair (for API compatibility). */
+    private fun toJcaKeyPair(priv: Ed25519PrivateKeyParameters, pub: Ed25519PublicKeyParameters): KeyPair {
+        // Create a dummy KeyPair — callers only need the encoded bytes
+        val pubEncoded = pub.encoded
+        val privEncoded = priv.encoded
+        val pubKey = object : PublicKey {
+            override fun getAlgorithm() = "Ed25519"
+            override fun getFormat() = "RAW"
+            override fun getEncoded() = pubEncoded
+        }
+        val privKey = object : PrivateKey {
+            override fun getAlgorithm() = "Ed25519"
+            override fun getFormat() = "RAW"
+            override fun getEncoded() = privEncoded
+        }
+        return KeyPair(pubKey, privKey)
     }
 
     /** Get the Ed25519 signing public key as Base64 (X509 encoded). */
@@ -491,7 +527,8 @@ object CryptoManager {
 
     /** Clear cached signing key pair and stored keys (call on logout/account delete). */
     fun clearSigningKeyCache() {
-        cachedSigningKeyPair = null
+        cachedSigningPrivate = null
+        cachedSigningPublic = null
         prefs.edit()
             .remove(KEY_SIGNING_PUBLIC)
             .remove(KEY_SIGNING_PRIVATE)
@@ -509,10 +546,13 @@ object CryptoManager {
     ): String {
         val keyPair = getOrDeriveSigningKeyPair()
         val dataToSign = buildSignedData(ciphertextBase64, conversationId, createdAt)
-        val sig = Signature.getInstance("Ed25519", "BC")
-        sig.initSign(keyPair.private)
-        sig.update(dataToSign)
-        val signatureBytes = sig.sign()
+
+        val privBytes = keyPair.private.encoded
+        val privateKey = Ed25519PrivateKeyParameters(privBytes, 0)
+        val signer = Ed25519Signer()
+        signer.init(true, privateKey)
+        signer.update(dataToSign, 0, dataToSign.size)
+        val signatureBytes = signer.generateSignature()
         val signatureBase64 = Base64.encodeToString(signatureBytes, Base64.NO_WRAP)
 
         dataToSign.fill(0)
@@ -531,17 +571,16 @@ object CryptoManager {
         signatureBase64: String
     ): Boolean {
         return try {
-            val kf = KeyFactory.getInstance("Ed25519", "BC")
             val pubKeyBytes = Base64.decode(signingPublicKeyBase64, Base64.NO_WRAP)
-            val publicKey = kf.generatePublic(X509EncodedKeySpec(pubKeyBytes))
+            val publicKey = Ed25519PublicKeyParameters(pubKeyBytes, 0)
 
             val dataToVerify = buildSignedData(ciphertextBase64, conversationId, createdAt)
             val signatureBytes = Base64.decode(signatureBase64, Base64.NO_WRAP)
 
-            val sig = Signature.getInstance("Ed25519", "BC")
-            sig.initVerify(publicKey)
-            sig.update(dataToVerify)
-            val result = sig.verify(signatureBytes)
+            val verifier = Ed25519Signer()
+            verifier.init(false, publicKey)
+            verifier.update(dataToVerify, 0, dataToVerify.size)
+            val result = verifier.verifySignature(signatureBytes)
             dataToVerify.fill(0)
             result
         } catch (_: Exception) {

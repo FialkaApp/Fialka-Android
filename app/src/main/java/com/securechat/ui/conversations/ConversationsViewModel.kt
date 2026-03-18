@@ -45,16 +45,26 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
         listenForIncomingRequests()
         listenForAcceptances()
         conversations.observeForever(conversationsObserver)
-        DummyTrafficManager.start(viewModelScope, application, repository)
-        // Ensure Ed25519 signing key is published on Firebase (wait for auth first)
-        viewModelScope.launch {
-            try {
-                if (!FirebaseRelay.isAuthenticated()) {
-                    FirebaseRelay.signInAnonymously()
-                }
-                repository.publishSigningPublicKey()
-            } catch (_: Exception) { }
+        DummyTrafficManager.start(viewModelScope, repository)
+        // Publish signing key once per process (skip on subsequent ViewModel recreations)
+        if (!signingKeyPublished) {
+            viewModelScope.launch {
+                try {
+                    if (!FirebaseRelay.isAuthenticated()) {
+                        FirebaseRelay.signInAnonymously()
+                    }
+                    repository.publishSigningPublicKey()
+                    signingKeyPublished = true
+                } catch (_: Exception) { }
+            }
         }
+    }
+
+    companion object {
+        @Volatile
+        private var signingKeyPublished = false
+
+        fun markSigningKeyPublished() { signingKeyPublished = true }
     }
 
     override fun onCleared() {

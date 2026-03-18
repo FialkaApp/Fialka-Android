@@ -7,9 +7,15 @@ import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.securechat.R
 import com.securechat.databinding.FragmentConversationsBinding
+import com.securechat.tor.TorManager
+import com.securechat.tor.TorState
+import kotlinx.coroutines.launch
 
 /**
  * Conversations list screen — shows all active chats + pending contact requests.
@@ -93,6 +99,20 @@ class ConversationsFragment : Fragment() {
             if (success == true) {
                 viewModel.onAccountResetHandled()
                 findNavController().navigate(R.id.action_conversations_to_onboarding)
+            }
+        }
+
+        // Tor indicator in toolbar subtitle
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                TorManager.state.collect { state ->
+                    val base = "chiffrée de bout en bout \uD83D\uDD12"
+                    binding.toolbar.subtitle = if (TorManager.isTorEnabled() && state is TorState.CONNECTED) {
+                        "$base • \uD83E\uDDC5"
+                    } else {
+                        base
+                    }
+                }
             }
         }
     }

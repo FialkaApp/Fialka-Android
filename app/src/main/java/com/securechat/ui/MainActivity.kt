@@ -2,6 +2,7 @@ package com.securechat.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -10,7 +11,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import com.securechat.R
 import com.securechat.util.AppLockManager
+import com.securechat.util.DummyTrafficManager
 import com.securechat.util.ThemeManager
+
 
 /**
  * Single-activity architecture. Navigation is handled by the NavHostFragment.
@@ -67,15 +70,18 @@ class MainActivity : AppCompatActivity() {
             isLocked = true
             showLockScreen()
         }
+
     }
 
     override fun onPause() {
         super.onPause()
         lastPausedAt = System.currentTimeMillis()
+        DummyTrafficManager.setAppActive(false)
     }
 
     override fun onResume() {
         super.onResume()
+        DummyTrafficManager.setAppActive(true)
         lockGraceMs = AppLockManager.getAutoLockDelay(this)
         if (!isLocked && AppLockManager.isPinSet(this)) {
             val elapsed = System.currentTimeMillis() - lastPausedAt

@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 3.2.x   | ✅ Current |
+| 3.3.x   | ✅ Current |
+| 3.2.x   | ⚠️ Outdated |
 | 3.1.x   | ⚠️ Outdated |
 | 3.0.x   | ⚠️ Outdated |
 | 2.x     | ⚠️ Outdated |
@@ -41,7 +42,7 @@ SecureChat uses the following cryptographic primitives:
 | Local DB encryption | SQLCipher (AES-256-CBC) | 256-bit passphrase via EncryptedSharedPreferences |
 | Message signing | Ed25519 (BouncyCastle 1.78.1) | Dedicated signing key pair, signature = sign(ciphertext \|\| conversationId \|\| createdAt) |
 | Signing key storage | Firebase RTDB `/signing_keys/{hash}` | SHA-256 truncated to 32 hex chars as key, Base64 Ed25519 public key as value |
-| Build hardening | R8/ProGuard | Code obfuscation + resource shrinking + log stripping (d/v/i) |
+| Build hardening | R8/ProGuard | Code obfuscation + resource shrinking + complete log stripping (d/v/i/w/e/wtf) |
 
 ## Known Limitations (V1)
 
@@ -135,3 +136,15 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **Client timestamp preserved**: `createdAt` uses client `System.currentTimeMillis()` (not Firebase `ServerValue.TIMESTAMP`) to ensure signature consistency
 - ✅ **Firebase rules hardening**: `/conversations/$id/participants` read restricted to conversation members only (no longer readable by all authenticated users)
 - ✅ **Signing key cleanup**: `/signing_keys/{hash}` deleted on account deletion alongside profile, inbox, and conversations
+
+### V3.3 Material 3 Migration, Attachment UX & Log Hardening
+
+- ✅ **Material Design 3 migration**: all 5 themes migrated from `Theme.MaterialComponents` to `Theme.Material3.Dark.NoActionBar` / `Theme.Material3.Light.NoActionBar` with full M3 color roles
+- ✅ **Complete ProGuard log stripping**: added `Log.w()`, `Log.e()`, `Log.wtf()` to `assumenosideeffects` (on top of d/v/i) — zero log output in release builds
+- ✅ **Log sanitization**: removed Firebase UIDs, key hashes, and key prefixes from all debug log messages in `FirebaseRelay.kt` and `ChatRepository.kt`
+- ✅ **Firebase sign-out fix**: removed `database.goOnline()` after `auth.signOut()` to prevent orphan listener permission errors
+- ✅ **Firebase locale fix**: replaced `useAppLanguage()` with explicit `setLanguageCode(Locale.getDefault().language)` to fix X-Firebase-Locale null header
+- ✅ **Redundant signing key publish eliminated**: companion flag `signingKeyPublished` + `markSigningKeyPublished()` prevents double `publishSigningPublicKey` between OnboardingViewModel and ConversationsViewModel
+- ✅ **Android 13+ media permissions**: `READ_MEDIA_IMAGES`, `READ_MEDIA_AUDIO` declared; `READ_EXTERNAL_STORAGE` with `maxSdkVersion="32"` fallback
+- ✅ **Predictive back gesture**: `enableOnBackInvokedCallback="true"` in AndroidManifest for Android 13+ compatibility
+- ✅ **Inline attachment icons**: Session-style animated vertical icons replace BottomSheet (reduced attack surface — no dialog-based file picker)

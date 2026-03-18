@@ -362,8 +362,9 @@ class ChatRepository(private val appContext: Context) {
      */
     suspend fun sendDummyMessage(conversationId: String) {
         try {
-            // Reuse the real send pipeline — the dummy prefix makes the receiver drop it
-            val randomPadding = ByteArray(16).also { java.security.SecureRandom().nextBytes(it) }
+            // Variable padding (5-200 bytes) so ciphertext length mimics real messages
+            val paddingSize = 5 + java.security.SecureRandom().nextInt(196)
+            val randomPadding = ByteArray(paddingSize).also { java.security.SecureRandom().nextBytes(it) }
             val dummyPlaintext = DUMMY_PREFIX + android.util.Base64.encodeToString(randomPadding, android.util.Base64.NO_WRAP)
             sendMessage(conversationId, dummyPlaintext)
             // Delete the locally saved dummy message (we don't want it in the UI)
@@ -418,6 +419,7 @@ class ChatRepository(private val appContext: Context) {
             localFilePath = localFile.absolutePath
         )
         messageDao.insertMessage(fileMessage)  // REPLACE because same localId
+        updateConversationLastMessage(conversationId, fileMessage.plaintext)
 
         return fileMessage
     }
@@ -760,7 +762,7 @@ class ChatRepository(private val appContext: Context) {
             Log.e("SecureChat", "publishSigningPublicKey: failed to get signing key", e)
             return
         }
-        Log.d("SecureChat", "publishSigningPublicKey: identityKey=${publicKey.take(20)}... signingKey=${signingPubKey.take(20)}...")
+        Log.d("SecureChat", "publishSigningPublicKey: publishing to Firebase")
         FirebaseRelay.storeSigningPublicKey(signingPubKey)
         FirebaseRelay.storeSigningPublicKeyByIdentity(publicKey, signingPubKey)
     }
@@ -968,6 +970,13 @@ class ChatRepository(private val appContext: Context) {
             FirebaseRelay.setEphemeralDuration(conversationId, durationMs)
         } catch (_: Exception) { }
     }
+
+    suspend fun setDummyTraffic(conversationId: String, enabled: Boolean) {
+        conversationDao.updateDummyTraffic(conversationId, enabled)
+    }
+
+    suspend fun getConversationsWithDummyTraffic(): List<Conversation> =
+        conversationDao.getConversationsWithDummyTraffic()
 
     /**
      * Listen for remote changes to ephemeral duration (set by the other participant).

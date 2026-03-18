@@ -3,8 +3,9 @@
 
     <!-- ============================================================
          BASE THEME — dark, teal/cyan accent ("Midnight")  DEFAULT
+         Material 3 (Material You)
          ============================================================ -->
-    <style name="Theme.SecureChat" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="Theme.SecureChat" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#00BFA5</item>
         <item name="colorPrimaryDark">#0A0A0A</item>
         <item name="colorAccent">#00E5FF</item>
@@ -16,11 +17,36 @@
         <item name="android:textColorPrimary">#E8E8E8</item>
         <item name="android:textColorSecondary">#8A8A8A</item>
 
+        <!-- M3 color roles -->
+        <item name="colorPrimaryContainer">#004D40</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorOnPrimaryContainer">#E0F2F1</item>
+        <item name="colorSecondary">#00E5FF</item>
+        <item name="colorSecondaryContainer">#00363D</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="colorOnSecondaryContainer">#E0F7FA</item>
+        <item name="colorTertiary">#80CBC4</item>
+        <item name="colorTertiaryContainer">#004D40</item>
+        <item name="colorOnTertiary">#000000</item>
+        <item name="colorOnTertiaryContainer">#E0F2F1</item>
+        <item name="colorSurface">#161616</item>
+        <item name="colorSurfaceVariant">#1E1E1E</item>
+        <item name="colorOnSurface">#E8E8E8</item>
+        <item name="colorOnSurfaceVariant">#8A8A8A</item>
+        <item name="colorOutline">#3A3A3A</item>
+        <item name="colorOutlineVariant">#1E1E1E</item>
+        <item name="colorSurfaceContainerHighest">#222222</item>
+        <item name="colorSurfaceContainerHigh">#1E1E1E</item>
+        <item name="colorSurfaceContainer">#1A1A1A</item>
+        <item name="colorSurfaceContainerLow">#161616</item>
+        <item name="colorSurfaceContainerLowest">#0D0D0D</item>
+        <item name="colorError">#CF6679</item>
+        <item name="colorOnError">#000000</item>
+
         <!-- Custom attrs — Midnight -->
         <item name="colorToolbarBackground">#161616</item>
         <item name="colorToolbarTitle">#E8E8E8</item>
         <item name="colorToolbarIcon">#E8E8E8</item>
-        <item name="colorSurface">#161616</item>
         <item name="colorChatBackground">#0A0A0A</item>
         <item name="colorBubbleSent">#004D40</item>
         <item name="colorBubbleReceived">#1E1E1E</item>
@@ -44,7 +70,7 @@
     <!-- ============================================================
          HACKER — pure black AMOLED, Matrix-green accent
          ============================================================ -->
-    <style name="Theme.SecureChat.Hacker" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="Theme.SecureChat.Hacker" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#00E676</item>
         <item name="colorPrimaryDark">#000000</item>
         <item name="colorAccent">#76FF03</item>
@@ -56,10 +82,35 @@
         <item name="android:textColorPrimary">#C8E6C9</item>
         <item name="android:textColorSecondary">#66BB6A</item>
 
+        <!-- M3 color roles -->
+        <item name="colorPrimaryContainer">#1B5E20</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorOnPrimaryContainer">#C8E6C9</item>
+        <item name="colorSecondary">#76FF03</item>
+        <item name="colorSecondaryContainer">#1B3A00</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="colorOnSecondaryContainer">#CCFF90</item>
+        <item name="colorTertiary">#69F0AE</item>
+        <item name="colorTertiaryContainer">#1B5E20</item>
+        <item name="colorOnTertiary">#000000</item>
+        <item name="colorOnTertiaryContainer">#B9F6CA</item>
+        <item name="colorSurface">#0A0A0A</item>
+        <item name="colorSurfaceVariant">#112211</item>
+        <item name="colorOnSurface">#C8E6C9</item>
+        <item name="colorOnSurfaceVariant">#66BB6A</item>
+        <item name="colorOutline">#2E7D32</item>
+        <item name="colorOutlineVariant">#112211</item>
+        <item name="colorSurfaceContainerHighest">#1A1A1A</item>
+        <item name="colorSurfaceContainerHigh">#151515</item>
+        <item name="colorSurfaceContainer">#111111</item>
+        <item name="colorSurfaceContainerLow">#0A0A0A</item>
+        <item name="colorSurfaceContainerLowest">#000000</item>
+        <item name="colorError">#CF6679</item>
+        <item name="colorOnError">#000000</item>
+
         <item name="colorToolbarBackground">#0A0A0A</item>
         <item name="colorToolbarTitle">#00E676</item>
         <item name="colorToolbarIcon">#00E676</item>
-        <item name="colorSurface">#0A0A0A</item>
         <item name="colorChatBackground">#000000</item>
         <item name="colorBubbleSent">#1B5E20</item>
         <item name="colorBubbleReceived">#0A0A0A</item>
@@ -83,7 +134,7 @@
     <!-- ============================================================
          PHANTOM — dark anthracite, purple/pink accent
          ============================================================ -->
-    <style name="Theme.SecureChat.Phantom" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="Theme.SecureChat.Phantom" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#BB86FC</item>
         <item name="colorPrimaryDark">#0F0F14</item>
         <item name="colorAccent">#CF6679</item>
@@ -95,10 +146,35 @@
         <item name="android:textColorPrimary">#E8E0F0</item>
         <item name="android:textColorSecondary">#9E8CB0</item>
 
+        <!-- M3 color roles -->
+        <item name="colorPrimaryContainer">#2D1B4E</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorOnPrimaryContainer">#E8E0F0</item>
+        <item name="colorSecondary">#CF6679</item>
+        <item name="colorSecondaryContainer">#442030</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="colorOnSecondaryContainer">#F5D0D8</item>
+        <item name="colorTertiary">#CE93D8</item>
+        <item name="colorTertiaryContainer">#4A148C</item>
+        <item name="colorOnTertiary">#000000</item>
+        <item name="colorOnTertiaryContainer">#F3E5F5</item>
+        <item name="colorSurface">#1A1A24</item>
+        <item name="colorSurfaceVariant">#24243A</item>
+        <item name="colorOnSurface">#E8E0F0</item>
+        <item name="colorOnSurfaceVariant">#9E8CB0</item>
+        <item name="colorOutline">#5A4A6E</item>
+        <item name="colorOutlineVariant">#24243A</item>
+        <item name="colorSurfaceContainerHighest">#2E2E44</item>
+        <item name="colorSurfaceContainerHigh">#28283E</item>
+        <item name="colorSurfaceContainer">#24243A</item>
+        <item name="colorSurfaceContainerLow">#1E1E30</item>
+        <item name="colorSurfaceContainerLowest">#0F0F14</item>
+        <item name="colorError">#CF6679</item>
+        <item name="colorOnError">#000000</item>
+
         <item name="colorToolbarBackground">#1A1A24</item>
         <item name="colorToolbarTitle">#E8E0F0</item>
         <item name="colorToolbarIcon">#E8E0F0</item>
-        <item name="colorSurface">#1A1A24</item>
         <item name="colorChatBackground">#0F0F14</item>
         <item name="colorBubbleSent">#2D1B4E</item>
         <item name="colorBubbleReceived">#1A1A24</item>
@@ -122,7 +198,7 @@
     <!-- ============================================================
          AURORA — dark with warm amber/orange accent
          ============================================================ -->
-    <style name="Theme.SecureChat.Aurora" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="Theme.SecureChat.Aurora" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#FFB74D</item>
         <item name="colorPrimaryDark">#0D0D0D</item>
         <item name="colorAccent">#FF7043</item>
@@ -134,10 +210,35 @@
         <item name="android:textColorPrimary">#F5E6D0</item>
         <item name="android:textColorSecondary">#A08060</item>
 
+        <!-- M3 color roles -->
+        <item name="colorPrimaryContainer">#3E2723</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorOnPrimaryContainer">#FFF3E0</item>
+        <item name="colorSecondary">#FF7043</item>
+        <item name="colorSecondaryContainer">#4E2A20</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="colorOnSecondaryContainer">#FBE9E7</item>
+        <item name="colorTertiary">#FFCC80</item>
+        <item name="colorTertiaryContainer">#4E342E</item>
+        <item name="colorOnTertiary">#000000</item>
+        <item name="colorOnTertiaryContainer">#FFF3E0</item>
+        <item name="colorSurface">#1A1610</item>
+        <item name="colorSurfaceVariant">#25201A</item>
+        <item name="colorOnSurface">#F5E6D0</item>
+        <item name="colorOnSurfaceVariant">#A08060</item>
+        <item name="colorOutline">#5D4037</item>
+        <item name="colorOutlineVariant">#25201A</item>
+        <item name="colorSurfaceContainerHighest">#302820</item>
+        <item name="colorSurfaceContainerHigh">#2A221A</item>
+        <item name="colorSurfaceContainer">#25201A</item>
+        <item name="colorSurfaceContainerLow">#1E1A14</item>
+        <item name="colorSurfaceContainerLowest">#0D0D0D</item>
+        <item name="colorError">#CF6679</item>
+        <item name="colorOnError">#000000</item>
+
         <item name="colorToolbarBackground">#1A1610</item>
         <item name="colorToolbarTitle">#F5E6D0</item>
         <item name="colorToolbarIcon">#F5E6D0</item>
-        <item name="colorSurface">#1A1610</item>
         <item name="colorChatBackground">#0D0D0D</item>
         <item name="colorBubbleSent">#3E2723</item>
         <item name="colorBubbleReceived">#1A1610</item>
@@ -161,7 +262,7 @@
     <!-- ============================================================
          DAYLIGHT — clean light theme, blue accent
          ============================================================ -->
-    <style name="Theme.SecureChat.Daylight" parent="Theme.MaterialComponents.Light.NoActionBar">
+    <style name="Theme.SecureChat.Daylight" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">#1976D2</item>
         <item name="colorPrimaryDark">#0D47A1</item>
         <item name="colorAccent">#448AFF</item>
@@ -173,10 +274,35 @@
         <item name="android:textColorPrimary">#1A1A1A</item>
         <item name="android:textColorSecondary">#757575</item>
 
+        <!-- M3 color roles -->
+        <item name="colorPrimaryContainer">#D1E4FF</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorOnPrimaryContainer">#001D36</item>
+        <item name="colorSecondary">#448AFF</item>
+        <item name="colorSecondaryContainer">#D6E3FF</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="colorOnSecondaryContainer">#001A41</item>
+        <item name="colorTertiary">#42A5F5</item>
+        <item name="colorTertiaryContainer">#CFE5FF</item>
+        <item name="colorOnTertiary">#FFFFFF</item>
+        <item name="colorOnTertiaryContainer">#001D36</item>
+        <item name="colorSurface">#FFFFFF</item>
+        <item name="colorSurfaceVariant">#E7E0EC</item>
+        <item name="colorOnSurface">#1A1A1A</item>
+        <item name="colorOnSurfaceVariant">#757575</item>
+        <item name="colorOutline">#BDBDBD</item>
+        <item name="colorOutlineVariant">#E0E0E0</item>
+        <item name="colorSurfaceContainerHighest">#F0F0F0</item>
+        <item name="colorSurfaceContainerHigh">#F2F2F2</item>
+        <item name="colorSurfaceContainer">#F5F5F5</item>
+        <item name="colorSurfaceContainerLow">#F8F8F8</item>
+        <item name="colorSurfaceContainerLowest">#FFFFFF</item>
+        <item name="colorError">#B3261E</item>
+        <item name="colorOnError">#FFFFFF</item>
+
         <item name="colorToolbarBackground">#FFFFFF</item>
         <item name="colorToolbarTitle">#1A1A1A</item>
         <item name="colorToolbarIcon">#1A1A1A</item>
-        <item name="colorSurface">#FFFFFF</item>
         <item name="colorChatBackground">#F0F2F5</item>
         <item name="colorBubbleSent">#DCF8C6</item>
         <item name="colorBubbleReceived">#FFFFFF</item>

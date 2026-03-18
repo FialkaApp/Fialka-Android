@@ -25,5 +25,6 @@ data class Conversation(
     val unreadCount: Int = 0,           // Number of unread messages from the other participant
     val sharedFingerprint: String = "", // Shared emoji fingerprint (96-bit, 16 emojis)
     val fingerprintVerified: Boolean = false, // User manually verified the fingerprint
-    val ephemeralDuration: Long = 0    // 0 = off, >0 = duration in ms for new messages
+    val ephemeralDuration: Long = 0,   // 0 = off, >0 = duration in ms for new messages
+    val dummyTrafficEnabled: Boolean = false  // Per-conversation dummy traffic cover
 )

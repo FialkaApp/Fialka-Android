@@ -8,7 +8,6 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.securechat.R
 import com.securechat.databinding.FragmentSettingsPrivacyBinding
-import com.securechat.util.DummyTrafficManager
 import com.securechat.util.EphemeralManager
 
 class PrivacyFragment : Fragment() {
@@ -29,7 +28,6 @@ class PrivacyFragment : Fragment() {
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
 
         setupEphemeral()
-        setupDummyTraffic()
     }
 
     override fun onResume() {
@@ -48,25 +46,6 @@ class PrivacyFragment : Fragment() {
         val duration = EphemeralManager.getDefaultDuration(requireContext())
         binding.tvEphemeralSummary.text = if (duration > 0)
             EphemeralManager.getLabelForDuration(duration) else "Désactivé"
-    }
-
-    private fun setupDummyTraffic() {
-        val enabled = DummyTrafficManager.isEnabled(requireContext())
-        binding.switchDummy.isChecked = enabled
-        updateDummyStatus(enabled)
-
-        binding.switchDummy.setOnCheckedChangeListener { _, isChecked ->
-            DummyTrafficManager.setEnabled(requireContext(), isChecked)
-            updateDummyStatus(isChecked)
-        }
-    }
-
-    private fun updateDummyStatus(enabled: Boolean) {
-        binding.tvDummyStatus.text = if (enabled) {
-            "✅ Actif — trafic masqué en temps réel"
-        } else {
-            "Envoie des messages chiffrés factices"
-        }
     }
 
     override fun onDestroyView() {

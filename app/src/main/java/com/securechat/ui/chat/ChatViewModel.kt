@@ -5,6 +5,7 @@ import androidx.lifecycle.*
 import com.securechat.data.model.MessageLocal
 import com.securechat.data.remote.FirebaseRelay
 import com.securechat.data.repository.ChatRepository
+import com.securechat.util.DummyTrafficManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
@@ -170,6 +171,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 repository.sendMessage(conversationId, plaintext.trim())
+                DummyTrafficManager.onRealMessageSent()
                 _sendError.value = null
             } catch (e: Exception) {
                 // Check if conversation was deleted on Firebase
@@ -199,6 +201,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 repository.sendFile(conversationId, fileBytes, fileName)
+                DummyTrafficManager.onRealMessageSent()
                 _sendError.value = null
             } catch (e: Exception) {
                 _sendError.value = "Échec de l'envoi du fichier: ${e.message}"

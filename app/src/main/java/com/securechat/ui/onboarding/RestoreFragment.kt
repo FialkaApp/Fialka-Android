@@ -13,6 +13,7 @@ import com.securechat.crypto.CryptoManager
 import com.securechat.crypto.MnemonicManager
 import com.securechat.data.remote.FirebaseRelay
 import com.securechat.data.repository.ChatRepository
+import com.securechat.ui.conversations.ConversationsViewModel
 import com.securechat.databinding.FragmentRestoreBinding
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
@@ -88,6 +89,7 @@ class RestoreFragment : Fragment() {
 
                     // Publish Ed25519 signing public key (derived from restored identity)
                     repository.publishSigningPublicKey()
+                    ConversationsViewModel.markSigningKeyPublished()
 
                     findNavController().navigate(R.id.action_restore_to_conversations)
                 }

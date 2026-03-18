@@ -1,6 +1,5 @@
 package com.securechat.util
 
-import android.content.Context
 import com.securechat.data.repository.ChatRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -8,41 +7,73 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.security.SecureRandom
+import kotlin.math.ln
+import kotlin.math.max
+import kotlin.math.min
 
+/**
+ * Per-conversation dummy traffic to mask real messaging patterns.
+ *
+ * Only sends dummies on conversations where the user explicitly enabled it.
+ * Uses Poisson-distributed intervals + variable padding + burst cover.
+ */
 object DummyTrafficManager {
-
-    private const val PREFS_FILE = "securechat_settings"
-    private const val KEY_ENABLED = "dummy_traffic_enabled"
 
     private val random = SecureRandom()
     private var job: Job? = null
 
-    private const val MIN_DELAY_MS = 45_000L
-    private const val MAX_DELAY_MS = 120_000L
+    // Poisson mean interval
+    private const val MEAN_DELAY_ACTIVE_MS = 60_000.0   // ~1 min when app in foreground
+    private const val MEAN_DELAY_IDLE_MS = 180_000.0     // ~3 min when app in background
+    private const val MIN_DELAY_MS = 8_000L
+    private const val MAX_DELAY_MS = 300_000L
 
-    fun isEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
-            .getBoolean(KEY_ENABLED, false)
+    // Burst cover after real messages
+    private const val BURST_DELAY_MS = 3_000L
+    private const val BURST_COUNT = 3
 
-    fun setEnabled(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY_ENABLED, enabled).apply()
+    @Volatile
+    private var isAppActive = false
+
+    @Volatile
+    private var pendingBursts = 0
+
+    /** Call when a real message is sent — triggers burst cover traffic. */
+    fun onRealMessageSent() {
+        pendingBursts = BURST_COUNT
     }
 
-    fun start(scope: CoroutineScope, context: Context, repository: ChatRepository) {
+    /** Call from Activity.onResume / onPause to adapt rate. */
+    fun setAppActive(active: Boolean) {
+        isAppActive = active
+    }
+
+    /**
+     * Start the dummy traffic loop.
+     * Only conversations with dummyTrafficEnabled=true will receive dummies.
+     */
+    fun start(scope: CoroutineScope, repository: ChatRepository) {
         if (job?.isActive == true) return
-        if (!isEnabled(context)) return
 
         job = scope.launch {
             while (isActive) {
-                val delayMs = MIN_DELAY_MS + random.nextLong(MAX_DELAY_MS - MIN_DELAY_MS)
+                val delayMs = if (pendingBursts > 0) {
+                    pendingBursts--
+                    BURST_DELAY_MS
+                } else {
+                    nextPoissonDelay()
+                }
                 delay(delayMs)
 
                 try {
-                    val conversations = repository.getAcceptedConversationsList()
-                    if (conversations.isNotEmpty()) {
-                        val target = conversations[random.nextInt(conversations.size)]
-                        repository.sendDummyMessage(target.conversationId)
+                    val targets = repository.getConversationsWithDummyTraffic()
+                    if (targets.isNotEmpty()) {
+                        // Send to 1-3 of the enabled conversations per round
+                        val count = min(1 + random.nextInt(3), targets.size)
+                        val chosen = targets.shuffled(random).take(count)
+                        for (conv in chosen) {
+                            repository.sendDummyMessage(conv.conversationId)
+                        }
                     }
                 } catch (_: Exception) { }
             }
@@ -52,5 +83,15 @@ object DummyTrafficManager {
     fun stop() {
         job?.cancel()
         job = null
+    }
+
+    /**
+     * Exponential distribution (Poisson process inter-arrival time).
+     */
+    private fun nextPoissonDelay(): Long {
+        val mean = if (isAppActive) MEAN_DELAY_ACTIVE_MS else MEAN_DELAY_IDLE_MS
+        val u = random.nextDouble().coerceIn(1e-10, 1.0)
+        val sample = (-mean * ln(u)).toLong()
+        return max(MIN_DELAY_MS, min(sample, MAX_DELAY_MS))
     }
 }

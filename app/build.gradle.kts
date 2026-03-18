@@ -22,8 +22,8 @@ android {
         applicationId = "com.securechat"
         minSdk = 33
         targetSdk = 35
-        versionCode = 3
-        versionName = "3.2.0-beta1"
+        versionCode = 4
+        versionName = "3.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -66,6 +66,9 @@ android {
         resources {
             excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
         }
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -107,6 +110,10 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+
+    // Tor — native binaries (libtor.so + libtun2socks.so) must be placed
+    // in app/src/main/jniLibs/{arm64-v8a,armeabi-v7a}/ manually.
+    // See: https://github.com/nicksenger/tor-android for pre-built binaries.
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

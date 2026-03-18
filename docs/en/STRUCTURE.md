@@ -63,7 +63,7 @@ SecureChat/
 │       │   │
 │       │   ├── data/
 │       │   │   ├── local/
-│       │   │   │   ├── SecureChatDatabase.kt # Room DB v12 (SQLCipher)
+│       │   │   │   ├── SecureChatDatabase.kt # Room DB v14 (SQLCipher)
 │       │   │   │   ├── UserLocalDao.kt
 │       │   │   │   ├── ContactDao.kt
 │       │   │   │   ├── ConversationDao.kt
@@ -124,7 +124,7 @@ SecureChat/
 │       │
 │       └── res/
 │           ├── anim/                         # 12 animations (slide, fade, bubble, cascade)
-│           ├── drawable/                     # Bubbles, badges, icons, backgrounds, ic_attach
+│           ├── drawable/                     # Bubbles, badges, icons, backgrounds, ic_attach, ic_add
 │           ├── layout/                       # 23 XML layouts (fragments + items)
 │           ├── menu/                         # Conversations menu
 │           ├── navigation/nav_graph.xml      # 16 destinations, animated transitions

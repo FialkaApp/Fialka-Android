@@ -157,7 +157,7 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
-            <!-- Dummy traffic toggle -->
+            <!-- Dummy traffic info (per-conversation now) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -188,19 +188,13 @@
                         android:textSize="16sp" />
 
                     <TextView
-                        android:id="@+id/tvDummyStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Envoie des messages chiffrés factices"
+                        android:text="Activable par conversation depuis le profil du contact"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switchDummy"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
             </LinearLayout>
 
             <!-- ===== INFO CARD ===== -->

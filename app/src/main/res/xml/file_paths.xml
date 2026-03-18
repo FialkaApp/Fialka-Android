@@ -3,4 +3,7 @@
     <files-path
         name="received_files"
         path="received_files/" />
+    <cache-path
+        name="camera_photos"
+        path="." />
 </paths>

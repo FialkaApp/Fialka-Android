@@ -89,6 +89,69 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <!-- Transparent overlay to dismiss icons on outside tap -->
+    <View
+        android:id="@+id/attachmentOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- ── Expandable attachment icons (Session-style, above + button) ── -->
+    <LinearLayout
+        android:id="@+id/attachmentIcons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingBottom="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/inputBar"
+        app:layout_constraintEnd_toEndOf="@id/inputBar"
+        android:layout_marginEnd="56dp">
+
+        <!-- File -->
+        <ImageButton
+            android:id="@+id/btnPickFile"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/bg_circle_option_blue"
+            android:contentDescription="Fichier"
+            android:src="@drawable/ic_file"
+            android:scaleType="center"
+            android:tint="@android:color/white" />
+
+        <!-- Photo -->
+        <ImageButton
+            android:id="@+id/btnPickPhoto"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/bg_circle_option_purple"
+            android:contentDescription="Photo"
+            android:src="@drawable/ic_photo"
+            android:scaleType="center"
+            android:tint="@android:color/white" />
+
+        <!-- Camera -->
+        <ImageButton
+            android:id="@+id/btnPickCamera"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:background="@drawable/bg_circle_option_red"
+            android:contentDescription="Caméra"
+            android:src="@drawable/ic_camera"
+            android:scaleType="center"
+            android:tint="@android:color/white" />
+
+    </LinearLayout>
+
     <LinearLayout
         android:id="@+id/inputBar"
         android:layout_width="0dp"
@@ -123,7 +186,7 @@
             android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Attach file"
-            android:src="@drawable/ic_attach"
+            android:src="@drawable/ic_add"
             android:scaleType="center"
             android:tint="?attr/colorOnSurface" />
 
