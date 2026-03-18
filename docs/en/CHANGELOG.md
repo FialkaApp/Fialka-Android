@@ -219,9 +219,34 @@
 
 ## 🔜 V3.4 — Planned
 
-- [ ] **Groups** — 3+ participant conversations
+> Advanced camouflage, plausible deniability, E2E voice messages, sealed sender, messaging improvements.
+
+### 🎭 App Disguise (Icon & Name Camouflage)
+- [ ] **Icon change** — User picks a camouflage icon from presets: Calculator, Notes, News, Weather, Clock, etc.
+- [ ] **Display name change** — App name in launcher changes to match the chosen icon (“Calculator”, “Notes”, “News”, etc.)
+- [ ] **Icon themes** — Each disguise has a matching icon + name (professional style)
+- [ ] **Activity-alias** — Implementation via `<activity-alias>` in manifest (dynamic enable/disable via `PackageManager`)
+- [ ] **Confirmation + restart** — Confirmation dialog with preview → “Restart now” → kill + relaunch
+- [ ] **Functional cover screen** — Disguised app opens a real functional fake app (calculator, notes, etc.). The real chat is accessible via a secret gesture (hidden long press or special code)
+- [ ] **Persistence** — Choice saved in SharedPreferences, restored on startup
+
+### 🔐 Plausible Deniability & Protection
+- [ ] **Dual PIN** — Normal PIN opens chat; duress PIN opens an empty profile or triggers a silent wipe (plausible deniability, journalist/activist level)
+- [ ] **Panic button** — Shake phone → instant deletion of all conversations + keys + sign-out (full wipe)
+- [ ] **Screenshot protection** — `FLAG_SECURE` on all windows — blocks screenshots, screen recording, and recent apps preview
+- [ ] **Keyboard incognito** — `flagNoPersonalizedLearning` on all input fields — keyboard does not learn or log anything
+
+### 🔐 Advanced Crypto
+- [ ] **Sealed sender** — Sender identity hidden on Firebase side — recipient deduces sender only after decryption
+
+### 💬 Advanced Messaging
+- [ ] **E2E voice messages** — Audio recording, AES-256-GCM encryption, sent via ratchet, inline player in chat
+- [ ] **Reply / Quote** — Reply to a specific message with quoted citation (quoted bubble + new message)
+- [ ] **Groups** — 3+ participant conversations (Sender Keys)
 - [ ] **Delete for everyone** — Delete a message on local + Firebase
-- [ ] **Typing indicators** — "Typing..."
+- [ ] **Typing indicators** — “Typing...” (E2E encrypted, opt-in)
+
+### 🛡️ Infrastructure
 - [ ] **Private relay** — Dedicated relay server to reduce Firebase dependency
 
 ---

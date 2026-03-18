@@ -276,7 +276,7 @@ cd SecureChat
 | **V3.1** | Settings Redesign — Signal-like settings, 6-digit PIN, Privacy sub-screen, PIN coroutines | ✅ Done |
 | **V3.2** | Ed25519 Signing — Per-message signatures, ✅/⚠️ badge, Firebase rules hardening, signing key cleanup | ✅ Done |
 | **V3.3** | Material 3 + Tor + Attachment UX — M3 migration, full Tor integration, Session-style inline icons, Android 13+ permissions, log hardening | ✅ Done |
-| **V3.4** | Planned — Groups, delete for all, typing indicators, private relay | 🔜 |
+| **V3.4** | Planned — App disguise + cover screen, Dual PIN, panic button, FLAG_SECURE, E2E voice messages, sealed sender, reply/quote | 🔜 |
 
 > 📖 **Details** — [Full Changelog](docs/en/CHANGELOG.md)
 

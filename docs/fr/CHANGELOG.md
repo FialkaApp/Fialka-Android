@@ -219,9 +219,34 @@
 
 ## 🔜 V3.4 — Planned
 
-- [ ] **Groupes** — Conversations à 3+ participants
+> Camouflage avancé, plausible deniability, messages vocaux E2E, sealed sender, améliorations messagerie.
+
+### 🎭 Camouflage de l’app (App Disguise)
+- [ ] **Changement d’icône** — L’utilisateur choisit une icône de camouflage parmi des présets : Calculatrice, Notes, Actualités, Météo, Horloge, etc.
+- [ ] **Changement du nom affiché** — Le nom de l’app dans le launcher change pour correspondre à l’icône choisie (« Calculatrice », « Notes », « Actualités », etc.)
+- [ ] **Thèmes d’icône** — Chaque déguisement a son icône + nom cohérent (style professionnel)
+- [ ] **Activity-alias** — Implémentation via `<activity-alias>` dans le manifest (enable/disable dynamique via `PackageManager`)
+- [ ] **Confirmation + redémarrage** — Dialog de confirmation avec prévisualisation → « Redémarrer maintenant » → kill + relaunch
+- [ ] **Faux écran de couverture** — L’app déguisée ouvre une vraie fausse app fonctionnelle (calculatrice, notes, etc.). Le vrai chat est accessible via un geste secret (long press caché ou code spécial)
+- [ ] **Persistance** — Choix sauvegardé dans SharedPreferences, restauré au démarrage
+
+### 🔐 Plausible Deniability & Protection
+- [ ] **Dual PIN** — PIN normal ouvre le chat ; PIN de contrainte ouvre un profil vide ou déclenche un wipe silencieux (plausible deniability, niveau journaliste/activiste)
+- [ ] **Panic button** — Secouer le téléphone (shake) → suppression instantanée de toutes les conversations + clés + déconnexion (wipe complet)
+- [ ] **Screenshot protection** — `FLAG_SECURE` sur toutes les fenêtres — empêche screenshots, screen recording et aperçu dans les apps récentes
+- [ ] **Keyboard incognito** — `flagNoPersonalizedLearning` sur tous les champs de saisie — le clavier ne mémorise/apprend rien
+
+### 🔐 Crypto avancée
+- [ ] **Sealed sender** — L’identité de l’expéditeur est cachée côté Firebase — le destinataire déduit le sender uniquement après déchiffrement
+
+### 💬 Messagerie avancée
+- [ ] **Messages vocaux E2E** — Enregistrement audio, chiffrement AES-256-GCM, envoi via le ratchet, lecteur inline dans le chat
+- [ ] **Reply / Quote** — Répondre à un message spécifique avec citation (bulle citée + nouveau message)
+- [ ] **Groupes** — Conversations à 3+ participants (Sender Keys)
 - [ ] **Suppression pour tous** — Supprimer un message côté local + Firebase
-- [ ] **Typing indicators** — "En train d'écrire..."
+- [ ] **Typing indicators** — « En train d’écrire... » (chiffré E2E, opt-in)
+
+### 🛡️ Infrastructure
 - [ ] **Relay privé** — Serveur relay dédié pour réduire la dépendance Firebase
 
 ---
