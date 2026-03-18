@@ -61,9 +61,10 @@
 - Base locale chiffrée **SQLCipher**
 - **Message padding** taille fixe (256/1K/4K/16K)
 - **PBKDF2** PIN (600K itérations)
-- **Dummy traffic** (trafic factice configurable)
+- **Dummy traffic** (trafic factice par conversation)
 - **Fichiers E2E** chiffrés AES-256-GCM
 - **Signature Ed25519** anti-falsification par message
+- **Tor intégré** — SOCKS5, VPN TUN, IP masquée
 
 </td>
 <td width="50%">
@@ -74,6 +75,7 @@
 - **5 thèmes** : Midnight · Hacker · **Phantom** · Aurora · Daylight
 - **Animations fluides** — transitions, bulles, cascade
 - **Icônes d'attachement inline** — Style Session, animation slide-up
+- **Écran Tor Bootstrap** — Choix Tor/Normal, progress animé, 5 thèmes
 - **Toolbar scrollable** + FAB auto-hide
 - **Bulles dynamiques** colorées par thème
 - **App Lock** PIN + biométrie
@@ -247,6 +249,10 @@ cd SecureChat
 | Icônes d'attachement inline avec animation (style Session) | ✅ |
 | Permissions Android 13+ (READ_MEDIA_IMAGES/AUDIO) | ✅ |
 | Geste prédictif (enableOnBackInvokedCallback) | ✅ |
+| Routage Tor intégré (SOCKS5 + VPN TUN + libtor.so) | ✅ |
+| Écran bootstrap Tor (choix + progress + 5 thèmes) | ✅ |
+| Toggle Tor dans Paramètres Sécurité + reconnexion | ✅ |
+| Dummy traffic par conversation | ✅ |
 | Signature Ed25519 par message (anti-falsification) | ✅ |
 | Nettoyage clés de signature à la suppression de compte | ✅ |
 
@@ -269,9 +275,8 @@ cd SecureChat
 | **V3** | Security Hardening — R8, delete-after-delivery, padding, HMAC UID, PBKDF2, dummy traffic, fichiers E2E | ✅ Done |
 | **V3.1** | Settings Redesign — Paramètres Signal-like, PIN 6 chiffres, sous-écran Confidentialité, coroutines PIN | ✅ Done |
 | **V3.2** | Ed25519 Signing — Signature par message, badge ✅/⚠️, durcissement Firebase rules, nettoyage clés | ✅ Done |
-| **V3.3** | Material 3 + Attachment UX — Migration M3, icônes inline Session, permissions Android 13+, durcissement logs | ✅ Done |
-| **V3.4** | Tor Integration — Routage via Tor, IP masquée, proxy SOCKS5, bootstrap UI, indicateur toolbar | 🔜 |
-| **V3.5** | Planned — Groupes, suppression pour tous, typing indicators, relay privé | 🔜 |
+| **V3.3** | Material 3 + Tor + Attachment UX — Migration M3, intégration Tor complète, icônes inline Session, permissions Android 13+, durcissement logs | ✅ Done |
+| **V3.4** | Planned — Groupes, suppression pour tous, typing indicators, relay privé | 🔜 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
 

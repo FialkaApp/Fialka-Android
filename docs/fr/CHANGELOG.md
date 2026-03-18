@@ -169,9 +169,9 @@
 
 ---
 
-## ✅ V3.3 — Material 3 Migration, Attachment UX & Log Hardening
+## ✅ V3.3 — Material 3, Tor Integration, Attachment UX & Log Hardening
 
-> Migration complète Material Design 3, icônes d'attachement inline style Session, permissions Android 13+, durcissement Firebase et logs.
+> Migration complète Material Design 3, intégration Tor (SOCKS5 + VPN TUN), icônes d'attachement inline style Session, permissions Android 13+, durcissement Firebase et logs.
 
 ### 🎨 Material Design 3
 - [x] **Migration M2 → M3** — Tous les 5 thèmes migrés de `Theme.MaterialComponents` vers `Theme.Material3.Dark.NoActionBar` / `Theme.Material3.Light.NoActionBar`
@@ -202,52 +202,22 @@
 - [x] **Sanitisation des logs** — Suppression des UIDs Firebase, hash de clés et préfixes de clés des messages de log de debug
 - [x] **Zéro donnée sensible** — `FirebaseRelay.kt` et `ChatRepository.kt` n'affichent plus de chemins Firebase ou d'identifiants dans les logs
 
----
-
-## 🔜 V3.4 — Tor Integration
-
-> Routage intégral du trafic via Tor — IP masquée, proxy SOCKS5, bootstrap UI cyber, indicateur toolbar.
-
-### 🧅 TorManager
-- [ ] **TorManager.kt** — Singleton avec `StateFlow<TorState>` (`IDLE`, `STARTING`, `BOOTSTRAPPING(%)`, `CONNECTED`, `ERROR`, `DISCONNECTED`)
-- [ ] **Démarrage automatique** — `SecureChatApplication.onCreate()`, méthodes `start()`, `stop()`, `restart()`
-- [ ] **OkHttpClient Tor** — `buildTorOkHttpClient()` → proxy SOCKS5 `127.0.0.1:9050`
-- [ ] **Dépendances** — `tor-android:0.4.5.13` + `netcipher:2.1.0`
-
-### 🛡️ Sécurité réseau
-- [ ] **FirebaseNetworkModule.kt** — Injecte le OkHttpClient Tor dans Firebase, bloque toute requête tant que `TorState != CONNECTED`
-- [ ] **Guard ChatRepository + FirebaseRelay** — `TorManager.state.first { it == CONNECTED }` en haut de chaque méthode Firebase — zéro fuite IP
-- [ ] **Reconnexion automatique** — Reconnexion silencieuse en background si Tor tombe
-
-### 🎨 TorBootstrapFragment
-- [ ] **Écran de démarrage** — `startDestination` du nav graph, premier écran affiché
-- [ ] **Progress circulaire** — Pourcentage en grand, font monospace, texte de statut dynamique :
-  - 0–30% → "Connexion au réseau Tor..."
-  - 30–60% → "Établissement des circuits..."
-  - 60–90% → "Chiffrement des routes..."
-  - 100% → "Connexion sécurisée établie"
-- [ ] **Animation completion** — Progress vert + icône ✓ ScaleAnimation + 800ms + navigation
-- [ ] **Respecte les 5 thèmes** — Couleurs via `?attr/` du thème actif
-- [ ] **Bouton Réessayer** — Visible uniquement si `TorState == ERROR`
-
-### 🧅 Indicateur toolbar
-- [ ] **Icône 🧅 permanente** — 🟢 `CONNECTED` / 🟠 `BOOTSTRAPPING` / 🔴 `ERROR`
-- [ ] **Click** → ouvre Settings section Tor
-
-### ⚙️ Settings section Tor
-- [ ] **Toggle Tor** — ON/OFF dans l'écran Sécurité existant
-- [ ] **Statut temps réel** — "Connecté via Tor" / "Reconnexion..." / "Déconnecté"
-- [ ] **Bouton Reconnecter** — Manuel
-- [ ] **Texte informatif** — "Votre IP réelle est masquée auprès de Firebase"
-
-### 📱 Comportement background
-- [ ] **Snackbar reconnexion** — "Tor déconnecté — Reconnecter ?" + bouton action
-- [ ] **Requêtes suspendues** — Firebase bloqué jusqu'à `CONNECTED`, messages locaux SQLCipher affichés normalement
-- [ ] **Zéro écran bloquant** — Pas de crash silencieux
+### 🧅 Intégration Tor
+- [x] **TorManager.kt** — Singleton avec `StateFlow<TorState>` (`IDLE`, `STARTING`, `BOOTSTRAPPING(%)`, `CONNECTED`, `ERROR`, `DISCONNECTED`)
+- [x] **TorVpnService.kt** — Service VPN TUN → hev-socks5-tunnel → SOCKS5 :9050 → Tor → Internet
+- [x] **libtor.so + libhev-socks5-tunnel.so** — Binaires natifs arm64-v8a embarqués
+- [x] **ProxySelector global** — Tout le trafic HTTP routé via SOCKS5 `127.0.0.1:9050` quand Tor activé
+- [x] **Démarrage conditionnel** — `SecureChatApplication.onCreate()` démarre Tor si activé
+- [x] **TorBootstrapFragment** — `startDestination` du nav graph, choix Tor/Normal au premier lancement
+- [x] **Progress circulaire animé** — Pourcentage en temps réel, texte de statut dynamique, pulse animation
+- [x] **Respecte les 5 thèmes** — Couleurs via `?attr/` du thème actif
+- [x] **Toggle Tor** — ON/OFF dans Paramètres → Sécurité avec reconnexion manuelle
+- [x] **Statut temps réel** — "Connecté via Tor" / "Reconnexion..." / "Déconnecté"
+- [x] **Dummy traffic par conversation** — Trafic factice individuel par conversation active
 
 ---
 
-## 🔜 V3.5 — Planned
+## 🔜 V3.4 — Planned
 
 - [ ] **Groupes** — Conversations à 3+ participants
 - [ ] **Suppression pour tous** — Supprimer un message côté local + Firebase

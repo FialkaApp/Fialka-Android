@@ -137,7 +137,7 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **Firebase rules hardening**: `/conversations/$id/participants` read restricted to conversation members only (no longer readable by all authenticated users)
 - ✅ **Signing key cleanup**: `/signing_keys/{hash}` deleted on account deletion alongside profile, inbox, and conversations
 
-### V3.3 Material 3 Migration, Attachment UX & Log Hardening
+### V3.3 Material 3 Migration, Tor Integration, Attachment UX & Log Hardening
 
 - ✅ **Material Design 3 migration**: all 5 themes migrated from `Theme.MaterialComponents` to `Theme.Material3.Dark.NoActionBar` / `Theme.Material3.Light.NoActionBar` with full M3 color roles
 - ✅ **Complete ProGuard log stripping**: added `Log.w()`, `Log.e()`, `Log.wtf()` to `assumenosideeffects` (on top of d/v/i) — zero log output in release builds
@@ -148,3 +148,9 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **Android 13+ media permissions**: `READ_MEDIA_IMAGES`, `READ_MEDIA_AUDIO` declared; `READ_EXTERNAL_STORAGE` with `maxSdkVersion="32"` fallback
 - ✅ **Predictive back gesture**: `enableOnBackInvokedCallback="true"` in AndroidManifest for Android 13+ compatibility
 - ✅ **Inline attachment icons**: Session-style animated vertical icons replace BottomSheet (reduced attack surface — no dialog-based file picker)
+- ✅ **Tor integration**: embedded `libtor.so` arm64-v8a, SOCKS5 proxy at 127.0.0.1:9050, global `ProxySelector` routes all traffic through Tor
+- ✅ **TorVpnService**: VPN TUN interface + hev-socks5-tunnel for system-wide traffic routing through Tor
+- ✅ **TorManager**: singleton with `StateFlow<TorState>`, conditional startup, foreground notification
+- ✅ **TorBootstrapFragment**: first-launch Tor/Normal choice screen with animated progress, skipped on subsequent launches
+- ✅ **Tor Settings toggle**: ON/OFF in Security settings with real-time status and manual reconnect
+- ✅ **Per-conversation dummy traffic**: individual cover messages per active conversation

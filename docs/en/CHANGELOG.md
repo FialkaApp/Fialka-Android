@@ -169,9 +169,9 @@
 
 ---
 
-## ✅ V3.3 — Material 3 Migration, Attachment UX & Log Hardening
+## ✅ V3.3 — Material 3, Tor Integration, Attachment UX & Log Hardening
 
-> Full Material Design 3 migration, Session-style inline attachment icons, Android 13+ permissions, Firebase & log hardening.
+> Full Material Design 3 migration, Tor integration (SOCKS5 + VPN TUN), Session-style inline attachment icons, Android 13+ permissions, Firebase & log hardening.
 
 ### 🎨 Material Design 3
 - [x] **M2 → M3 Migration** — All 5 themes migrated from `Theme.MaterialComponents` to `Theme.Material3.Dark.NoActionBar` / `Theme.Material3.Light.NoActionBar`
@@ -202,52 +202,22 @@
 - [x] **Log sanitization** — Removed Firebase UIDs, key hashes and key prefixes from debug log messages
 - [x] **Zero sensitive data** — `FirebaseRelay.kt` and `ChatRepository.kt` no longer print Firebase paths or identifiers in logs
 
----
-
-## 🔜 V3.4 — Tor Integration
-
-> Full traffic routing via Tor — hidden IP, SOCKS5 proxy, cyber bootstrap UI, toolbar indicator.
-
-### 🧅 TorManager
-- [ ] **TorManager.kt** — Singleton with `StateFlow<TorState>` (`IDLE`, `STARTING`, `BOOTSTRAPPING(%)`, `CONNECTED`, `ERROR`, `DISCONNECTED`)
-- [ ] **Auto-start** — `SecureChatApplication.onCreate()`, methods `start()`, `stop()`, `restart()`
-- [ ] **Tor OkHttpClient** — `buildTorOkHttpClient()` → SOCKS5 proxy `127.0.0.1:9050`
-- [ ] **Dependencies** — `tor-android:0.4.5.13` + `netcipher:2.1.0`
-
-### 🛡️ Network Security
-- [ ] **FirebaseNetworkModule.kt** — Injects Tor OkHttpClient into Firebase, blocks all requests until `TorState == CONNECTED`
-- [ ] **Guard ChatRepository + FirebaseRelay** — `TorManager.state.first { it == CONNECTED }` at the top of every Firebase method — zero IP leak
-- [ ] **Auto-reconnect** — Silent background reconnection if Tor drops
-
-### 🎨 TorBootstrapFragment
-- [ ] **Startup screen** — `startDestination` of nav graph, first screen shown
-- [ ] **Circular progress** — Large percentage, monospace font, dynamic status text:
-  - 0–30% → "Connecting to Tor network..."
-  - 30–60% → "Establishing circuits..."
-  - 60–90% → "Encrypting routes..."
-  - 100% → "Secure connection established"
-- [ ] **Completion animation** — Green progress + ✓ icon ScaleAnimation + 800ms + navigation
-- [ ] **Respects all 5 themes** — Colors via `?attr/` from active theme
-- [ ] **Retry button** — Visible only if `TorState == ERROR`
-
-### 🧅 Toolbar Indicator
-- [ ] **Permanent 🧅 icon** — 🟢 `CONNECTED` / 🟠 `BOOTSTRAPPING` / 🔴 `ERROR`
-- [ ] **Click** → opens Settings Tor section
-
-### ⚙️ Settings Tor Section
-- [ ] **Tor toggle** — ON/OFF in existing Security screen
-- [ ] **Real-time status** — "Connected via Tor" / "Reconnecting..." / "Disconnected"
-- [ ] **Reconnect button** — Manual
-- [ ] **Info text** — "Your real IP is hidden from Firebase"
-
-### 📱 Background Behavior
-- [ ] **Reconnect snackbar** — "Tor disconnected — Reconnect?" + action button
-- [ ] **Suspended requests** — Firebase blocked until `CONNECTED`, local SQLCipher messages displayed normally
-- [ ] **Zero blocking screens** — No silent crashes
+### 🧅 Tor Integration
+- [x] **TorManager.kt** — Singleton with `StateFlow<TorState>` (`IDLE`, `STARTING`, `BOOTSTRAPPING(%)`, `CONNECTED`, `ERROR`, `DISCONNECTED`)
+- [x] **TorVpnService.kt** — VPN TUN service → hev-socks5-tunnel → SOCKS5 :9050 → Tor → Internet
+- [x] **libtor.so + libhev-socks5-tunnel.so** — Native arm64-v8a binaries embedded
+- [x] **Global ProxySelector** — All HTTP traffic routed via SOCKS5 `127.0.0.1:9050` when Tor enabled
+- [x] **Conditional startup** — `SecureChatApplication.onCreate()` starts Tor if enabled
+- [x] **TorBootstrapFragment** — `startDestination` of nav graph, Tor/Normal choice on first launch
+- [x] **Animated circular progress** — Real-time percentage, dynamic status text, pulse animation
+- [x] **Respects all 5 themes** — Colors via `?attr/` from active theme
+- [x] **Tor toggle** — ON/OFF in Settings → Security with manual reconnect
+- [x] **Real-time status** — "Connected via Tor" / "Reconnecting..." / "Disconnected"
+- [x] **Per-conversation dummy traffic** — Individual cover messages per active conversation
 
 ---
 
-## 🔜 V3.5 — Planned
+## 🔜 V3.4 — Planned
 
 - [ ] **Groups** — 3+ participant conversations
 - [ ] **Delete for everyone** — Delete a message on local + Firebase
