@@ -46,6 +46,15 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
         listenForAcceptances()
         conversations.observeForever(conversationsObserver)
         DummyTrafficManager.start(viewModelScope, application, repository)
+        // Ensure Ed25519 signing key is published on Firebase (wait for auth first)
+        viewModelScope.launch {
+            try {
+                if (!FirebaseRelay.isAuthenticated()) {
+                    FirebaseRelay.signInAnonymously()
+                }
+                repository.publishSigningPublicKey()
+            } catch (_: Exception) { }
+        }
     }
 
     override fun onCleared() {

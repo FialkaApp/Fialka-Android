@@ -55,7 +55,7 @@
 |-------|------|-----------|
 | **UI** | Screens, navigation, interactions | `ui/` — Fragments, ViewModels, Adapters |
 | **Repository** | Local/crypto/remote coordination | `data/repository/ChatRepository.kt` |
-| **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39 | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
+| **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519 | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
 | **Local DB** | Room v12 — users, contacts, messages, ratchet (composite indexes) | `data/local/` — DAOs, Database (SQLCipher) |
 | **Remote** | Firebase Relay RTDB + Storage (ciphertext only) | `data/remote/FirebaseRelay.kt` |
 | **Util** | QR, 5 themes, app lock, ephemeral, dummy traffic | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt` |
@@ -117,7 +117,7 @@ Restore:
   → removeOldUserByPublicKey() → registerPublicKey() → ready
 
 Account Deletion (A deletes):
-  A: deleteUserProfile(/users/{uid}) + deleteInbox(/inbox/{hash}) + deleteConversation(all)
+  A: deleteUserProfile(/users/{uid}) + deleteInbox(/inbox/{hash}) + deleteSigningKey(/signing_keys/{hash}) + deleteConversation(all)
   B: sends message → Permission Denied → isConversationAliveOnFirebase()=false → AlertDialog
   B: re-invites A → dead convo detected → deleteStaleConversation() → new invitation
 

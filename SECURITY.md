@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 3.1.x   | ✅ Current |
+| 3.2.x   | ✅ Current |
+| 3.1.x   | ⚠️ Outdated |
 | 3.0.x   | ⚠️ Outdated |
 | 2.x     | ⚠️ Outdated |
 | 1.x     | ❌ Unsupported |
@@ -38,6 +39,8 @@ SecureChat uses the following cryptographic primitives:
 | PIN hashing | PBKDF2-HMAC-SHA256 | 600,000 iterations, 16-byte random salt |
 | File encryption | AES-256-GCM (per-file random key) | Encrypted at rest in Firebase Storage |
 | Local DB encryption | SQLCipher (AES-256-CBC) | 256-bit passphrase via EncryptedSharedPreferences |
+| Message signing | Ed25519 (BouncyCastle 1.78.1) | Dedicated signing key pair, signature = sign(ciphertext \|\| conversationId \|\| createdAt) |
+| Signing key storage | Firebase RTDB `/signing_keys/{hash}` | SHA-256 truncated to 32 hex chars as key, Base64 Ed25519 public key as value |
 | Build hardening | R8/ProGuard | Code obfuscation + resource shrinking + log stripping (d/v/i) |
 
 ## Known Limitations (V1)
@@ -50,7 +53,7 @@ SecureChat uses the following cryptographic primitives:
 
 4. **Metadata visible** — ~~Firebase sees who communicates with whom and when (conversation IDs, timestamps).~~ **PARTIALLY FIXED in V1.1:** `senderPublicKey` and `messageIndex` removed from wire format. **IMPROVED in V3:** `senderUid` is now HMAC-SHA256 hashed per conversation (not the raw Firebase UID). Messages are padded to fixed-size buckets (256/1K/4K/16K bytes) to prevent size-based traffic analysis. Dummy traffic sends periodic indistinguishable cover messages. Firebase still sees: hashed senderUid, `createdAt` (timestamps), conversation IDs, participant UIDs. Full metadata privacy would require a mix network or onion routing.
 
-5. **No message authentication beyond GCM** — Messages are not signed with the sender's identity key, only authenticated by GCM tag (which proves knowledge of the shared secret). In 1-to-1 conversations this is acceptable (only 2 participants share the key). For future group chats, ECDSA signatures will be required (V3 planned).
+5. ~~No message authentication beyond GCM~~ — ~~Messages are not signed with the sender's identity key, only authenticated by GCM tag (which proves knowledge of the shared secret). In 1-to-1 conversations this is acceptable (only 2 participants share the key). For future group chats, ECDSA signatures will be required (V3 planned).~~ **FIXED in V3.2:** Every message is signed with a dedicated Ed25519 key pair (BouncyCastle 1.78.1). Signature covers `ciphertext || conversationId || createdAt` (anti-forgery + anti-replay). Badge ✅/⚠️ displayed per message.
 
 6. **Ephemeral timer client-enforced** — Ephemeral message deletion is performed client-side (local Room delete + Firebase remove). A modified client could skip deletion. Server-enforced TTL per-message would require Cloud Functions (V3+).
 
@@ -94,7 +97,7 @@ SecureChat uses the following cryptographic primitives:
 - ✅ Theme-aware drawables: info boxes, backgrounds use `@color/` resources with night variants
 - ✅ BIP-39 mnemonic backup: 24 words encode 256-bit X25519 private key + 8-bit SHA-256 checksum
 - ✅ Mnemonic restore: private key → DH with base point u=9 → deterministic public key derivation
-- ✅ Account deletion: full Firebase cleanup (profile `/users/{uid}`, inbox `/inbox/{hash}`, all conversations)
+- ✅ Account deletion: full Firebase cleanup (profile `/users/{uid}`, inbox `/inbox/{hash}`, signing keys `/signing_keys/{hash}`, all conversations)
 - ✅ Dead conversation detection: `conversationExists()` returns false on PERMISSION_DENIED (deleted conversation)
 - ✅ Stale contact cleanup: dead conversations cleaned from local DB (messages, ratchet state, contact) before re-invitation
 - ✅ Orphaned profile cleanup: `removeOldUserByPublicKey()` removes old `/users/` node on account restore
@@ -121,3 +124,14 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **6-digit PIN**: upgraded from 4-digit, removed legacy 4-digit/SHA-256 backward compatibility
 - ✅ **PIN coroutines**: PBKDF2 verification runs on `Dispatchers.Default` (off UI thread), zero freeze on digit entry
 - ✅ **Cached EncryptedSharedPreferences**: double-checked locking pattern avoids repeated Keystore initialization
+
+### V3.2 Ed25519 Message Signing
+
+- ✅ **Ed25519 signatures**: every message is signed with a dedicated Ed25519 key pair (separate from X25519 identity key)
+- ✅ **BouncyCastle 1.78.1**: `bcprov-jdk18on` registered as JCA provider at position 1 (`Security.removeProvider("BC")` + `Security.insertProviderAt()`)
+- ✅ **Signed data**: `signature = Ed25519.sign(ciphertext_UTF8 || conversationId_UTF8 || createdAt_bigEndian8bytes)` — anti-forgery + anti-replay
+- ✅ **Signing key storage**: Ed25519 public key stored at `/signing_keys/{SHA256_hash}` and `/users/{uid}/signingPublicKey` on Firebase; private key in EncryptedSharedPreferences
+- ✅ **Verification on receive**: receiver fetches sender's Ed25519 public key by identity key hash, verifies signature, displays ✅ (valid) or ⚠️ (invalid/missing)
+- ✅ **Client timestamp preserved**: `createdAt` uses client `System.currentTimeMillis()` (not Firebase `ServerValue.TIMESTAMP`) to ensure signature consistency
+- ✅ **Firebase rules hardening**: `/conversations/$id/participants` read restricted to conversation members only (no longer readable by all authenticated users)
+- ✅ **Signing key cleanup**: `/signing_keys/{hash}` deleted on account deletion alongside profile, inbox, and conversations

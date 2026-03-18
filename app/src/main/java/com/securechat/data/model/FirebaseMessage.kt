@@ -20,6 +20,7 @@ data class FirebaseMessage(
     val createdAt: Long = 0L,
     val senderUid: String = "",
     val ephemeralKey: String = "",  // Base64 X25519 DH public key (Double Ratchet)
+    val signature: String = "",    // Base64 Ed25519 signature (64 bytes)
     @Transient val firebaseKey: String = ""  // Local-only: Firebase node key for delete-after-delivery
 ) {
     fun toMap(): Map<String, Any> {
@@ -31,6 +32,9 @@ data class FirebaseMessage(
         )
         if (ephemeralKey.isNotEmpty()) {
             map["ephemeralKey"] = ephemeralKey
+        }
+        if (signature.isNotEmpty()) {
+            map["signature"] = signature
         }
         return map
     }

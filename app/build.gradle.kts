@@ -23,7 +23,7 @@ android {
         minSdk = 33
         targetSdk = 35
         versionCode = 3
-        versionName = "3.0.0-beta1"
+        versionName = "3.2.0-beta1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -60,6 +60,12 @@ android {
 
     buildFeatures {
         viewBinding = true
+    }
+
+    packaging {
+        resources {
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+        }
     }
 }
 
@@ -100,6 +106,7 @@ dependencies {
     // Security / Crypto
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("androidx.biometric:biometric:1.1.0")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

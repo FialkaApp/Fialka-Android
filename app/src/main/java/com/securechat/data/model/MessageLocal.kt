@@ -29,5 +29,6 @@ data class MessageLocal(
     // File attachment fields (null/empty = text-only message)
     val fileName: String? = null,         // Original file name
     val fileSize: Long = 0,               // File size in bytes
-    val localFilePath: String? = null     // Path to decrypted file on device
+    val localFilePath: String? = null,    // Path to decrypted file on device
+    val signatureValid: Boolean? = null   // null = no signature, true = valid, false = invalid
 )

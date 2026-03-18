@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V3.1-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3.2-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V3.2-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Next-V3.3-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -151,9 +151,69 @@
 
 ---
 
-## 🔜 V3.2 — Planned
+## ✅ V3.2 — Ed25519 Message Signing
 
-- [ ] **ECDSA Signature** — Dedicated signature key (PURPOSE_SIGN) to authenticate each message
+> Per-message Ed25519 signatures, ✅/⚠️ badge, Firebase rules hardening, signing key cleanup.
+
+### ✍️ Message Signing
+- [x] **Ed25519 (BouncyCastle 1.78.1)** — Dedicated signing key pair (separate from X25519)
+- [x] **Signed data** — `ciphertext_UTF8 || conversationId_UTF8 || createdAt_bigEndian8` — anti-forgery + anti-replay
+- [x] **JCA Provider** — `Security.removeProvider("BC")` + `insertProviderAt(BouncyCastleProvider(), 1)` in Application.onCreate()
+- [x] **Key storage** — Private key in EncryptedSharedPreferences; public key at `/signing_keys/{SHA256_hash}` and `/users/{uid}/signingPublicKey`
+- [x] **Verification on receive** — Fetches Ed25519 public key by identity hash, badge ✅ (valid) or ⚠️ (invalid/missing)
+- [x] **Client timestamp** — `createdAt` = `System.currentTimeMillis()` (not `ServerValue.TIMESTAMP`) for signature consistency
+
+### 🛡️ Firebase Hardening
+- [x] **Scoped participants** — `/conversations/$id/participants` readable only by members (no longer by all authenticated users)
+- [x] **Signing key cleanup** — `/signing_keys/{hash}` deleted on account deletion
+
+---
+
+## 🔜 V3.3 — Tor Integration
+
+> Full traffic routing via Tor — hidden IP, SOCKS5 proxy, cyber bootstrap UI, toolbar indicator.
+
+### 🧅 TorManager
+- [ ] **TorManager.kt** — Singleton with `StateFlow<TorState>` (`IDLE`, `STARTING`, `BOOTSTRAPPING(%)`, `CONNECTED`, `ERROR`, `DISCONNECTED`)
+- [ ] **Auto-start** — `SecureChatApplication.onCreate()`, methods `start()`, `stop()`, `restart()`
+- [ ] **Tor OkHttpClient** — `buildTorOkHttpClient()` → SOCKS5 proxy `127.0.0.1:9050`
+- [ ] **Dependencies** — `tor-android:0.4.5.13` + `netcipher:2.1.0`
+
+### 🛡️ Network Security
+- [ ] **FirebaseNetworkModule.kt** — Injects Tor OkHttpClient into Firebase, blocks all requests until `TorState == CONNECTED`
+- [ ] **Guard ChatRepository + FirebaseRelay** — `TorManager.state.first { it == CONNECTED }` at the top of every Firebase method — zero IP leak
+- [ ] **Auto-reconnect** — Silent background reconnection if Tor drops
+
+### 🎨 TorBootstrapFragment
+- [ ] **Startup screen** — `startDestination` of nav graph, first screen shown
+- [ ] **Circular progress** — Large percentage, monospace font, dynamic status text:
+  - 0–30% → "Connecting to Tor network..."
+  - 30–60% → "Establishing circuits..."
+  - 60–90% → "Encrypting routes..."
+  - 100% → "Secure connection established"
+- [ ] **Completion animation** — Green progress + ✓ icon ScaleAnimation + 800ms + navigation
+- [ ] **Respects all 5 themes** — Colors via `?attr/` from active theme
+- [ ] **Retry button** — Visible only if `TorState == ERROR`
+
+### 🧅 Toolbar Indicator
+- [ ] **Permanent 🧅 icon** — 🟢 `CONNECTED` / 🟠 `BOOTSTRAPPING` / 🔴 `ERROR`
+- [ ] **Click** → opens Settings Tor section
+
+### ⚙️ Settings Tor Section
+- [ ] **Tor toggle** — ON/OFF in existing Security screen
+- [ ] **Real-time status** — "Connected via Tor" / "Reconnecting..." / "Disconnected"
+- [ ] **Reconnect button** — Manual
+- [ ] **Info text** — "Your real IP is hidden from Firebase"
+
+### 📱 Background Behavior
+- [ ] **Reconnect snackbar** — "Tor disconnected — Reconnect?" + action button
+- [ ] **Suspended requests** — Firebase blocked until `CONNECTED`, local SQLCipher messages displayed normally
+- [ ] **Zero blocking screens** — No silent crashes
+
+---
+
+## 🔜 V3.4 — Planned
+
 - [ ] **Groups** — 3+ participant conversations
 - [ ] **Delete for everyone** — Delete a message on local + Firebase
 - [ ] **Typing indicators** — "Typing..."

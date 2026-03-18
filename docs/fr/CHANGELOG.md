@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V3.1-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3.2-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V3.2-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Next-V3.3-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -151,9 +151,69 @@
 
 ---
 
-## 🔜 V3.2 — Planned
+## ✅ V3.2 — Ed25519 Message Signing
 
-- [ ] **Signature ECDSA** — Clé de signature dédiée (PURPOSE_SIGN) pour authentifier chaque message
+> Signature par message Ed25519, badge ✅/⚠️, durcissement Firebase rules, nettoyage clés de signature.
+
+### ✍️ Signature de messages
+- [x] **Ed25519 (BouncyCastle 1.78.1)** — Paire de clés de signature dédiée (séparée de X25519)
+- [x] **Données signées** — `ciphertext_UTF8 || conversationId_UTF8 || createdAt_bigEndian8` — anti-falsification + anti-replay
+- [x] **Provider JCA** — `Security.removeProvider("BC")` + `insertProviderAt(BouncyCastleProvider(), 1)` dans Application.onCreate()
+- [x] **Stockage clé** — Clé privée dans EncryptedSharedPreferences ; clé publique sur `/signing_keys/{SHA256_hash}` et `/users/{uid}/signingPublicKey`
+- [x] **Vérification à la réception** — Récupération clé publique Ed25519 par hash d'identité, badge ✅ (valide) ou ⚠️ (invalide/absent)
+- [x] **Timestamp client** — `createdAt` = `System.currentTimeMillis()` (pas `ServerValue.TIMESTAMP`) pour cohérence signature
+
+### 🛡️ Durcissement Firebase
+- [x] **Participants scopés** — `/conversations/$id/participants` lisible uniquement par les membres (plus par tous les authentifiés)
+- [x] **Nettoyage clés de signature** — `/signing_keys/{hash}` supprimé à la suppression de compte
+
+---
+
+## 🔜 V3.3 — Tor Integration
+
+> Routage intégral du trafic via Tor — IP masquée, proxy SOCKS5, bootstrap UI cyber, indicateur toolbar.
+
+### 🧅 TorManager
+- [ ] **TorManager.kt** — Singleton avec `StateFlow<TorState>` (`IDLE`, `STARTING`, `BOOTSTRAPPING(%)`, `CONNECTED`, `ERROR`, `DISCONNECTED`)
+- [ ] **Démarrage automatique** — `SecureChatApplication.onCreate()`, méthodes `start()`, `stop()`, `restart()`
+- [ ] **OkHttpClient Tor** — `buildTorOkHttpClient()` → proxy SOCKS5 `127.0.0.1:9050`
+- [ ] **Dépendances** — `tor-android:0.4.5.13` + `netcipher:2.1.0`
+
+### 🛡️ Sécurité réseau
+- [ ] **FirebaseNetworkModule.kt** — Injecte le OkHttpClient Tor dans Firebase, bloque toute requête tant que `TorState != CONNECTED`
+- [ ] **Guard ChatRepository + FirebaseRelay** — `TorManager.state.first { it == CONNECTED }` en haut de chaque méthode Firebase — zéro fuite IP
+- [ ] **Reconnexion automatique** — Reconnexion silencieuse en background si Tor tombe
+
+### 🎨 TorBootstrapFragment
+- [ ] **Écran de démarrage** — `startDestination` du nav graph, premier écran affiché
+- [ ] **Progress circulaire** — Pourcentage en grand, font monospace, texte de statut dynamique :
+  - 0–30% → "Connexion au réseau Tor..."
+  - 30–60% → "Établissement des circuits..."
+  - 60–90% → "Chiffrement des routes..."
+  - 100% → "Connexion sécurisée établie"
+- [ ] **Animation completion** — Progress vert + icône ✓ ScaleAnimation + 800ms + navigation
+- [ ] **Respecte les 5 thèmes** — Couleurs via `?attr/` du thème actif
+- [ ] **Bouton Réessayer** — Visible uniquement si `TorState == ERROR`
+
+### 🧅 Indicateur toolbar
+- [ ] **Icône 🧅 permanente** — 🟢 `CONNECTED` / 🟠 `BOOTSTRAPPING` / 🔴 `ERROR`
+- [ ] **Click** → ouvre Settings section Tor
+
+### ⚙️ Settings section Tor
+- [ ] **Toggle Tor** — ON/OFF dans l'écran Sécurité existant
+- [ ] **Statut temps réel** — "Connecté via Tor" / "Reconnexion..." / "Déconnecté"
+- [ ] **Bouton Reconnecter** — Manuel
+- [ ] **Texte informatif** — "Votre IP réelle est masquée auprès de Firebase"
+
+### 📱 Comportement background
+- [ ] **Snackbar reconnexion** — "Tor déconnecté — Reconnecter ?" + bouton action
+- [ ] **Requêtes suspendues** — Firebase bloqué jusqu'à `CONNECTED`, messages locaux SQLCipher affichés normalement
+- [ ] **Zéro écran bloquant** — Pas de crash silencieux
+
+---
+
+## 🔜 V3.4 — Planned
+
 - [ ] **Groupes** — Conversations à 3+ participants
 - [ ] **Suppression pour tous** — Supprimer un message côté local + Firebase
 - [ ] **Typing indicators** — "En train d'écrire..."

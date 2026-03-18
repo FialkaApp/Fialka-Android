@@ -34,7 +34,7 @@ import java.security.SecureRandom
         MessageLocal::class,
         RatchetState::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 abstract class SecureChatDatabase : RoomDatabase() {

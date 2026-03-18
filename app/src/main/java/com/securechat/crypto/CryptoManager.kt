@@ -14,6 +14,7 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
+
 /**
  * CryptoManager — X25519 + AES-256-GCM crypto module for SecureChat.
  *
@@ -143,6 +144,7 @@ object CryptoManager {
             .remove(KEY_PUBLIC)
             .remove(KEY_PRIVATE)
             .apply()
+        clearSigningKeyCache()
     }
 
     private fun getIdentityPrivateKey(): PrivateKey {
@@ -420,6 +422,153 @@ object CryptoManager {
             uid.toByteArray(Charsets.UTF_8)
         )
         return hash.take(16).joinToString("") { "%02x".format(it) }
+    }
+
+    // ========================================================================
+    // 8. ED25519 MESSAGE SIGNING
+    // ========================================================================
+
+    private const val KEY_SIGNING_PUBLIC = "signing_public_key"
+    private const val KEY_SIGNING_PRIVATE = "signing_private_key"
+
+    /** Cached signing key pair — generated once, reused for all signatures. */
+    @Volatile
+    private var cachedSigningKeyPair: KeyPair? = null
+
+    /**
+     * Get or generate an Ed25519 signing key pair.
+     * Generated randomly on first use, then persisted in EncryptedSharedPreferences.
+     * On BIP-39 restore, a new keypair is generated and republished on Firebase.
+     *
+     * Cached in memory for performance (dummy traffic signs frequently).
+     */
+    fun getOrDeriveSigningKeyPair(): KeyPair {
+        cachedSigningKeyPair?.let { return it }
+        synchronized(this) {
+            cachedSigningKeyPair?.let { return it }
+
+            // 1. Try loading from EncryptedSharedPreferences
+            val storedPub = prefs.getString(KEY_SIGNING_PUBLIC, null)
+            val storedPriv = prefs.getString(KEY_SIGNING_PRIVATE, null)
+            if (storedPub != null && storedPriv != null) {
+                try {
+                    val kf = KeyFactory.getInstance("Ed25519", "BC")
+                    val publicKey = kf.generatePublic(
+                        X509EncodedKeySpec(Base64.decode(storedPub, Base64.NO_WRAP))
+                    )
+                    val privateKey = kf.generatePrivate(
+                        PKCS8EncodedKeySpec(Base64.decode(storedPriv, Base64.NO_WRAP))
+                    )
+                    val keyPair = KeyPair(publicKey, privateKey)
+                    cachedSigningKeyPair = keyPair
+                    return keyPair
+                } catch (_: Exception) {
+                    // Stored keys are invalid (wrong provider) — regenerate
+                    prefs.edit().remove(KEY_SIGNING_PUBLIC).remove(KEY_SIGNING_PRIVATE).apply()
+                }
+            }
+
+            // 2. Generate new Ed25519 keypair via BC (Bouncy Castle)
+            val kpg = KeyPairGenerator.getInstance("Ed25519", "BC")
+            val keyPair = kpg.generateKeyPair()
+
+            // 3. Persist in EncryptedSharedPreferences
+            prefs.edit()
+                .putString(KEY_SIGNING_PUBLIC, Base64.encodeToString(keyPair.public.encoded, Base64.NO_WRAP))
+                .putString(KEY_SIGNING_PRIVATE, Base64.encodeToString(keyPair.private.encoded, Base64.NO_WRAP))
+                .apply()
+
+            cachedSigningKeyPair = keyPair
+            return keyPair
+        }
+    }
+
+    /** Get the Ed25519 signing public key as Base64 (X509 encoded). */
+    fun getSigningPublicKeyBase64(): String {
+        val keyPair = getOrDeriveSigningKeyPair()
+        return Base64.encodeToString(keyPair.public.encoded, Base64.NO_WRAP)
+    }
+
+    /** Clear cached signing key pair and stored keys (call on logout/account delete). */
+    fun clearSigningKeyCache() {
+        cachedSigningKeyPair = null
+        prefs.edit()
+            .remove(KEY_SIGNING_PUBLIC)
+            .remove(KEY_SIGNING_PRIVATE)
+            .apply()
+    }
+
+    /**
+     * Sign message data: ciphertext || conversationId || createdAt (big-endian 8 bytes).
+     * Returns Base64-encoded Ed25519 signature (64 bytes).
+     */
+    fun signMessage(
+        ciphertextBase64: String,
+        conversationId: String,
+        createdAt: Long
+    ): String {
+        val keyPair = getOrDeriveSigningKeyPair()
+        val dataToSign = buildSignedData(ciphertextBase64, conversationId, createdAt)
+        val sig = Signature.getInstance("Ed25519", "BC")
+        sig.initSign(keyPair.private)
+        sig.update(dataToSign)
+        val signatureBytes = sig.sign()
+        val signatureBase64 = Base64.encodeToString(signatureBytes, Base64.NO_WRAP)
+
+        dataToSign.fill(0)
+        return signatureBase64
+    }
+
+    /**
+     * Verify an Ed25519 signature on received message data.
+     * Returns true if valid, false otherwise.
+     */
+    fun verifySignature(
+        signingPublicKeyBase64: String,
+        ciphertextBase64: String,
+        conversationId: String,
+        createdAt: Long,
+        signatureBase64: String
+    ): Boolean {
+        return try {
+            val kf = KeyFactory.getInstance("Ed25519", "BC")
+            val pubKeyBytes = Base64.decode(signingPublicKeyBase64, Base64.NO_WRAP)
+            val publicKey = kf.generatePublic(X509EncodedKeySpec(pubKeyBytes))
+
+            val dataToVerify = buildSignedData(ciphertextBase64, conversationId, createdAt)
+            val signatureBytes = Base64.decode(signatureBase64, Base64.NO_WRAP)
+
+            val sig = Signature.getInstance("Ed25519", "BC")
+            sig.initVerify(publicKey)
+            sig.update(dataToVerify)
+            val result = sig.verify(signatureBytes)
+            dataToVerify.fill(0)
+            result
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Build the data blob that is signed: ciphertext || conversationId || createdAt.
+     * createdAt is encoded as big-endian 8 bytes for anti-replay protection.
+     */
+    private fun buildSignedData(
+        ciphertextBase64: String,
+        conversationId: String,
+        createdAt: Long
+    ): ByteArray {
+        val ciphertextBytes = ciphertextBase64.toByteArray(Charsets.UTF_8)
+        val conversationBytes = conversationId.toByteArray(Charsets.UTF_8)
+        val timestampBytes = ByteArray(8)
+        for (i in 0..7) {
+            timestampBytes[7 - i] = ((createdAt shr (i * 8)) and 0xFF).toByte()
+        }
+        val result = ByteArray(ciphertextBytes.size + conversationBytes.size + 8)
+        System.arraycopy(ciphertextBytes, 0, result, 0, ciphertextBytes.size)
+        System.arraycopy(conversationBytes, 0, result, ciphertextBytes.size, conversationBytes.size)
+        System.arraycopy(timestampBytes, 0, result, ciphertextBytes.size + conversationBytes.size, 8)
+        return result
     }
 
     data class EncryptedData(

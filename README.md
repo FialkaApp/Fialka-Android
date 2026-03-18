@@ -63,6 +63,7 @@
 - **PBKDF2** PIN (600K itérations)
 - **Dummy traffic** (trafic factice configurable)
 - **Fichiers E2E** chiffrés AES-256-GCM
+- **Signature Ed25519** anti-falsification par message
 
 </td>
 <td width="50%">
@@ -110,6 +111,7 @@
 | 👻 | **Dummy traffic** | Messages factices périodiques (configurable) |
 | 📎 | **Fichiers E2E** | Chiffrement AES-256-GCM par fichier via Firebase Storage |
 | 🔒 | **PBKDF2 PIN** | 600K itérations + salt (remplace SHA-256) |
+| ✍️ | **Signature Ed25519** | Chaque message signé, badge ✅/⚠️ anti-falsification |
 
 </details>
 
@@ -157,7 +159,7 @@
 | ⏰ | **Auto-lock** | Timeout configurable (5s → 5min) |
 | 🔑 | **Backup BIP-39** | 24 mots pour sauvegarder la clé d'identité |
 | ♻️ | **Restauration** | Restaurer sur un nouvel appareil via phrase |
-| 🗑️ | **Suppression complète** | Nettoie Firebase (profil, inbox, convos) |
+| 🗑️ | **Suppression complète** | Nettoie Firebase (profil, inbox, convos, clés de signature) |
 | 📵 | **Anonyme** | Zéro numéro, zéro email, zéro tracking |
 
 </details>
@@ -238,6 +240,8 @@ cd SecureChat
 | Firebase security rules restrictives | ✅ |
 | BIP-39 backup/restore (24 mots) | ✅ |
 | `allowBackup=false`, zéro logs sensibles | ✅ |
+| Signature Ed25519 par message (anti-falsification) | ✅ |
+| Nettoyage clés de signature à la suppression de compte | ✅ |
 
 > 📖 **Analyse complète** — [`SECURITY.md`](SECURITY.md) · [Protocole crypto](docs/fr/CRYPTO.md)
 
@@ -257,7 +261,9 @@ cd SecureChat
 | **V2.2** | UI Modernization — 5 thèmes, animations, CoordinatorLayout, zero hardcoded colors | ✅ Done |
 | **V3** | Security Hardening — R8, delete-after-delivery, padding, HMAC UID, PBKDF2, dummy traffic, fichiers E2E | ✅ Done |
 | **V3.1** | Settings Redesign — Paramètres Signal-like, PIN 6 chiffres, sous-écran Confidentialité, coroutines PIN | ✅ Done |
-| **V3.2** | Planned — Signature ECDSA, groupes, suppression pour tous, typing indicators | 🔜 |
+| **V3.2** | Ed25519 Signing — Signature par message, badge ✅/⚠️, durcissement Firebase rules, nettoyage clés | ✅ Done |
+| **V3.3** | Tor Integration — Routage via Tor, IP masquée, proxy SOCKS5, bootstrap UI, indicateur toolbar | 🔜 |
+| **V3.4** | Planned — Groupes, suppression pour tous, typing indicators, relay privé | 🔜 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
 
@@ -289,7 +295,7 @@ cd SecureChat
 | [**Protocole Crypto**](docs/fr/CRYPTO.md) | X25519, Double Ratchet, fingerprint, modèle de menace |
 | [**Installation**](docs/fr/SETUP.md) | Prérequis, Firebase, build, dépendances |
 | [**Structure**](docs/fr/STRUCTURE.md) | Arbre complet du projet |
-| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V3.1 |
+| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V3.2 |
 | [**Sécurité**](SECURITY.md) | Audit complet, limites connues |
 
 </div>

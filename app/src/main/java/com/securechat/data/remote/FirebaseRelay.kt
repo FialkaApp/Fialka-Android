@@ -1,6 +1,7 @@
 package com.securechat.data.remote
 
 import android.net.Uri
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
@@ -29,6 +30,8 @@ import kotlin.coroutines.resumeWithException
  *     - senderUid: String (Firebase anonymous UID, for push routing)
  */
 object FirebaseRelay {
+
+    private const val TAG = "FirebaseRelay"
 
     // TODO: Replace with your Firebase Realtime Database URL from Firebase Console
     // Go to: Firebase Console > Realtime Database > copy the URL at the top
@@ -124,9 +127,9 @@ object FirebaseRelay {
 
         val messageId = ref.key ?: ""
 
-        // Use ServerValue.TIMESTAMP for consistent ordering
-        val messageMap = message.toMap().toMutableMap()
-        messageMap["createdAt"] = ServerValue.TIMESTAMP
+        // Use the client-supplied timestamp (already in message.createdAt)
+        // so it matches what was signed by Ed25519.
+        val messageMap = message.toMap()
 
         ref.setValue(messageMap)
             .addOnSuccessListener {
@@ -231,6 +234,79 @@ object FirebaseRelay {
         }
     }
 
+    /**
+     * Store the Ed25519 signing public key on Firebase.
+     * Path: /users/{firebaseUid}/signingPublicKey
+     */
+    suspend fun storeSigningPublicKey(signingPublicKeyBase64: String) {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            Log.e(TAG, "storeSigningPublicKey: uid is null, cannot store")
+            return
+        }
+        Log.d(TAG, "storeSigningPublicKey: writing to /users/$uid/signingPublicKey")
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("users")
+                .child(uid)
+                .child("signingPublicKey")
+                .setValue(signingPublicKeyBase64)
+                .addOnSuccessListener {
+                    Log.d(TAG, "storeSigningPublicKey: SUCCESS")
+                    cont.resume(Unit)
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "storeSigningPublicKey: FAILED", e)
+                    cont.resume(Unit)
+                }
+        }
+    }
+
+    /**
+     * Fetch a user's Ed25519 signing public key from Firebase by their identity public key.
+     * Uses the same pubKeyHash used for inbox routing.
+     * Path: /signing_keys/{pubKeyHash}
+     */
+    suspend fun fetchSigningPublicKeyByIdentity(identityPublicKeyBase64: String): String? {
+        val pubKeyHash = hashPublicKey(identityPublicKeyBase64)
+        return suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("signing_keys")
+                .child(pubKeyHash)
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    cont.resume(snapshot.getValue(String::class.java))
+                }
+                .addOnFailureListener {
+                    cont.resume(null)
+                }
+        }
+    }
+
+    /**
+     * Store the Ed25519 signing public key indexed by identity public key hash.
+     * Path: /signing_keys/{pubKeyHash}
+     * This allows contacts to fetch the signing key using the identity public key.
+     */
+    suspend fun storeSigningPublicKeyByIdentity(identityPublicKeyBase64: String, signingPublicKeyBase64: String) {
+        val pubKeyHash = hashPublicKey(identityPublicKeyBase64)
+        Log.d(TAG, "storeSigningPublicKeyByIdentity: writing to /signing_keys/$pubKeyHash")
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("signing_keys")
+                .child(pubKeyHash)
+                .setValue(signingPublicKeyBase64)
+                .addOnSuccessListener {
+                    Log.d(TAG, "storeSigningPublicKeyByIdentity: SUCCESS")
+                    cont.resume(Unit)
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "storeSigningPublicKeyByIdentity: FAILED", e)
+                    cont.resume(Unit)
+                }
+        }
+    }
+
     // ========================================================================
     // FCM PUSH TOKEN
     // ========================================================================
@@ -286,7 +362,8 @@ object FirebaseRelay {
         recipientPublicKey: String,
         senderPublicKey: String,
         senderDisplayName: String,
-        conversationId: String
+        conversationId: String,
+        senderSigningPublicKey: String? = null
     ) {
         val recipientHash = hashPublicKey(recipientPublicKey)
 
@@ -296,12 +373,15 @@ object FirebaseRelay {
                 .child(recipientHash)
                 .child(conversationId) // Use conversationId as key to avoid duplicates
 
-            val requestMap = mapOf(
+            val requestMap = mutableMapOf<String, Any>(
                 "senderPublicKey" to senderPublicKey,
                 "senderDisplayName" to senderDisplayName,
                 "conversationId" to conversationId,
                 "createdAt" to ServerValue.TIMESTAMP
             )
+            if (senderSigningPublicKey != null) {
+                requestMap["senderSigningPublicKey"] = senderSigningPublicKey
+            }
 
             ref.setValue(requestMap)
                 .addOnSuccessListener { cont.resume(Unit) }
@@ -327,8 +407,9 @@ object FirebaseRelay {
                 val senderDisplayName = snapshot.child("senderDisplayName").getValue(String::class.java) ?: "Inconnu"
                 val conversationId = snapshot.child("conversationId").getValue(String::class.java) ?: return
                 val createdAt = snapshot.child("createdAt").getValue(Long::class.java) ?: 0L
+                val senderSigningPublicKey = snapshot.child("senderSigningPublicKey").getValue(String::class.java)
 
-                trySend(ContactRequest(senderPublicKey, senderDisplayName, conversationId, createdAt))
+                trySend(ContactRequest(senderPublicKey, senderDisplayName, conversationId, createdAt, senderSigningPublicKey))
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
@@ -609,6 +690,22 @@ object FirebaseRelay {
     }
 
     /**
+     * Delete the signing key entry for a given identity public key.
+     * Path: /signing_keys/{pubKeyHash}
+     */
+    suspend fun deleteSigningKey(identityPublicKey: String) {
+        val hash = hashPublicKey(identityPublicKey)
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("signing_keys")
+                .child(hash)
+                .removeValue()
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) }
+        }
+    }
+
+    /**
      * Find and remove any existing /users/{uid} node that has the given publicKey.
      * Used during restore to clean up the orphaned old profile.
      */
@@ -728,6 +825,7 @@ object FirebaseRelay {
         val senderPublicKey: String,
         val senderDisplayName: String,
         val conversationId: String,
-        val createdAt: Long
+        val createdAt: Long,
+        val senderSigningPublicKey: String? = null
     )
 }

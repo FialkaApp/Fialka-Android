@@ -50,6 +50,9 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                     FirebaseRelay.registerPublicKey(user.publicKey)
                     FirebaseRelay.storeDisplayName(displayName.trim())
 
+                    // Publish Ed25519 signing public key
+                    repository.publishSigningPublicKey()
+
                     _state.value = OnboardingState.Success(user)
                 }
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {

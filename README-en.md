@@ -63,6 +63,7 @@
 - **PBKDF2** PIN (600K iterations)
 - **Dummy traffic** (configurable cover traffic)
 - **E2E file sharing** AES-256-GCM encrypted
+- **Ed25519 signatures** per-message anti-forgery
 
 </td>
 <td width="50%">
@@ -110,6 +111,7 @@
 | 👻 | **Dummy traffic** | Periodic cover messages (configurable toggle) |
 | 📎 | **E2E file sharing** | Per-file AES-256-GCM via Firebase Storage |
 | 🔒 | **PBKDF2 PIN** | 600K iterations + salt (replaces SHA-256) |
+| ✍️ | **Ed25519 Signatures** | Every message signed, ✅/⚠️ badge anti-forgery |
 
 </details>
 
@@ -157,7 +159,7 @@
 | ⏰ | **Auto-lock** | Configurable timeout (5s → 5min) |
 | 🔑 | **BIP-39 Backup** | 24 words to backup identity key |
 | ♻️ | **Restore** | Recover on a new device via mnemonic |
-| 🗑️ | **Full deletion** | Cleans Firebase (profile, inbox, convos) |
+| 🗑️ | **Full deletion** | Cleans Firebase (profile, inbox, convos, signing keys) |
 | 📵 | **Anonymous** | Zero number, zero email, zero tracking |
 
 </details>
@@ -238,6 +240,8 @@ cd SecureChat
 | Restrictive Firebase security rules | ✅ |
 | BIP-39 backup/restore (24 words) | ✅ |
 | `allowBackup=false`, zero sensitive logs | ✅ |
+| Ed25519 per-message signatures (anti-forgery) | ✅ |
+| Signing key cleanup on account deletion | ✅ |
 
 > 📖 **Full Analysis** — [`SECURITY.md`](SECURITY.md) · [Crypto Protocol](docs/en/CRYPTO.md)
 
@@ -257,7 +261,9 @@ cd SecureChat
 | **V2.2** | UI Modernization — 5 themes, animations, CoordinatorLayout, zero hardcoded colors | ✅ Done |
 | **V3** | Security Hardening — R8, delete-after-delivery, padding, HMAC UID, PBKDF2, dummy traffic, E2E files | ✅ Done |
 | **V3.1** | Settings Redesign — Signal-like settings, 6-digit PIN, Privacy sub-screen, PIN coroutines | ✅ Done |
-| **V3.2** | Planned — ECDSA signatures, groups, delete for all, typing indicators | 🔜 |
+| **V3.2** | Ed25519 Signing — Per-message signatures, ✅/⚠️ badge, Firebase rules hardening, signing key cleanup | ✅ Done |
+| **V3.3** | Tor Integration — Tor routing, hidden IP, SOCKS5 proxy, bootstrap UI, toolbar indicator | 🔜 |
+| **V3.4** | Planned — Groups, delete for all, typing indicators, private relay | 🔜 |
 
 > 📖 **Details** — [Full Changelog](docs/en/CHANGELOG.md)
 
@@ -289,7 +295,7 @@ cd SecureChat
 | [**Crypto Protocol**](docs/en/CRYPTO.md) | X25519, Double Ratchet, fingerprint, threat model |
 | [**Setup**](docs/en/SETUP.md) | Prerequisites, Firebase, build, dependencies |
 | [**Structure**](docs/en/STRUCTURE.md) | Full project tree |
-| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V3.1 history |
+| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V3.2 history |
 | [**Security**](SECURITY.md) | Full audit, known limitations |
 
 </div>

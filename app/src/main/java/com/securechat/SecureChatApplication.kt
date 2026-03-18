@@ -7,6 +7,7 @@ import android.os.Build
 import com.google.firebase.FirebaseApp
 import com.securechat.crypto.CryptoManager
 import com.securechat.crypto.MnemonicManager
+import java.security.Security
 
 /**
  * Application class for SecureChat.
@@ -15,6 +16,8 @@ import com.securechat.crypto.MnemonicManager
 class SecureChatApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        Security.removeProvider("BC")
+        Security.insertProviderAt(org.bouncycastle.jce.provider.BouncyCastleProvider(), 1)
         FirebaseApp.initializeApp(this)
         CryptoManager.init(this)
         MnemonicManager.init(this)

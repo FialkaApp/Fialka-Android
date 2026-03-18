@@ -1,6 +1,7 @@
 package com.securechat.data.repository
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.LiveData
 import com.securechat.crypto.CryptoManager
 import com.securechat.crypto.DoubleRatchet
@@ -117,15 +118,29 @@ class ChatRepository(private val appContext: Context) {
 
     fun getAllContacts(): LiveData<List<Contact>> = contactDao.getAllContacts()
 
-    suspend fun addContact(displayName: String, publicKey: String): Contact {
+    suspend fun addContact(displayName: String, publicKey: String, signingPublicKey: String? = null): Contact {
         // Check for duplicate contact by public key
         val existing = contactDao.getContactByPublicKey(publicKey)
-        if (existing != null) return existing
+        if (existing != null) {
+            // Update signing key if we didn't have it before
+            if (existing.signingPublicKey == null && signingPublicKey != null) {
+                val updated = existing.copy(signingPublicKey = signingPublicKey)
+                contactDao.insertContact(updated)
+                return updated
+            }
+            return existing
+        }
+
+        // If no signing key provided, try to fetch from Firebase
+        val finalSigningKey = signingPublicKey ?: try {
+            FirebaseRelay.fetchSigningPublicKeyByIdentity(publicKey)
+        } catch (_: Exception) { null }
 
         val contact = Contact(
             contactId = UUID.randomUUID().toString(),
             displayName = displayName,
-            publicKey = publicKey
+            publicKey = publicKey,
+            signingPublicKey = finalSigningKey
         )
         contactDao.insertContact(contact)
         return contact
@@ -295,17 +310,24 @@ class ChatRepository(private val appContext: Context) {
             val augmentedPlaintext = "$messageIndex|$plaintext"
             val encryptedData = CryptoManager.encrypt(augmentedPlaintext, messageKey)
 
-            // 5. Send to Firebase — include ephemeral DH public key for Double Ratchet
+            // 5. Sign ciphertext with Ed25519 (anti-forgery + anti-replay)
+            val createdAt = System.currentTimeMillis()
+            val signature = try {
+                CryptoManager.signMessage(encryptedData.ciphertext, conversationId, createdAt)
+            } catch (_: Exception) { "" }
+
+            // 6. Send to Firebase — include ephemeral DH public key for Double Ratchet
             val firebaseMessage = FirebaseMessage(
                 ciphertext = encryptedData.ciphertext,
                 iv = encryptedData.iv,
-                createdAt = System.currentTimeMillis(),
+                createdAt = createdAt,
                 senderUid = CryptoManager.hashSenderUid(conversationId, FirebaseRelay.getCurrentUid() ?: ""),
-                ephemeralKey = ratchetState.localDhPublic
+                ephemeralKey = ratchetState.localDhPublic,
+                signature = signature
             )
             FirebaseRelay.sendMessage(conversationId, firebaseMessage)
 
-            // 6. Firebase succeeded → persist ratchet state
+            // 7. Firebase succeeded → persist ratchet state
             ratchetDao.insertOrUpdate(
                 ratchetState.copy(
                     sendChainKey = newSendChainKey,
@@ -313,7 +335,7 @@ class ChatRepository(private val appContext: Context) {
                 )
             )
 
-            // 7. Save plaintext locally (with ephemeral timing if enabled)
+            // 8. Save plaintext locally (with ephemeral timing if enabled)
             val ephDuration = conversation.ephemeralDuration
             val expiresAt = if (ephDuration > 0) System.currentTimeMillis() + ephDuration else 0L
             val localMessage = MessageLocal(
@@ -323,7 +345,8 @@ class ChatRepository(private val appContext: Context) {
                 plaintext = plaintext,
                 isMine = true,
                 ephemeralDuration = ephDuration,
-                expiresAt = expiresAt
+                expiresAt = expiresAt,
+                signatureValid = true  // Own messages are implicitly valid
             )
             messageDao.insertMessage(localMessage)
             updateConversationLastMessage(conversationId, plaintext)
@@ -426,7 +449,8 @@ class ChatRepository(private val appContext: Context) {
         conversationId: String,
         conversation: Conversation,
         decryptedPlaintext: String,
-        timestamp: Long
+        timestamp: Long,
+        signatureValid: Boolean?
     ): MessageLocal? {
         return try {
             // Parse: strip FILE_PREFIX, then split remaining by |
@@ -470,7 +494,8 @@ class ChatRepository(private val appContext: Context) {
                 expiresAt = expiresAt,
                 fileName = fileName,
                 fileSize = fileSize,
-                localFilePath = localFile.absolutePath
+                localFilePath = localFile.absolutePath,
+                signatureValid = signatureValid
             )
             messageDao.insertMessage(localMessage)
             updateConversationLastMessage(conversationId, localMessage.plaintext)
@@ -595,6 +620,35 @@ class ChatRepository(private val appContext: Context) {
                 FirebaseRelay.deleteMessage(conversationId, firebaseMessage.firebaseKey)
             }
 
+            // Verify Ed25519 signature (after ratchet advance — ratchet must ALWAYS progress)
+            val contact = contactDao.getContactByPublicKey(conversation.participantPublicKey)
+
+            // Lazy-fetch signing key if we don't have it yet
+            var signingKey = contact?.signingPublicKey
+            if (signingKey == null && firebaseMessage.signature.isNotEmpty() && contact != null) {
+                signingKey = try {
+                    FirebaseRelay.fetchSigningPublicKeyByIdentity(conversation.participantPublicKey)
+                } catch (_: Exception) { null }
+                if (signingKey != null) {
+                    contactDao.insertContact(contact.copy(signingPublicKey = signingKey))
+                }
+            }
+            val signatureValid: Boolean? = if (firebaseMessage.signature.isNotEmpty() && signingKey != null) {
+                CryptoManager.verifySignature(
+                    signingKey,
+                    firebaseMessage.ciphertext,
+                    conversationId,
+                    firebaseMessage.createdAt,
+                    firebaseMessage.signature
+                )
+            } else if (firebaseMessage.signature.isNotEmpty()) {
+                // Signature present but no signing key known — can't verify
+                null
+            } else {
+                // No signature on message
+                null
+            }
+
             // Silently drop dummy traffic messages (used to mask real activity patterns)
             if (decryptedPlaintext != null && decryptedPlaintext.startsWith(DUMMY_PREFIX)) {
                 return@withLock null
@@ -604,7 +658,7 @@ class ChatRepository(private val appContext: Context) {
             if (decryptedPlaintext != null && decryptedPlaintext.startsWith(FILE_PREFIX)) {
                 return@withLock handleReceivedFile(
                     conversationId, conversation, decryptedPlaintext,
-                    firebaseMessage.createdAt
+                    firebaseMessage.createdAt, signatureValid
                 )
             }
 
@@ -624,7 +678,8 @@ class ChatRepository(private val appContext: Context) {
                 timestamp = firebaseMessage.createdAt,
                 isMine = false,
                 ephemeralDuration = ephDuration,
-                expiresAt = expiresAt
+                expiresAt = expiresAt,
+                signatureValid = signatureValid
             )
             messageDao.insertMessage(localMessage)
             updateConversationLastMessage(conversationId, localMessage.plaintext)
@@ -690,6 +745,27 @@ class ChatRepository(private val appContext: Context) {
     }
 
     /**
+     * Publish the Ed25519 signing public key on Firebase (by identity public key hash).
+     * Should be called once after account creation or BIP-39 restore.
+     */
+    suspend fun publishSigningPublicKey() {
+        val publicKey = CryptoManager.getPublicKey()
+        if (publicKey == null) {
+            Log.e("SecureChat", "publishSigningPublicKey: identity key is null!")
+            return
+        }
+        val signingPubKey = try {
+            CryptoManager.getSigningPublicKeyBase64()
+        } catch (e: Exception) {
+            Log.e("SecureChat", "publishSigningPublicKey: failed to get signing key", e)
+            return
+        }
+        Log.d("SecureChat", "publishSigningPublicKey: identityKey=${publicKey.take(20)}... signingKey=${signingPubKey.take(20)}...")
+        FirebaseRelay.storeSigningPublicKey(signingPubKey)
+        FirebaseRelay.storeSigningPublicKeyByIdentity(publicKey, signingPubKey)
+    }
+
+    /**
      * Store FCM token on Firebase (opt-in push notifications).
      */
     suspend fun storeFcmToken(token: String) {
@@ -710,13 +786,15 @@ class ChatRepository(private val appContext: Context) {
     suspend fun sendContactRequest(contactPublicKey: String) {
         val user = userDao.getUser() ?: return
         val conversationId = CryptoManager.deriveConversationId(user.publicKey, contactPublicKey)
+        val signingPublicKey = try { CryptoManager.getSigningPublicKeyBase64() } catch (_: Exception) { null }
 
         try {
             FirebaseRelay.sendContactRequest(
                 recipientPublicKey = contactPublicKey,
                 senderPublicKey = user.publicKey,
                 senderDisplayName = user.displayName,
-                conversationId = conversationId
+                conversationId = conversationId,
+                senderSigningPublicKey = signingPublicKey
             )
         } catch (_: Exception) {
             // Best effort — message will still be on Firebase
@@ -745,8 +823,8 @@ class ChatRepository(private val appContext: Context) {
             FirebaseRelay.signInAnonymously()
         }
 
-        // Add contact
-        addContact(request.senderDisplayName, request.senderPublicKey)
+        // Add contact (with signing key from the request if available)
+        addContact(request.senderDisplayName, request.senderPublicKey, request.senderSigningPublicKey)
 
         // Create conversation (accepted = true, ratchet initialized, participant registered)
         val conversation = createConversation(request.senderPublicKey, request.senderDisplayName, accepted = true)
@@ -967,6 +1045,7 @@ class ChatRepository(private val appContext: Context) {
             FirebaseRelay.deleteUserProfile()
             if (publicKey != null) {
                 FirebaseRelay.deleteInbox(publicKey)
+                FirebaseRelay.deleteSigningKey(publicKey)
             }
             for (convo in conversations) {
                 FirebaseRelay.deleteConversation(convo.conversationId)

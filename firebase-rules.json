@@ -5,7 +5,7 @@
         ".read": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
         ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists() && !newData.exists()",
         "participants": {
-          ".read": "auth != null",
+          ".read": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
           "$uid": {
             ".write": "auth != null && auth.uid === $uid",
             ".validate": "newData.isBoolean()"
@@ -47,7 +47,15 @@
         ".write": "auth.uid === $uid",
         "publicKey": { ".validate": "newData.isString()" },
         "displayName": { ".validate": "newData.isString() && newData.val().length < 100" },
-        "fcm_token": { ".validate": "newData.isString() && newData.val().length < 500" }
+        "fcm_token": { ".validate": "newData.isString() && newData.val().length < 500" },
+        "signingPublicKey": { ".validate": "newData.isString() && newData.val().length < 500" }
+      }
+    },
+    "signing_keys": {
+      "$pubKeyHash": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".validate": "newData.isString() && newData.val().length < 500"
       }
     }
   }

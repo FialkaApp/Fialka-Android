@@ -129,6 +129,34 @@ Avant chiffrement, chaque message est paddé vers le bucket supérieur :
 
 ---
 
+## Signature de message (Ed25519, V3.2)
+
+Chaque message est signé avec une clé **Ed25519** dédiée (séparée de la clé d'identité X25519) via BouncyCastle 1.78.1.
+
+```
+Envoi :
+  signingKeyPair = getOrDeriveSigningKeyPair()   (EncryptedSharedPreferences)
+  dataToSign = ciphertext.UTF8 || conversationId.UTF8 || createdAt.bigEndian8bytes
+  signature  = Ed25519.sign(signingKeyPair.private, dataToSign)
+  → envoyé dans le message Firebase : { ..., "signature": Base64(signature) }
+
+Réception :
+  signingPublicKey = fetchSigningPublicKeyByIdentity(contact.publicKey)
+  dataToVerify = ciphertext.UTF8 || conversationId.UTF8 || createdAt.bigEndian8bytes
+  valid = Ed25519.verify(signingPublicKey, dataToVerify, signature)
+  → Badge : ✅ (valid=true) ou ⚠️ (valid=false ou clé absente)
+```
+
+### Propriétés
+
+- ✅ **Anti-falsification** : seul le détenteur de la clé privée Ed25519 peut signer
+- ✅ **Anti-replay inter-conversation** : `conversationId` inclus dans les données signées
+- ✅ **Anti-manipulation temporelle** : `createdAt` (timestamp client) inclus dans les données signées
+- ✅ **Clé de signature séparée** de la clé d'identité X25519 (pas de mélange des usages)
+- ✅ **Nettoyage** : clé de signature supprimée de Firebase (`/signing_keys/{hash}`) à la suppression du compte
+
+---
+
 ## Ce qui transite sur Firebase
 
 ### Messages (chiffrés)
@@ -138,13 +166,16 @@ Avant chiffrement, chaque message est paddé vers le bucket supérieur :
   "ciphertext": "a3F4bWx...",
   "iv": "dG9rZW4...",
   "createdAt": 1700000000000,
-  "senderUid": "HMAC-SHA256(uid, conversationId)"  // V3.0 : hashé, non brut
+  "senderUid": "HMAC-SHA256(uid, conversationId)",
+  "signature": "Ed25519(ciphertext || conversationId || createdAt)"
 }
 ```
 
 - **V3.0** : `senderUid` = `HMAC-SHA256(firebaseUid, conversationId)` → l'UID brut n'est plus visible
 - **V3.0** : Les messages sont **supprimés de Firebase** dès réception (`deleteMessageFromFirebase()`)
 - **V3.0** : Le message paddé (cf. section Padding) est chiffré → taille uniforme sur le réseau
+- **V3.2** : `signature` = Ed25519 sur `ciphertext_UTF8 || conversationId_UTF8 || createdAt_bigEndian8bytes` → anti-falsification + anti-replay
+- **V3.2** : `createdAt` = `System.currentTimeMillis()` côté client (pas `ServerValue.TIMESTAMP`) pour cohérence signature
 
 ### Paramètres éphémères
 
@@ -198,6 +229,7 @@ Réception :
 | Attaque MITM | ✅ | Fingerprint emojis 96-bit (vérification visuelle) |
 | Vol du téléphone déverrouillé | ✅ | Keystore, SQLCipher, App Lock PIN + biométrie, auto-lock |
 | Messages sensibles oubliés | ✅ | Messages éphémères (timer sur envoi / lecture) |
+| Falsification de message | ✅ | Signature Ed25519 par message (V3.2) — badge ✅/⚠️ |
 | Métadonnées (qui/quand) | ✅ | senderUid → HMAC-SHA256, padding uniforme, dummy traffic, delete-after-delivery |
 | Analyse de trafic | ✅ | Dummy traffic (30-90 s, même pipeline), padding par buckets, suppression après réception |
 | Fichiers interceptés | ✅ | Chiffrement AES-256-GCM par fichier, clé transmise dans le canal E2E |

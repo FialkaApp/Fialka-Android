@@ -129,6 +129,34 @@ Before encryption, each message is padded to the next bucket:
 
 ---
 
+## Message Signing (Ed25519, V3.2)
+
+Every message is signed with a dedicated **Ed25519** key pair (separate from the X25519 identity key) via BouncyCastle 1.78.1.
+
+```
+Send:
+  signingKeyPair = getOrDeriveSigningKeyPair()   (EncryptedSharedPreferences)
+  dataToSign = ciphertext.UTF8 || conversationId.UTF8 || createdAt.bigEndian8bytes
+  signature  = Ed25519.sign(signingKeyPair.private, dataToSign)
+  → sent in Firebase message: { ..., "signature": Base64(signature) }
+
+Receive:
+  signingPublicKey = fetchSigningPublicKeyByIdentity(contact.publicKey)
+  dataToVerify = ciphertext.UTF8 || conversationId.UTF8 || createdAt.bigEndian8bytes
+  valid = Ed25519.verify(signingPublicKey, dataToVerify, signature)
+  → Badge: ✅ (valid=true) or ⚠️ (valid=false or key missing)
+```
+
+### Properties
+
+- ✅ **Anti-forgery**: only the holder of the Ed25519 private key can sign
+- ✅ **Anti-replay across conversations**: `conversationId` included in signed data
+- ✅ **Anti-timestamp manipulation**: `createdAt` (client timestamp) included in signed data
+- ✅ **Separate signing key** from X25519 identity key (no key use mixing)
+- ✅ **Cleanup**: signing key removed from Firebase (`/signing_keys/{hash}`) on account deletion
+
+---
+
 ## What transverses Firebase
 
 ### Messages (encrypted)
@@ -138,13 +166,16 @@ Before encryption, each message is padded to the next bucket:
   "ciphertext": "a3F4bWx...",
   "iv": "dG9rZW4...",
   "createdAt": 1700000000000,
-  "senderUid": "HMAC-SHA256(uid, conversationId)"  // V3.0: hashed, not raw
+  "senderUid": "HMAC-SHA256(uid, conversationId)",
+  "signature": "Ed25519(ciphertext || conversationId || createdAt)"
 }
 ```
 
 - **V3.0**: `senderUid` = `HMAC-SHA256(firebaseUid, conversationId)` → raw UID no longer visible
 - **V3.0**: Messages are **deleted from Firebase** upon receipt (`deleteMessageFromFirebase()`)
 - **V3.0**: Padded message (see Padding section) is encrypted → uniform size on the wire
+- **V3.2**: `signature` = Ed25519 over `ciphertext_UTF8 || conversationId_UTF8 || createdAt_bigEndian8bytes` → anti-forgery + anti-replay
+- **V3.2**: `createdAt` = client `System.currentTimeMillis()` (not `ServerValue.TIMESTAMP`) for signature consistency
 
 ### Ephemeral Sync Settings
 
@@ -198,6 +229,7 @@ Receive:
 | MITM Attack | ✅ | 96-bit fingerprint emojis (visual check) |
 | Phone stolen unlocked | ✅ | Keystore, SQLCipher, App Lock PIN + biometrics, auto-lock |
 | Sensitive messages left | ✅ | Disappearing messages (timer on send / read) |
+| Message forgery | ✅ | Per-message Ed25519 signature (V3.2) — badge ✅/⚠️ |
 | Metadata (who/when) | ✅ | senderUid → HMAC-SHA256, uniform padding, dummy traffic, delete-after-delivery |
 | Traffic analysis | ✅ | Dummy traffic (30–90 s, same pipeline), bucket padding, delete on receipt |
 | Intercepted files | ✅ | Per-file AES-256-GCM encryption, key transmitted inside E2E channel |

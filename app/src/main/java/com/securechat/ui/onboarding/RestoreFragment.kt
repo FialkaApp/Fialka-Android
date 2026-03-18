@@ -86,6 +86,9 @@ class RestoreFragment : Fragment() {
                     FirebaseRelay.registerPublicKey(publicKey)
                     FirebaseRelay.storeDisplayName(displayName)
 
+                    // Publish Ed25519 signing public key (derived from restored identity)
+                    repository.publishSigningPublicKey()
+
                     findNavController().navigate(R.id.action_restore_to_conversations)
                 }
             } catch (e: Exception) {

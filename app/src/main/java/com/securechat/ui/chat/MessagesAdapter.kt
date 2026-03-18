@@ -57,6 +57,23 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
                 context.startActivity(intent)
             } catch (_: Exception) { }
         }
+
+        /** Bind the signature badge: ✅ valid, ⚠️ invalid, hidden if null (no signature). */
+        private fun bindSignatureBadge(badge: android.widget.TextView, signatureValid: Boolean?) {
+            when (signatureValid) {
+                true -> {
+                    badge.visibility = View.VISIBLE
+                    badge.text = "✅"
+                }
+                false -> {
+                    badge.visibility = View.VISIBLE
+                    badge.text = "⚠️"
+                }
+                null -> {
+                    badge.visibility = View.GONE
+                }
+            }
+        }
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -150,6 +167,9 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
             } else {
                 binding.tvEphemeralSent.visibility = View.GONE
             }
+
+            // Signature badge
+            bindSignatureBadge(binding.tvSignatureBadge, message.signatureValid)
         }
     }
 
@@ -174,6 +194,9 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
             } else {
                 binding.tvEphemeralReceived.visibility = View.GONE
             }
+
+            // Signature badge
+            bindSignatureBadge(binding.tvSignatureBadge, message.signatureValid)
         }
     }
 
