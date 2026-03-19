@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.Collections
 import java.util.UUID
 
 /**
@@ -69,8 +68,8 @@ class ChatRepository(private val appContext: Context) {
          * double-processing when both ConversationsViewModel (global) and
          * ChatViewModel (per-chat) listeners receive the same message.
          */
-        private val processedFirebaseKeys: MutableSet<String> =
-            Collections.synchronizedSet(mutableSetOf())
+        private val processedFirebaseKeys: java.util.concurrent.ConcurrentHashMap<String, Boolean> =
+            java.util.concurrent.ConcurrentHashMap()
         private const val MAX_PROCESSED_KEYS = 500
 
         /** The conversation currently being viewed. Unread count won't increment for it. */
@@ -254,12 +253,18 @@ class ChatRepository(private val appContext: Context) {
 
         if (isInitiator) {
             if (remoteMlkemKey != null) {
-                // PQXDH initiator path: encapsulate + combine (ssClassic || ssPQ)
+                // PQXDH initiator path: encapsulate now, but start with CLASSIC chains.
+                // Both sides must begin with the same classic secret so messages are
+                // decryptable regardless of who sends first. The combined (PQ) root is
+                // installed later — on send (initiator) or on receive (responder) — and
+                // only affects the rootKey. Active send/recv chains stay classic until
+                // the next natural DH ratchet step derives post-quantum chains from the
+                // upgraded root.
                 val (kemCt, ssPQ) = CryptoManager.mlkemEncaps(remoteMlkemKey)
-                val combined = ssClassic + ssPQ
-                ssClassic.fill(0)
+                val ssPQBase64 = android.util.Base64.encodeToString(ssPQ, android.util.Base64.NO_WRAP)
                 ssPQ.fill(0)
-                val init = DoubleRatchet.initializeAsInitiator(combined)
+                val init = DoubleRatchet.initializeAsInitiator(ssClassic)
+                ssClassic.fill(0)
                 ratchetState = RatchetState(
                     conversationId = conversationId,
                     rootKey = init.rootKey,
@@ -271,8 +276,11 @@ class ChatRepository(private val appContext: Context) {
                     localDhPrivate = init.localDhPrivate,
                     remoteDhPublic = init.remoteDhPublic,
                     remoteMlkemPublicKey = remoteMlkemKey,
-                    pqxdhInitialized = true,
-                    pendingKemCiphertext = kemCt
+                    pqxdhInitialized = false,
+                    pendingKemCiphertext = kemCt,
+                    // Store ssPQ so the deferred PQXDH rootKey upgrade in sendMessage
+                    // can recompute combined = performKeyAgreement() + ssPQ
+                    pendingClassicSecret = ssPQBase64
                 )
             } else {
                 // Classic-only initiator fallback (contact hasn't published ML-KEM key)
@@ -287,7 +295,8 @@ class ChatRepository(private val appContext: Context) {
                     recvIndex = 0,
                     localDhPublic = init.localDhPublic,
                     localDhPrivate = init.localDhPrivate,
-                    remoteDhPublic = init.remoteDhPublic
+                    remoteDhPublic = init.remoteDhPublic,
+                    pqxdhInitialized = true  // no ML-KEM → mark done
                 )
             }
         } else {
@@ -404,13 +413,45 @@ class ChatRepository(private val appContext: Context) {
             FirebaseRelay.sendMessage(conversationId, firebaseMessage)
 
             // 7. Firebase succeeded → persist ratchet state; clear pendingKemCiphertext
-            ratchetDao.insertOrUpdate(
-                ratchetState.copy(
-                    sendChainKey = newSendChainKey,
-                    sendIndex = messageIndex + 1,
-                    pendingKemCiphertext = ""
+            //    If this was the first message carrying kemCiphertext (PQXDH initiator),
+            //    also upgrade the rootKey to the combined (classic+PQ) secret. Only the
+            //    rootKey changes — current send/recv chains stay intact so in-flight
+            //    messages remain decryptable until the next DH ratchet step naturally
+            //    derives post-quantum chains from the upgraded root.
+            val wasPqxdhSend = ratchetState.pendingKemCiphertext.isNotEmpty()
+                    && !ratchetState.pqxdhInitialized
+                    && ratchetState.pendingClassicSecret.isNotEmpty()
+
+            if (wasPqxdhSend) {
+                val ssClassicFresh = CryptoManager.performKeyAgreement(conversation.participantPublicKey)
+                val ssPQBytes = android.util.Base64.decode(
+                    ratchetState.pendingClassicSecret, android.util.Base64.NO_WRAP
                 )
-            )
+                val combined = ssClassicFresh + ssPQBytes
+                ssClassicFresh.fill(0)
+                ssPQBytes.fill(0)
+                // Derive the combined rootKey (same derivation both sides will use)
+                val pqInit = DoubleRatchet.initializeAsInitiator(combined)
+                // combined is zeroed inside initializeAsInitiator
+                ratchetDao.insertOrUpdate(
+                    ratchetState.copy(
+                        sendChainKey = newSendChainKey,
+                        sendIndex = messageIndex + 1,
+                        pendingKemCiphertext = "",
+                        rootKey = pqInit.rootKey,
+                        pqxdhInitialized = true,
+                        pendingClassicSecret = ""
+                    )
+                )
+            } else {
+                ratchetDao.insertOrUpdate(
+                    ratchetState.copy(
+                        sendChainKey = newSendChainKey,
+                        sendIndex = messageIndex + 1,
+                        pendingKemCiphertext = ""
+                    )
+                )
+            }
 
             // 8. Save plaintext locally (with ephemeral timing if enabled)
             val ephDuration = conversation.ephemeralDuration
@@ -607,13 +648,17 @@ class ChatRepository(private val appContext: Context) {
 
         return getMutex(conversationId).withLock {
             // Guard against double-processing by parallel listeners (global + per-chat)
+            // putIfAbsent is atomic on ConcurrentHashMap — no race window
             if (firebaseMessage.firebaseKey.isNotEmpty() &&
-                !processedFirebaseKeys.add(firebaseMessage.firebaseKey)
+                processedFirebaseKeys.putIfAbsent(firebaseMessage.firebaseKey, true) != null
             ) {
                 return@withLock null
             }
+            // LRU-style eviction: keep only the most recent keys (never mid-processing)
             if (processedFirebaseKeys.size > MAX_PROCESSED_KEYS) {
-                processedFirebaseKeys.clear()
+                val keysToRemove = processedFirebaseKeys.keys().toList()
+                    .take(processedFirebaseKeys.size - MAX_PROCESSED_KEYS / 2)
+                keysToRemove.forEach { processedFirebaseKeys.remove(it) }
             }
 
             // Skip duplicates — check by conversationId + timestamp (received only)
@@ -653,38 +698,6 @@ class ChatRepository(private val appContext: Context) {
                 ratchetDao.insertOrUpdate(ratchetState)
             }
 
-            // PQXDH upgrade: if this is the initiator's first message and it carries a KEM
-            // ciphertext, decapsulate and re-derive all chain keys from the combined secret.
-            // This ensures every message — including the very first — has post-quantum security.
-            if (!ratchetState.pqxdhInitialized
-                && firebaseMessage.kemCiphertext.isNotEmpty()
-                && ratchetState.pendingClassicSecret.isNotEmpty()
-            ) {
-                try {
-                    val classicBytes = android.util.Base64.decode(
-                        ratchetState.pendingClassicSecret, android.util.Base64.NO_WRAP
-                    )
-                    val ssPQ = CryptoManager.mlkemDecaps(firebaseMessage.kemCiphertext)
-                    val combined = classicBytes + ssPQ
-                    classicBytes.fill(0)
-                    ssPQ.fill(0)
-                    val newInit = DoubleRatchet.initializeAsResponder(combined)
-                    // Preserve remoteDhPublic already captured from ephemeralKey above
-                    ratchetState = ratchetState.copy(
-                        rootKey = newInit.rootKey,
-                        sendChainKey = newInit.sendChainKey,
-                        recvChainKey = newInit.recvChainKey,
-                        localDhPublic = newInit.localDhPublic,
-                        localDhPrivate = newInit.localDhPrivate,
-                        pqxdhInitialized = true,
-                        pendingClassicSecret = ""
-                    )
-                    ratchetDao.insertOrUpdate(ratchetState)
-                } catch (e: Exception) {
-                    Log.w("SecureChat", "PQXDH re-init failed, falling back to classic chains", e)
-                }
-            }
-
             // Trial decryption: messageIndex is embedded in ciphertext as "index|plaintext"
             var tempChainKey = ratchetState.recvChainKey
             var decryptedPlaintext: String? = null
@@ -721,12 +734,43 @@ class ChatRepository(private val appContext: Context) {
 
             // Update ratchet only on successful decryption
             if (finalChainKey != null) {
-                ratchetDao.insertOrUpdate(
-                    ratchetState.copy(
-                        recvChainKey = finalChainKey,
-                        recvIndex = foundIndex + 1
-                    )
+                ratchetState = ratchetState.copy(
+                    recvChainKey = finalChainKey,
+                    recvIndex = foundIndex + 1
                 )
+                ratchetDao.insertOrUpdate(ratchetState)
+
+                // PQXDH deferred upgrade (responder side):
+                // Now that the message carrying kemCiphertext has been successfully
+                // decrypted with the classic chain, upgrade rootKey to the combined
+                // (classic + PQ) secret. Only the rootKey changes — the current
+                // send/recv chains stay intact. The next DH ratchet step will
+                // naturally derive post-quantum chains from the upgraded root.
+                if (!ratchetState.pqxdhInitialized
+                    && firebaseMessage.kemCiphertext.isNotEmpty()
+                    && ratchetState.pendingClassicSecret.isNotEmpty()
+                ) {
+                    try {
+                        val classicBytes = android.util.Base64.decode(
+                            ratchetState.pendingClassicSecret, android.util.Base64.NO_WRAP
+                        )
+                        val ssPQ = CryptoManager.mlkemDecaps(firebaseMessage.kemCiphertext)
+                        val combined = classicBytes + ssPQ
+                        classicBytes.fill(0)
+                        ssPQ.fill(0)
+                        val pqInit = DoubleRatchet.initializeAsResponder(combined)
+                        // combined is zeroed inside initializeAsResponder
+                        ratchetState = ratchetState.copy(
+                            rootKey = pqInit.rootKey,
+                            pqxdhInitialized = true,
+                            pendingClassicSecret = ""
+                        )
+                        ratchetDao.insertOrUpdate(ratchetState)
+                    } catch (e: Exception) {
+                        Log.w("SecureChat", "PQXDH deferred rootKey upgrade failed", e)
+                    }
+                }
+
                 // Delete-after-delivery: remove ciphertext from Firebase
                 FirebaseRelay.deleteMessage(conversationId, firebaseMessage.firebaseKey)
                 // Track the latest successfully delivered timestamp so the listener
@@ -843,7 +887,11 @@ class ChatRepository(private val appContext: Context) {
             if (conv.conversationId in activeListeners) continue
             activeListeners.add(conv.conversationId)
 
-            listenForMessages(conv.conversationId, conv.createdAt)
+            // Use lastDeliveredAt as lower-bound (same as ChatViewModel) so the
+            // global listener doesn't re-fetch messages that were already decrypted.
+            // Falls back to createdAt only for brand-new conversations with no deliveries yet.
+            val since = if (conv.lastDeliveredAt > 0L) conv.lastDeliveredAt else conv.createdAt
+            listenForMessages(conv.conversationId, since)
                 .onEach { firebaseMessage ->
                     receiveMessage(conv.conversationId, firebaseMessage)
                 }
