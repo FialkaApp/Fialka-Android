@@ -1,5 +1,7 @@
 package com.securechat.ui.settings
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +18,9 @@ import com.securechat.databinding.FragmentSettingsSecurityBinding
 import com.securechat.tor.TorManager
 import com.securechat.tor.TorState
 import com.securechat.util.AppLockManager
+import com.securechat.util.DeviceSecurityManager
+import com.securechat.util.SecurityLevel
+import com.securechat.util.StrongBoxStatus
 import kotlinx.coroutines.launch
 
 class SecurityFragment : Fragment() {
@@ -35,10 +40,40 @@ class SecurityFragment : Fragment() {
 
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
 
+        setupDeviceSecurity()
         setupPin()
         setupBiometric()
         setupAutoLock()
         setupTor()
+    }
+
+    private fun setupDeviceSecurity() {
+        val profile = DeviceSecurityManager.getSecurityProfile(requireContext())
+
+        binding.tvOsName.text = profile.osLabel
+        binding.tvDeviceName.text = profile.deviceName
+        binding.tvSecurityLevel.text = profile.securityLevelLabel
+
+        val badgeColor = when (profile.securityLevel) {
+            SecurityLevel.MAXIMUM  -> Color.parseColor("#1DB954")
+            SecurityLevel.HIGH     -> Color.parseColor("#4A90D9")
+            SecurityLevel.STANDARD -> Color.parseColor("#888780")
+        }
+        binding.badgeSecurityLevel.backgroundTintList = ColorStateList.valueOf(badgeColor)
+        binding.badgeSecurityLevel.text = profile.securityLevelLabel
+
+        binding.tvStrongboxStatus.text = when {
+            profile.isGrapheneOS && profile.isStrongBoxAvailable          -> "Titan M2 actif"
+            !profile.isGrapheneOS && profile.isStrongBoxAvailable         -> "Secure Element actif"
+            profile.strongBoxStatus == StrongBoxStatus.NOT_AVAILABLE      -> "TEE standard (KeyStore)"
+            profile.strongBoxStatus == StrongBoxStatus.DECLARED_BUT_UNAVAILABLE -> "Déclaré mais non fonctionnel"
+            else                                                           -> "TEE standard (KeyStore)"
+        }
+
+        binding.bannerStrongboxNonGos.visibility =
+            if (!profile.isGrapheneOS && profile.isStrongBoxAvailable) View.VISIBLE else View.GONE
+        binding.bannerSecondaryProfile.visibility =
+            if (profile.isSecondaryProfile) View.VISIBLE else View.GONE
     }
 
     private fun setupAutoLock() {

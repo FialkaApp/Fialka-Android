@@ -26,5 +26,8 @@ data class RatchetState(
     // --- Double Ratchet DH state ---
     val localDhPublic: String = "",   // Base64 — our current ephemeral DH public key
     val localDhPrivate: String = "",  // Base64 — our current ephemeral DH private key
-    val remoteDhPublic: String = ""   // Base64 — their latest ephemeral DH public key
+    val remoteDhPublic: String = "",  // Base64 — their latest ephemeral DH public key
+    // --- PQXDH (ML-KEM-768) state ---
+    val remoteMlkemPublicKey: String = "",  // Base64 — recipient's ML-KEM public key (stored on init)
+    val pqxdhInitialized: Boolean = false   // true once the first PQXDH exchange is complete
 )

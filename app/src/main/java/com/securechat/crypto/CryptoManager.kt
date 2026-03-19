@@ -3,17 +3,26 @@ package com.securechat.crypto
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
+import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import java.security.*
-import java.security.spec.PKCS8EncodedKeySpec
-import java.security.spec.X509EncodedKeySpec
-import android.util.Log
+import com.securechat.util.DeviceSecurityManager
+import org.bouncycastle.crypto.SecretWithEncapsulation
 import org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator
 import org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
 import org.bouncycastle.crypto.signers.Ed25519Signer
+import org.bouncycastle.pqc.crypto.mlkem.MLKEMKEMExtractor
+import org.bouncycastle.pqc.crypto.mlkem.MLKEMKEMGenerator
+import org.bouncycastle.pqc.crypto.mlkem.MLKEMKeyGenerationParameters
+import org.bouncycastle.pqc.crypto.mlkem.MLKEMKeyPairGenerator
+import org.bouncycastle.pqc.crypto.mlkem.MLKEMParameters
+import org.bouncycastle.pqc.crypto.mlkem.MLKEMPrivateKeyParameters
+import org.bouncycastle.pqc.crypto.mlkem.MLKEMPublicKeyParameters
+import java.security.*
+import java.security.spec.PKCS8EncodedKeySpec
+import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
 import javax.crypto.KeyAgreement
 import javax.crypto.SecretKey
@@ -37,6 +46,8 @@ object CryptoManager {
     private const val PREFS_FILE = "securechat_identity_keys"
     private const val KEY_PUBLIC = "identity_public_key"
     private const val KEY_PRIVATE = "identity_private_key"
+    private const val KEY_MLKEM_PUBLIC  = "identity_mlkem_public_key"
+    private const val KEY_MLKEM_PRIVATE = "identity_mlkem_private_key"
 
     private const val AES_GCM_TRANSFORMATION = "AES/GCM/NoPadding"
     private const val GCM_TAG_LENGTH_BITS = 128
@@ -54,8 +65,10 @@ object CryptoManager {
      * Initializes EncryptedSharedPreferences backed by Android Keystore AES-256-GCM.
      */
     fun init(context: Context) {
+        val profile = DeviceSecurityManager.getSecurityProfile(context.applicationContext)
         val masterKey = MasterKey.Builder(context.applicationContext)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .setRequestStrongBoxBacked(profile.isStrongBoxAvailable)
             .build()
         prefs = EncryptedSharedPreferences.create(
             context.applicationContext,
@@ -614,4 +627,88 @@ object CryptoManager {
         val ciphertext: String,
         val iv: String
     )
+
+    // ========================================================================
+    // 9. ML-KEM-768 IDENTITY KEY (PQXDH — post-quantum key encapsulation)
+    //
+    // Uses BouncyCastle 1.78+ lightweight API directly (NOT via JCA provider).
+    // Same pattern as Ed25519: raw bytes stored in EncryptedSharedPreferences.
+    // ========================================================================
+
+    /**
+     * Generate & persist an ML-KEM-768 identity key pair.
+     * Idempotent: returns existing public key if already generated.
+     * @return Base64 public key (~1580 chars).
+     */
+    fun generateMLKEMIdentityKeyPair(): String {
+        val existing = prefs.getString(KEY_MLKEM_PUBLIC, null)
+        if (existing != null) return existing
+
+        val generator = MLKEMKeyPairGenerator()
+        generator.init(MLKEMKeyGenerationParameters(secureRandom, MLKEMParameters.ml_kem_768))
+        val keyPair = generator.generateKeyPair()
+        val pub = keyPair.public as MLKEMPublicKeyParameters
+        val priv = keyPair.private as MLKEMPrivateKeyParameters
+
+        val pubBase64  = Base64.encodeToString(pub.encoded, Base64.NO_WRAP)
+        val privBase64 = Base64.encodeToString(priv.encoded, Base64.NO_WRAP)
+
+        prefs.edit()
+            .putString(KEY_MLKEM_PUBLIC, pubBase64)
+            .putString(KEY_MLKEM_PRIVATE, privBase64)
+            .apply()
+
+        return pubBase64
+    }
+
+    /** Returns the stored ML-KEM-768 public key as Base64, or null if not yet generated. */
+    fun getMLKEMPublicKey(): String? = prefs.getString(KEY_MLKEM_PUBLIC, null)
+
+    /**
+     * ML-KEM-768 encapsulation (initiator side).
+     * @param recipientPublicKeyBase64 Recipient's ML-KEM public key (Base64).
+     * @return Pair of (ciphertextBase64, sharedSecretBytes). Zero-wipe secret after use.
+     */
+    fun mlkemEncaps(recipientPublicKeyBase64: String): Pair<String, ByteArray> {
+        val pubBytes = Base64.decode(recipientPublicKeyBase64, Base64.NO_WRAP)
+        val recipientPub = MLKEMPublicKeyParameters(MLKEMParameters.ml_kem_768, pubBytes)
+
+        val kemGenerator = MLKEMKEMGenerator(secureRandom)
+        val secretWithEnc: SecretWithEncapsulation = kemGenerator.generateEncapsulated(recipientPub)
+
+        val ciphertextBase64 = Base64.encodeToString(secretWithEnc.encapsulation, Base64.NO_WRAP)
+        val sharedSecret = secretWithEnc.secret.copyOf()
+        secretWithEnc.destroy()
+        return Pair(ciphertextBase64, sharedSecret)
+    }
+
+    /**
+     * ML-KEM-768 decapsulation (recipient side).
+     * @param ciphertextBase64 KEM ciphertext received in the first message (Base64).
+     * @return sharedSecretBytes. Zero-wipe after use.
+     */
+    fun mlkemDecaps(ciphertextBase64: String): ByteArray {
+        val privBase64 = prefs.getString(KEY_MLKEM_PRIVATE, null)
+            ?: throw IllegalStateException("ML-KEM identity key not initialized")
+
+        val privBytes = Base64.decode(privBase64, Base64.NO_WRAP)
+        val privateKey = MLKEMPrivateKeyParameters(MLKEMParameters.ml_kem_768, privBytes)
+        privBytes.fill(0)
+
+        val ciphertextBytes = Base64.decode(ciphertextBase64, Base64.NO_WRAP)
+        val kemExtractor = MLKEMKEMExtractor(privateKey)
+        return kemExtractor.extractSecret(ciphertextBytes)
+    }
+
+    /**
+     * Derive PQXDH root key by combining X25519 and ML-KEM shared secrets.
+     * HKDF-SHA256(ssClassic || ssPQ) — both secrets are zeroed after derivation.
+     */
+    fun deriveRootKeyPQXDH(ssClassic: ByteArray, ssPQ: ByteArray): SecretKey {
+        val combined = ssClassic + ssPQ
+        ssClassic.fill(0)
+        ssPQ.fill(0)
+        val key = deriveSymmetricKey(combined)  // deriveSymmetricKey already zeros combined
+        return key
+    }
 }

@@ -816,6 +816,99 @@ object FirebaseRelay {
     }
 
     // ========================================================================
+    // ML-KEM PUBLIC KEY (PQXDH)
+    // ========================================================================
+
+    /**
+     * Store the user's ML-KEM-768 public key on Firebase so contacts can fetch it
+     * when initiating a PQXDH conversation.
+     * Path: /users/{uid}/mlkemPublicKey
+     */
+    suspend fun registerMLKEMPublicKey(mlkemPublicKey: String) {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            Log.e(TAG, "registerMLKEMPublicKey: uid is null, cannot store")
+            return
+        }
+        Log.d(TAG, "registerMLKEMPublicKey: writing to Firebase")
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("users")
+                .child(uid)
+                .child("mlkemPublicKey")
+                .setValue(mlkemPublicKey)
+                .addOnSuccessListener {
+                    Log.d(TAG, "registerMLKEMPublicKey: SUCCESS")
+                    cont.resume(Unit)
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "registerMLKEMPublicKey: FAILED", e)
+                    cont.resume(Unit) // Best effort
+                }
+        }
+    }
+
+    /**
+     * Fetch a contact's ML-KEM-768 public key from Firebase using their identity public key.
+     * Path: /mlkem_keys/{pubKeyHash} → mlkemPublicKey
+     * Returns null if not found (contact has not yet upgraded to PQXDH).
+     */
+    suspend fun fetchMLKEMPublicKeyByIdentity(identityPublicKeyBase64: String): String? {
+        val pubKeyHash = hashPublicKey(identityPublicKeyBase64)
+        return suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("mlkem_keys")
+                .child(pubKeyHash)
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    cont.resume(snapshot.getValue(String::class.java))
+                }
+                .addOnFailureListener {
+                    cont.resume(null)
+                }
+        }
+    }
+
+    /**
+     * Store the ML-KEM public key indexed by identity public key hash.
+     * Path: /mlkem_keys/{pubKeyHash}
+     * Allows contacts to fetch the ML-KEM key using the identity public key (from QR / invite).
+     */
+    suspend fun storeMLKEMPublicKeyByIdentity(identityPublicKeyBase64: String, mlkemPublicKeyBase64: String) {
+        val pubKeyHash = hashPublicKey(identityPublicKeyBase64)
+        Log.d(TAG, "storeMLKEMPublicKeyByIdentity: writing to Firebase")
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("mlkem_keys")
+                .child(pubKeyHash)
+                .setValue(mlkemPublicKeyBase64)
+                .addOnSuccessListener {
+                    Log.d(TAG, "storeMLKEMPublicKeyByIdentity: SUCCESS")
+                    cont.resume(Unit)
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "storeMLKEMPublicKeyByIdentity: FAILED", e)
+                    cont.resume(Unit)
+                }
+        }
+    }
+
+    /**
+     * Delete the ML-KEM key entry for a given identity public key (used on account deletion).
+     */
+    suspend fun deleteMLKEMKey(identityPublicKey: String) {
+        val hash = hashPublicKey(identityPublicKey)
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("mlkem_keys")
+                .child(hash)
+                .removeValue()
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) }
+        }
+    }
+
+    // ========================================================================
     // UTILITIES
     // ========================================================================
 

@@ -8,6 +8,10 @@ import com.google.firebase.FirebaseApp
 import com.securechat.crypto.CryptoManager
 import com.securechat.crypto.MnemonicManager
 import com.securechat.tor.TorManager
+import com.securechat.util.DeviceSecurityManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Application class for SecureChat.
@@ -19,6 +23,11 @@ class SecureChatApplication : Application() {
         // BC provider NOT registered — Ed25519 uses BC lightweight API directly,
         // and registering platform's stripped BC at position 1 breaks TLS/Firebase.
         FirebaseApp.initializeApp(this)
+        // Pre-warm DeviceSecurityManager on IO thread so the StrongBox probe
+        // (100–300 ms) doesn't block the main thread when CryptoManager.init() calls it.
+        CoroutineScope(Dispatchers.IO).launch {
+            DeviceSecurityManager.getSecurityProfile(applicationContext)
+        }
         CryptoManager.init(this)
         MnemonicManager.init(this)
         TorManager.init(this)

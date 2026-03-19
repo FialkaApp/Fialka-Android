@@ -36,4 +36,14 @@
 
     <!-- Status bar -->
     <color name="status_bar">#FF0A0A0A</color>
+
+    <!-- DeviceSecurityManager badge colors -->
+    <color name="badge_maximum">#1DB954</color>
+    <color name="badge_high">#4A90D9</color>
+    <color name="badge_standard">#888780</color>
+
+    <!-- Warning banner (secondary profile) -->
+    <color name="warning_border">#D4A017</color>
+    <color name="warning_surface">#FFF8E1</color>
+    <color name="warning_text">#7A5800</color>
 </resources>

@@ -33,4 +33,14 @@
     <color name="input_field_background">#FF222222</color>
 
     <color name="status_bar">#FF0A0A0A</color>
+
+    <!-- DeviceSecurityManager badge colors (same as light for dark-first app) -->
+    <color name="badge_maximum">#1DB954</color>
+    <color name="badge_high">#4A90D9</color>
+    <color name="badge_standard">#888780</color>
+
+    <!-- Warning banner — dark mode overrides -->
+    <color name="warning_border">#D4A017</color>
+    <color name="warning_surface">#332B00</color>
+    <color name="warning_text">#FFD966</color>
 </resources>
