@@ -27,7 +27,8 @@
 ├────────────────┬────────────────┬────────────────┤
 │    Room DB     │     Crypto     │    Firebase     │
 │   (SQLCipher)  │  CryptoMgr +   │   Relay +       │
-│                │   Ratchet      │    FCM          │
+│                │  Ratchet +     │    FCM          │
+│                │  PQXDH(ML-KEM) │                │
 └────────────────┴────────────────┴────────────────┘
                 Cloud Function (push triggers)
 ```
@@ -44,7 +45,11 @@
 | **Mutex par conversation** | Les opérations ratchet sont sérialisées (thread-safe) |
 | **Envoi atomique** | Le ratchet n'avance que si Firebase confirme l'envoi |
 | **Delete-after-delivery** | Le ciphertext est supprimé de Firebase après déchiffrement |
-| **Double-listener guard** | `processedFirebaseKeys` empêche le double-traitement |
+| **Delete-after-failure** | Les messages dont le déchiffrement échoue sont nettoyés de Firebase |
+| **Double-listener guard** | `ConcurrentHashMap.putIfAbsent()` + éviction LRU empêche le double-traitement |
+| **lastDeliveredAt** | Borne inférieure par conversation pour éviter le re-traitement des messages Firebase |
+| **PQXDH différé** | Upgrade post-quantique du root_key au premier message (pas de bootstrap) |
+| **Vérification indépendante** | Chaque utilisateur vérifie l'empreinte de son côté (état local Room uniquement) |
 | **Système d'invitation** | Demande → notification inbox → acceptation → conversation active |
 
 ---
@@ -55,10 +60,10 @@
 |--------|------|---------------|
 | **UI** | Écrans, navigation, interactions | `ui/` — Fragments, ViewModels, Adapters (Material 3) |
 | **Repository** | Coordination local/crypto/remote | `data/repository/ChatRepository.kt` |
-| **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519 | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
-| **Local DB** | Room v14 — users, contacts, messages, ratchet (indexes composites) | `data/local/` — DAOs, Database (SQLCipher) |
+| **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519, PQXDH (ML-KEM-768) | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
+| **Local DB** | Room v16 — users, contacts, messages, ratchet (indexes composites) | `data/local/` — DAOs, Database (SQLCipher) |
 | **Remote** | Relay Firebase RTDB + Storage (ciphertext only) | `data/remote/FirebaseRelay.kt` |
-| **Util** | QR, 5 thèmes, app lock, éphémère, dummy traffic | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt` |
+| **Util** | QR, 5 thèmes, app lock, éphémère, dummy traffic, DeviceSecurityManager | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt`, `DeviceSecurityManager.kt` |
 
 ---
 

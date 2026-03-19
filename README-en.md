@@ -56,8 +56,9 @@
 - **PQXDH**: X25519 + **ML-KEM-768** (post-quantum)
 - **AES-256-GCM** + **Double Ratchet** with PFS + healing
 - **Fingerprint emojis** 96-bit anti-MITM
+- **Independent verification** per user + system messages
 - **BIP-39** backup (24 words)
-- Private key in **Android Keystore**
+- Private key in **Android Keystore** (StrongBox when available)
 - Encrypted local DB **SQLCipher**
 - **Message padding** fixed-size (256/1K/4K/16K)
 - **PBKDF2** PIN (600K iterations)
@@ -105,6 +106,8 @@
 | 🔐 | **E2E Encryption** | PQXDH: X25519 + ML-KEM-768 + AES-256-GCM |
 | 🔄 | **Perfect Forward Secrecy** | Double Ratchet (DH + KDF chains) |
 | 🔏 | **Fingerprint emojis** | 96-bit, 16 emojis, anti-MITM |
+| ✅ | **Independent verification** | Each user verifies separately, system message + clickable link |
+| 🛡️ | **DeviceSecurityManager** | StrongBox detection, MAXIMUM/STANDARD level |
 | 🕵️ | **Metadata hardening** | senderUid HMAC-hashed + messageIndex encrypted |
 | 🛡️ | **Zero-knowledge relay** | Firebase only sees ciphertext |
 | 🔑 | **Keystore-backed** | Private key in EncryptedSharedPreferences |
@@ -125,7 +128,7 @@
 
 | | Feature | Details |
 |---|---------|---------|
-| 📷 | **QR Code** | Scan → auto-fill public key & nickname |
+| 📷 | **QR Code** | Scan → auto-fill public key & nickname (deep link v2) |
 | 📨 | **Contact requests** | Invite → notification → accept/reject |
 | 🔴 | **Unread messages** | Badge counter + separator in chat |
 | 🔄 | **Real-time** | Receive messages even in background |
@@ -255,6 +258,16 @@ cd SecureChat
 | Per-conversation dummy traffic | ✅ |
 | Ed25519 per-message signatures (anti-forgery) | ✅ |
 | PQXDH: X25519 + ML-KEM-768 (post-quantum resistance) | ✅ |
+| Deferred PQXDH upgrade (rootKey-only, zero desync) | ✅ |
+| StrongBox hardware key storage (when available) | ✅ |
+| DeviceSecurityManager (StrongBox probe + user profile) | ✅ |
+| QR deep link v2 (X25519 + ML-KEM + name, auto-fill) | ✅ |
+| displayName hidden from Firebase (zero server-side PII) | ✅ |
+| Independent fingerprint verification per user | ✅ |
+| Verification system messages + clickable link | ✅ |
+| lastDeliveredAt (skip already-processed messages on restart) | ✅ |
+| Delete-after-failure (cleanup failed messages from Firebase) | ✅ |
+| Atomic dual-listener deduplication (ConcurrentHashMap) | ✅ |
 | Signing key cleanup on account deletion | ✅ |
 
 > 📖 **Full Analysis** — [`SECURITY.md`](SECURITY.md) · [Crypto Protocol](docs/en/CRYPTO.md)
@@ -277,7 +290,7 @@ cd SecureChat
 | **V3.1** | Settings Redesign — Signal-like settings, 6-digit PIN, Privacy sub-screen, PIN coroutines | ✅ Done |
 | **V3.2** | Ed25519 Signing — Per-message signatures, ✅/⚠️ badge, Firebase rules hardening, signing key cleanup | ✅ Done |
 | **V3.3** | Material 3 + Tor + Attachment UX — M3 migration, full Tor integration, Session-style inline icons, Android 13+ permissions, log hardening | ✅ Done |
-| **V3.4** | PQXDH — Post-quantum ML-KEM-768 encryption, ratchet hardening, crypto desync fix | ✅ Done |
+| **V3.4** | PQXDH + Security — Post-quantum ML-KEM-768, deep link v2, QR name auto-fill, displayName hidden from Firebase, DeviceSecurityManager StrongBox, independent fingerprint verification, system messages, PQXDH desync fix, dual-listener fix, lastDeliveredAt | ✅ Done |
 | **V3.5** | Planned — App disguise + cover screen, Dual PIN, panic button, FLAG_SECURE, E2E voice messages, sealed sender, reply/quote | 🔜 |
 
 > 📖 **Details** — [Full Changelog](docs/en/CHANGELOG.md)
@@ -310,7 +323,7 @@ cd SecureChat
 | [**Crypto Protocol**](docs/en/CRYPTO.md) | X25519, Double Ratchet, fingerprint, threat model |
 | [**Setup**](docs/en/SETUP.md) | Prerequisites, Firebase, build, dependencies |
 | [**Structure**](docs/en/STRUCTURE.md) | Full project tree |
-| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V3.3 history |
+| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V3.4 history |
 | [**Security**](SECURITY.md) | Full audit, known limitations |
 
 </div>
@@ -325,7 +338,7 @@ Provided for **educational** purposes. Use it as a definitive base to understand
 
 <br/>
 
-<img src="https://img.shields.io/badge/SecureChat-V3.3-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/SecureChat-V3.4-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

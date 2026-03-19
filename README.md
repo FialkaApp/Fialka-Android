@@ -56,8 +56,9 @@
 - **PQXDH** : X25519 + **ML-KEM-768** (post-quantique)
 - **AES-256-GCM** + **Double Ratchet** avec PFS + healing
 - **Fingerprint emojis** 96-bit anti-MITM
+- **Vérification indépendante** par utilisateur + messages système
 - **BIP-39** backup (24 mots)
-- Clé privée dans **Android Keystore**
+- Clé privée dans **Android Keystore** (StrongBox si dispo)
 - Base locale chiffrée **SQLCipher**
 - **Message padding** taille fixe (256/1K/4K/16K)
 - **PBKDF2** PIN (600K itérations)
@@ -105,6 +106,8 @@
 | 🔐 | **Chiffrement E2E** | PQXDH : X25519 + ML-KEM-768 + AES-256-GCM |
 | 🔄 | **Perfect Forward Secrecy** | Double Ratchet (DH + KDF chains) |
 | 🔏 | **Fingerprint emojis** | 96-bit, 16 emojis, anti-MITM |
+| ✅ | **Vérification indépendante** | Chacun vérifie de son côté, message système + lien cliquable |
+| 🛡️ | **DeviceSecurityManager** | Détection StrongBox, niveau MAXIMUM/STANDARD |
 | 🕵️ | **Metadata hardening** | senderUid hashé HMAC + messageIndex chiffré |
 | 🛡️ | **Zero-knowledge relay** | Firebase ne voit que du ciphertext |
 | 🔑 | **Keystore-backed** | Clé privée dans EncryptedSharedPreferences |
@@ -125,7 +128,7 @@
 
 | | Feature | Détail |
 |---|---------|--------|
-| 📷 | **QR Code** | Scan → clé publique + pseudo auto-remplis |
+| 📷 | **QR Code** | Scan → clé publique + pseudo auto-remplis (deep link v2) |
 | 📨 | **Demandes de contact** | Invitation → notification → accepter/refuser |
 | 🔴 | **Messages non lus** | Badge compteur + séparateur dans le chat |
 | 🔄 | **Temps réel** | Messages reçus même app en arrière-plan |
@@ -255,6 +258,16 @@ cd SecureChat
 | Dummy traffic par conversation | ✅ |
 | Signature Ed25519 par message (anti-falsification) | ✅ |
 | PQXDH : X25519 + ML-KEM-768 (résistance post-quantique) | ✅ |
+| Upgrade PQXDH différé (rootKey-only, zéro désync) | ✅ |
+| StrongBox hardware key storage (si disponible) | ✅ |
+| DeviceSecurityManager (probe StrongBox + profil utilisateur) | ✅ |
+| QR deep link v2 (X25519 + ML-KEM + nom, auto-fill) | ✅ |
+| displayName masqué de Firebase (zéro PII serveur) | ✅ |
+| Vérification d'empreinte indépendante par utilisateur | ✅ |
+| Messages système de vérification + lien cliquable | ✅ |
+| lastDeliveredAt (skip messages déjà traités au redémarrage) | ✅ |
+| Delete-after-failure (nettoyage messages en échec Firebase) | ✅ |
+| Déduplication atomique dual-listener (ConcurrentHashMap) | ✅ |
 | Nettoyage clés de signature à la suppression de compte | ✅ |
 
 > 📖 **Analyse complète** — [`SECURITY.md`](SECURITY.md) · [Protocole crypto](docs/fr/CRYPTO.md)
@@ -277,7 +290,7 @@ cd SecureChat
 | **V3.1** | Settings Redesign — Paramètres Signal-like, PIN 6 chiffres, sous-écran Confidentialité, coroutines PIN | ✅ Done |
 | **V3.2** | Ed25519 Signing — Signature par message, badge ✅/⚠️, durcissement Firebase rules, nettoyage clés | ✅ Done |
 | **V3.3** | Material 3 + Tor + Attachment UX — Migration M3, intégration Tor complète, icônes inline Session, permissions Android 13+, durcissement logs | ✅ Done |
-| **V3.4** | PQXDH — Chiffrement post-quantique ML-KEM-768, durcissement ratchet, fix désync crypto | ✅ Done |
+| **V3.4** | PQXDH + Security — ML-KEM-768 post-quantique, deep link v2, QR auto-fill nom, displayName masqué Firebase, DeviceSecurityManager StrongBox, vérification empreinte indépendante, messages système, fix désync PQXDH, fix dual-listener, lastDeliveredAt | ✅ Done |
 | **V3.5** | Planned — Camouflage app + faux écran, Dual PIN, panic button, FLAG_SECURE, messages vocaux E2E, sealed sender, reply/quote | 🔜 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
@@ -310,7 +323,7 @@ cd SecureChat
 | [**Protocole Crypto**](docs/fr/CRYPTO.md) | X25519, Double Ratchet, fingerprint, modèle de menace |
 | [**Installation**](docs/fr/SETUP.md) | Prérequis, Firebase, build, dépendances |
 | [**Structure**](docs/fr/STRUCTURE.md) | Arbre complet du projet |
-| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V3.3 |
+| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V3.4 |
 | [**Sécurité**](SECURITY.md) | Audit complet, limites connues |
 
 </div>
@@ -325,7 +338,7 @@ Fourni à des fins **éducatives**. Utilisez-le comme base pour comprendre le ch
 
 <br/>
 
-<img src="https://img.shields.io/badge/SecureChat-V3.3-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/SecureChat-V3.4-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

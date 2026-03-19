@@ -57,8 +57,8 @@ SecureChat/
 │       │   ├── MyFirebaseMessagingService.kt  # FCM push handler
 │       │   │
 │       │   ├── crypto/
-│       │   │   ├── CryptoManager.kt          # X25519, ECDH, AES-256-GCM, HKDF
-│       │   │   ├── DoubleRatchet.kt          # Full Double Ratchet (DH + KDF chains)
+│       │   │   ├── CryptoManager.kt          # X25519, ECDH, AES-256-GCM, HKDF, ML-KEM-768 (PQXDH)
+│       │   │   ├── DoubleRatchet.kt          # Full Double Ratchet (DH + KDF chains) + PQXDH upgrade
 │       │   │   └── MnemonicManager.kt        # BIP-39 mnemonic encode/decode (24 words)
 │       │   │
 │       │   ├── data/
@@ -73,13 +73,13 @@ SecureChat/
 │       │   │   ├── model/
 │       │   │   │   ├── UserLocal.kt          # Local identity
 │       │   │   │   ├── Contact.kt            # Contact (nickname + pubkey)
-│       │   │   │   ├── Conversation.kt       # Conversation (ephemeral, fingerprint)
+│       │   │   ├── Conversation.kt       # Conversation (ephemeral, fingerprint, lastDeliveredAt)
 │       │   │   │   ├── MessageLocal.kt       # Message (plaintext, ephemeral)
 │       │   │   │   ├── FirebaseMessage.kt    # Encrypted message (Firebase)
 │       │   │   │   └── RatchetState.kt       # Ratchet state per conversation
 │       │   │   │
 │       │   │   ├── remote/
-│       │   │   │   └── FirebaseRelay.kt      # Anonymous auth + relay + ephemeral sync
+│       │   │   └── FirebaseRelay.kt      # Anonymous auth + relay + ephemeral sync + fingerprint events
 │       │   │   │
 │       │   │   └── repository/
 │       │   │       └── ChatRepository.kt     # Single source of truth (Mutex)
@@ -89,7 +89,8 @@ SecureChat/
 │       │   │   ├── ThemeManager.kt           # 5 themes (Midnight/Hacker/Phantom/Aurora/Daylight)
 │       │   │   ├── AppLockManager.kt         # PIN, biometrics, auto-lock timeout
 │       │   │   ├── EphemeralManager.kt       # Ephemeral durations (30s → 1 month)
-│       │   │   └── DummyTrafficManager.kt    # Dummy traffic (traffic analysis countermeasure)
+│       │   │   ├── DummyTrafficManager.kt    # Dummy traffic (traffic analysis countermeasure)
+│       │   │   └── DeviceSecurityManager.kt  # StrongBox probe, MAXIMUM/STANDARD security levels
 │       │   │
 │       │   └── ui/
 │       │       ├── onboarding/               # Identity creation + backup + restore

@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V3.3-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3.4-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V3.4-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Next-V3.5-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -217,7 +217,46 @@
 
 ---
 
-## 🔜 V3.4 — Planned
+## ✅ V3.4 — Post-Quantum & Device Security
+
+> PQXDH hybride (ML-KEM-768 + X25519), DeviceSecurityManager StrongBox, QR deep link v2, vérification d'empreinte indépendante, corrections de désynchronisation ratchet.
+
+### 🔐 Cryptographie Post-Quantique (PQXDH)
+- [x] **ML-KEM-768 (Kyber)** — Encapsulation post-quantique via BouncyCastle 1.80, paire clé encaps/decaps dédiée
+- [x] **PQXDH hybride** — Échange de clés X25519 classique + ML-KEM-768 encapsulation en parallèle
+- [x] **Upgrade différée du rootKey** — La première conversation démarre en classique X25519 ; le rootKey est upgradé avec le secret ML-KEM au premier message (pas de message bootstrap)
+- [x] **kemCiphertext dans le premier message** — Le ciphertext ML-KEM est envoyé une seule fois, dans le premier message Firebase de la conversation
+- [x] **QR deep link v2** — Format `securechat://contact?key=<X25519>&kem=<ML-KEM-768-pubKey>&name=<displayName>` — clé ML-KEM encodée dans le QR
+- [x] **Auto-fill nom depuis QR** — Le pseudo du contact est pré-rempli automatiquement depuis le scan QR
+
+### 🛡️ Sécurité Appareil
+- [x] **DeviceSecurityManager** — Sonde StrongBox hardware, niveaux de sécurité MAXIMUM/STANDARD
+- [x] **Bannière StrongBox** — Indicateur visuel dans Paramètres → À propos selon le niveau de sécurité détecté
+- [x] **displayName masqué** — Le pseudo n'est plus stocké sur Firebase (`storeDisplayName` → no-op), supprimé des Firebase rules
+- [x] **Paramètres réorganisés** — Carte sécurité déplacée dans la section À propos, texte chiffrement mis à jour
+
+### 🔧 Corrections Critiques
+- [x] **Fix désynchronisation PQXDH** — `syncExistingMessages()` à l'acceptation d'un contact pour déclencher correctement l'init PQXDH
+- [x] **Delete-after-failure** — Les messages échoués au déchiffrement sont nettoyés de Firebase (évite boucle d'erreur infinie)
+- [x] **lastDeliveredAt** — Nouveau champ sur l'entité Conversation pour filtrage lower-bound des messages Firebase (évite re-traitement)
+- [x] **Fix dual-listener** — `ConcurrentHashMap.putIfAbsent()` + éviction LRU pour empêcher les race conditions sur les listeners Firebase
+- [x] **Fix déchiffrement à l'acceptation** — Le responder déclenche maintenant le sync des messages existants dès l'acceptation
+
+### 🔏 Vérification d'empreinte
+- [x] **Vérification indépendante** — Chaque utilisateur vérifie de son côté (état local Room uniquement, pas de sync d'état)
+- [x] **Événements Firebase** — Notification événementielle `fingerprintEvent: "verified:<timestamp>"` (push seulement, pas de sync d'état)
+- [x] **Messages système** — Info message dans le chat quand un participant vérifie/retire la vérification
+- [x] **Lien cliquable** — "Voir l'empreinte" dans les messages système redirige vers l'écran fingerprint
+- [x] **Toggle vérifier/retirer** — Bouton dans FingerprintFragment pour marquer vérifié ou retirer la vérification
+- [x] **Badges mis à jour** — ✅ Vérifié / ⚠️ Non vérifié (remplace l'ancien format vert/orange)
+
+### 🗄️ Base de données
+- [x] **Room v16** — Migration v15→v16 : ajout colonne `lastDeliveredAt` sur Conversation
+- [x] **Version 3.4.0** — `versionCode 5`, `versionName "3.4.0"`
+
+---
+
+## 🔜 V3.5 — Planned
 
 > Camouflage avancé, plausible deniability, messages vocaux E2E, sealed sender, améliorations messagerie.
 

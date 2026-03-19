@@ -56,8 +56,8 @@ SecureChat/
 │       │   ├── MyFirebaseMessagingService.kt  # FCM push handler
 │       │   │
 │       │   ├── crypto/
-│       │   │   ├── CryptoManager.kt          # X25519, ECDH, AES-256-GCM, HKDF
-│       │   │   ├── DoubleRatchet.kt          # Full Double Ratchet (DH + KDF chains)
+│       │   │   ├── CryptoManager.kt          # X25519, ECDH, AES-256-GCM, HKDF, ML-KEM-768 (PQXDH)
+│       │   │   ├── DoubleRatchet.kt          # Full Double Ratchet (DH + KDF chains) + PQXDH upgrade
 │       │   │   └── MnemonicManager.kt        # BIP-39 mnemonic encode/decode (24 mots)
 │       │   │
 │       │   ├── data/
@@ -72,13 +72,13 @@ SecureChat/
 │       │   │   ├── model/
 │       │   │   │   ├── UserLocal.kt          # Identité locale
 │       │   │   │   ├── Contact.kt            # Contact (pseudo + pubkey)
-│       │   │   │   ├── Conversation.kt       # Conversation (ephemeral, fingerprint)
+│       │   │   ├── Conversation.kt       # Conversation (ephemeral, fingerprint, lastDeliveredAt)
 │       │   │   │   ├── MessageLocal.kt       # Message (plaintext, ephemeral)
 │       │   │   │   ├── FirebaseMessage.kt    # Message chiffré (Firebase)
 │       │   │   │   └── RatchetState.kt       # État du ratchet par conversation
 │       │   │   │
 │       │   │   ├── remote/
-│       │   │   │   └── FirebaseRelay.kt      # Auth anonyme + relay + ephemeral sync
+│       │   │   └── FirebaseRelay.kt      # Auth anonyme + relay + ephemeral sync + fingerprint events
 │       │   │   │
 │       │   │   └── repository/
 │       │   │       └── ChatRepository.kt     # Source de vérité unique (Mutex)
@@ -88,7 +88,8 @@ SecureChat/
 │       │   │   ├── ThemeManager.kt           # 5 thèmes (Midnight/Hacker/Phantom/Aurora/Daylight)
 │       │   │   ├── AppLockManager.kt         # PIN, biométrie, auto-lock timeout
 │       │   │   ├── EphemeralManager.kt       # Durées éphémères (30s → 1 mois)
-│       │   │   └── DummyTrafficManager.kt    # Faux trafic (anti analyse de trafic)
+│       │   │   ├── DummyTrafficManager.kt    # Faux trafic (anti analyse de trafic)
+│       │   │   └── DeviceSecurityManager.kt  # Sonde StrongBox, niveaux sécurité MAXIMUM/STANDARD
 │       │   │
 │       │   └── ui/
 │       │       ├── onboarding/               # Création d'identité + backup + restauration

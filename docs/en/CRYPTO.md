@@ -7,6 +7,7 @@
 # 🔐 Cryptographic Protocol
 
 <img src="https://img.shields.io/badge/Key_Exchange-X25519_ECDH-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Post--Quantum-PQXDH_(ML--KEM--768)-4A148C?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Encryption-AES--256--GCM-9C4DCC?style=for-the-badge" />
 <img src="https://img.shields.io/badge/PFS-Double_Ratchet-6A1B9A?style=for-the-badge" />
 
@@ -20,19 +21,28 @@
 Alice                                         Bob
   │                                             │
   │◄──────── Public Key Exchange ─────────────►│
-  │           (QR code or copy/paste)           │
+  │           (QR code v2: X25519 + ML-KEM)      │
   │                                             │
   │  shared_secret = X25519(sk_A, pk_B)         │  shared_secret = X25519(sk_B, pk_A)
   │  root_key = HKDF(shared_secret)            │  root_key = HKDF(shared_secret)
   │  send_chain = HKDF(root, "init-send")      │  recv_chain = HKDF(root, "init-send")
   │  recv_chain = HKDF(root, "init-recv")      │  send_chain = HKDF(root, "init-recv")
   │                                             │
+  │  ┌─ PQXDH (first message) ──────────────┐  │
+  │  │ kem_ct = ML-KEM-768.Encaps(pk_kem_B)   │  │
+  │  │ kem_ss = ML-KEM shared secret           │  │
+  │  │ root_key' = HKDF(root_key || kem_ss)   │  │
+  │  └──────────────────────────────────────┘  │
+  │                                             │
   │  msg_key = HMAC(send_chain, 0x01)          │
   │  send_chain = HMAC(send_chain, 0x02)       │
   │  ct = AES-GCM(msg_key, iv, plaintext)      │
   │                                             │
-  │  ──── {ct, iv, ephemeralKey} ──────────────►│
+  │  ──── {ct, iv, ephKey, kemCiphertext} ────►│
   │           (Firebase relay)                  │
+  │                                             │
+  │                                             │  kem_ss = ML-KEM-768.Decaps(sk_kem_B, kem_ct)
+  │                                             │  root_key' = HKDF(root_key || kem_ss)
   │                                             │  msg_key = HMAC(recv_chain, 0x01)
   │                                             │  recv_chain = HMAC(recv_chain, 0x02)
   │                                             │  plaintext = AES-GCM-dec(msg_key, iv, ct)
@@ -53,9 +63,12 @@ Alice                                         Bob
 ## Key Exchange
 
 1. Alice shows her **QR code** (or shares public key)
-2. Bob scans QR → enters Alice's nickname → creates contact
+2. Bob scans QR → Alice's nickname is auto-populated → creates contact
 3. Both sides compute: `shared_secret = X25519(my_private_key, contact_public_key)`
 4. The role (initiator/responder) is determined by the **lexicographic order** of the public keys
+5. QR v2 also encodes the **ML-KEM-768** public key for PQXDH upgrade
+
+> **QR v2 format:** `securechat://contact?key=<X25519_base64>&kem=<ML-KEM-768_base64>&name=<displayName>`
 
 ---
 
@@ -76,8 +89,10 @@ Both phones calculate the **same** fingerprint. Users compare it visually (in pe
 
 - ✅ 64 emoji palette (power of 2 → zero modulo bias)
 - ✅ 96 bits of entropy (7.9 × 10²⁸ combinations)
-- ✅ Chat badge: green (verified ✓) or orange (unverified ➤)
-- ✅ Verification state persisted in Room per conversation
+- ✅ Chat badge: ✅ Verified / ⚠️ Unverified
+- ✅ **Independent** verification per user (local Room state only)
+- ✅ System messages in chat on verify/un-verify (with clickable "View fingerprint" link)
+- ✅ Event-based Firebase notification (`fingerprintEvent: "verified:<timestamp>"`) — notifies peer, does not sync state
 
 ---
 
@@ -131,7 +146,7 @@ Before encryption, each message is padded to the next bucket:
 
 ## Message Signing (Ed25519, V3.2)
 
-Every message is signed with a dedicated **Ed25519** key pair (separate from the X25519 identity key) via BouncyCastle 1.78.1.
+Every message is signed with a dedicated **Ed25519** key pair (separate from the X25519 identity key) via BouncyCastle 1.80.
 
 ```
 Send:
@@ -154,6 +169,43 @@ Receive:
 - ✅ **Anti-timestamp manipulation**: `createdAt` (client timestamp) included in signed data
 - ✅ **Separate signing key** from X25519 identity key (no key use mixing)
 - ✅ **Cleanup**: signing key removed from Firebase (`/signing_keys/{hash}`) on account deletion
+
+---
+
+## PQXDH — Post-Quantum Upgrade (V3.4)
+
+SecureChat implements a **hybrid** key exchange combining X25519 (classic) and ML-KEM-768 (post-quantum) via the PQXDH protocol.
+
+### Principle
+
+```
+On contact add (QR scan):
+  Both X25519 AND ML-KEM-768 public keys are exchanged via QR code v2.
+  Conversation starts in classic X25519-only mode (classic root_key).
+
+First message (initiator):
+  kem_ct, kem_ss = ML-KEM-768.Encaps(contact_kem_publicKey)
+  root_key' = HKDF(root_key || kem_ss, "pqxdh-upgrade")
+  → Firebase message includes { ..., "kemCiphertext": Base64(kem_ct) }
+  → root_key upgraded locally (chains recalculated)
+
+First message reception (responder):
+  kem_ss = ML-KEM-768.Decaps(my_kem_privateKey, kemCiphertext)
+  root_key' = HKDF(root_key || kem_ss, "pqxdh-upgrade")
+  → root_key upgraded locally (chains recalculated)
+
+Subsequent messages:
+  kemCiphertext no longer sent (one-time upgrade)
+  Double Ratchet continues with root_key' (hybrid)
+```
+
+### Properties
+
+- ✅ **Post-quantum resistance**: even if X25519 is broken by a quantum computer, ML-KEM-768 protects the root_key
+- ✅ **Deferred upgrade**: no bootstrap message — upgrade happens on the first real message
+- ✅ **No regression**: if ML-KEM fails, the conversation remains protected by classic X25519
+- ✅ **BouncyCastle 1.80**: certified ML-KEM-768 implementation (`org.bouncycastle.pqc.crypto.mlkem` package)
+- ✅ **StrongBox probe**: `DeviceSecurityManager` detects hardware StrongBox support for key protection
 
 ---
 
@@ -182,6 +234,15 @@ Receive:
 ```
 /conversations/{id}/settings/ephemeralDuration = 3600000
 ```
+
+### Fingerprint Events (V3.4)
+
+```
+/conversations/{id}/settings/fingerprintEvent = "verified:<timestamp>"
+```
+
+- Event-based notification only — **does not sync** the verification state
+- Each user manages their `fingerprintVerified` state locally in Room
 
 ### Removed from wire format (V1.1 metadata hardening)
 
@@ -224,9 +285,9 @@ Receive:
 |--------|------------|--------|
 | Firebase reads messages | ✅ | E2E encrypted, Firebase only sees ciphertext |
 | Message key compromise | ✅ | PFS — each message has its own key |
-| Old messages replay | ✅ | sinceTimestamp + messageIndex (embedded in ciphertext) |
-| Ratchet race conditions | ✅ | Mutex per conversation |
-| MITM Attack | ✅ | 96-bit fingerprint emojis (visual check) |
+| Old messages replay | ✅ | sinceTimestamp + lastDeliveredAt + messageIndex (embedded in ciphertext) |
+| Ratchet race conditions | ✅ | Mutex per conversation + ConcurrentHashMap.putIfAbsent() + LRU eviction |
+| MITM Attack | ✅ | 96-bit fingerprint emojis (independent visual check) |
 | Phone stolen unlocked | ✅ | Keystore, SQLCipher, App Lock PIN + biometrics, auto-lock |
 | Sensitive messages left | ✅ | Disappearing messages (timer on send / read) |
 | Message forgery | ✅ | Per-message Ed25519 signature (V3.2) — badge ✅/⚠️ |
@@ -236,6 +297,8 @@ Receive:
 | Phone lost | ✅ | 24-word mnemonic (BIP-39) to restore identity |
 | App Lock brute-force | ✅ | PBKDF2 600,000 iterations + biometric lock |
 | Contact deletes account | ✅ | Auto-detect dead convo + cleanup + re-invite |
+| Quantum computer (future) | ✅ | Hybrid PQXDH ML-KEM-768 — root_key upgraded with post-quantum secret (V3.4) |
+| Ratchet desynchronization | ✅ | syncExistingMessages on acceptance, delete-after-failure, lastDeliveredAt lower-bound |
 
 > See [`SECURITY.md`](../../SECURITY.md) for full security analysis.
 

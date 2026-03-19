@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 3.3.x   | ✅ Current |
+| 3.4.x   | ✅ Current |
+| 3.3.x   | ⚠️ Outdated |
 | 3.2.x   | ⚠️ Outdated |
 | 3.1.x   | ⚠️ Outdated |
 | 3.0.x   | ⚠️ Outdated |
@@ -25,21 +26,24 @@ SecureChat uses the following cryptographic primitives:
 
 | Component | Algorithm | Notes |
 |-----------|-----------|-------|
-| Identity keys | X25519 (Curve25519) | Software JCA, private in EncryptedSharedPreferences (Keystore-backed) |
+| Identity keys | X25519 (Curve25519) | Software JCA, private in EncryptedSharedPreferences (Keystore-backed, StrongBox when available) |
+| Post-quantum keys | ML-KEM-768 (CRYSTALS-Kyber) | BouncyCastle 1.78.1 lightweight API; encaps/decaps for hybrid secret |
 | Identity backup | BIP-39 mnemonic (24 words) | 256 bits entropy + 8-bit SHA-256 checksum = 264 bits = 24 × 11-bit words |
 | Key restore | X25519 DH with base point u=9 | Private key → DH(priv, basepoint) → public key derivation |
-| Key exchange | PQXDH: X25519 + ML-KEM-768 | Hybrid classic + post-quantum key agreement, deferred rootKey upgrade |
+| Key exchange | PQXDH: X25519 + ML-KEM-768 | Hybrid classic + post-quantum; both sides start classic-only, rootKey upgraded after first KEM exchange (deferred upgrade, zero desync) |
 | Key derivation | HKDF-SHA256 | Root key → send/recv chain keys |
 | Message keys | HMAC-SHA256 KDF chain | Double Ratchet (DH ratchet + KDF chains, PFS + healing) |
 | DH Ratchet | X25519 ephemeral keys | New key pair per direction change → post-compromise healing |
 | Message encryption | AES-256-GCM | 12-byte random IV, 128-bit auth tag, padded to fixed-size buckets |
 | Message padding | 256 / 1024 / 4096 / 16384 bytes | 2-byte big-endian length header + random fill |
 | Conversation ID | SHA-256 | Hash of sorted public keys |
-| Fingerprint emojis | SHA-256 → 64-palette × 16 | 96-bit entropy, anti-MITM |
+| Fingerprint emojis | SHA-256 → 64-palette × 16 | 96-bit entropy, anti-MITM, independent verification per user |
+| Fingerprint events | Firebase notification (`verified:<ts>`) | Event-based notification only; verification state is strictly local per device |
 | senderUid hashing | HMAC-SHA256 | Keyed by conversationId, truncated to 128 bits |
 | PIN hashing | PBKDF2-HMAC-SHA256 | 600,000 iterations, 16-byte random salt |
 | File encryption | AES-256-GCM (per-file random key) | Encrypted at rest in Firebase Storage |
 | Local DB encryption | SQLCipher (AES-256-CBC) | 256-bit passphrase via EncryptedSharedPreferences |
+| Hardware key storage | Android StrongBox (if available) | MasterKey.Builder.setRequestStrongBoxBacked(); runtime probe via DeviceSecurityManager |
 | Message signing | Ed25519 (BouncyCastle 1.78.1) | Dedicated signing key pair, signature = sign(ciphertext \|\| conversationId \|\| createdAt) |
 | Signing key storage | Firebase RTDB `/signing_keys/{hash}` | SHA-256 truncated to 32 hex chars as key, Base64 Ed25519 public key as value |
 | Build hardening | R8/ProGuard | Code obfuscation + resource shrinking + complete log stripping (d/v/i/w/e/wtf) |
@@ -154,3 +158,26 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **TorBootstrapFragment**: first-launch Tor/Normal choice screen with animated progress, skipped on subsequent launches
 - ✅ **Tor Settings toggle**: ON/OFF in Security settings with real-time status and manual reconnect
 - ✅ **Per-conversation dummy traffic**: individual cover messages per active conversation
+
+### V3.4 PQXDH, DeviceSecurity & Fingerprint Verification
+
+- ✅ **PQXDH hybrid key exchange**: X25519 + ML-KEM-768 post-quantum key agreement via BouncyCastle 1.78.1 lightweight API (no JCA provider registration)
+- ✅ **ML-KEM-768 identity key pair**: `generateMLKEMIdentityKeyPair()`, `mlkemEncaps()`, `mlkemDecaps()`, `deriveRootKeyPQXDH(ssClassic, ssPQ)` for hybrid root key derivation
+- ✅ **Deferred PQXDH upgrade**: both sides start with classic-only chains; `rootKey` upgraded to combined (classic+PQ) secret only after first KEM ciphertext exchange; current chains stay intact to avoid desync
+- ✅ **ML-KEM keys on Firebase**: `/mlkem_keys/{hash}` node for public key distribution; included in QR deep links (`securechat://invite?v=2&x25519=<key>&mlkem=<key>`)
+- ✅ **QR code v2**: deep link format with X25519 + ML-KEM public keys + displayName; Version 40 + ErrorCorrectionLevel.L automatic for large content; fallback to text if too large
+- ✅ **QR auto-fill contact name**: scanned or deep-linked displayName pre-fills the contact name field; helper text indicates auto-fill
+- ✅ **displayName hidden from Firebase**: `storeDisplayName()` → no-op; name only travels in ECIES inbox payload (zero server-side PII)
+- ✅ **Firebase rules hardened**: `displayName` field removed from `/users/` validate block
+- ✅ **DeviceSecurityManager**: runtime StrongBox probe (KeyGenParameterSpec + `setIsStrongBoxBacked(true)`), secondary profile detection (UserHandle), security level MAXIMUM (StrongBox) / STANDARD
+- ✅ **StrongBox-backed MasterKey**: `MasterKey.Builder.setRequestStrongBoxBacked(profile.isStrongBoxAvailable)` — hardware-isolated key storage when available
+- ✅ **DeviceSecurityManager pre-warm**: initialized on `Dispatchers.IO` before `CryptoManager.init()` to avoid 100-300ms main thread blocking
+- ✅ **lastDeliveredAt tracking**: timestamp of last successfully decrypted message stored on `Conversation` entity; used as Firebase query lower-bound on restart to skip already-processed messages
+- ✅ **Delete-after-failure**: failed-to-decrypt messages are deleted from Firebase (prevents cascading failures on app restart)
+- ✅ **syncExistingMessages on accept**: processes all pre-acceptance messages (including PQXDH seed) before real-time listener starts; fixes PQXDH upgrade not firing on accept
+- ✅ **Dual-listener deduplication**: `processedFirebaseKeys` uses `ConcurrentHashMap.putIfAbsent()` for truly atomic dedup (no race window); LRU-style partial eviction replaces dangerous `clear()`
+- ✅ **ConversationsViewModel global listener**: uses `lastDeliveredAt` (not `createdAt`) as Firebase lower-bound to match per-chat listener behavior
+- ✅ **Fingerprint verification system messages**: local info message on verify/unverify ("🔐 Vous avez vérifié…" / "🔐 Votre contact a vérifié…") with clickable "Voir l'empreinte" link
+- ✅ **Independent fingerprint verification**: each user's verified/unverified state is strictly local; Firebase event is a notification only (`fingerprintEvent: "verified:<timestamp>"`), never modifies the other user's state
+- ✅ **Fingerprint un-verify**: users can toggle verification status; button switches between "Marquer comme vérifié" / "Retirer la vérification"
+- ✅ **DB version 16**: added `lastDeliveredAt` column to Conversation entity (fallbackToDestructiveMigration)

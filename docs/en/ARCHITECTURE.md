@@ -20,14 +20,15 @@
 ┌──────────────────────────────────────────────────┐
 │                    UI Layer                       │
 │         Fragments · ViewModels · Adapters         │
-│         5 Themes · Animations · Navigation        │
+│      5 Themes Material 3 · Animations · Navigation │
 ├──────────────────────────────────────────────────┤
 │               Repository Layer                    │
 │      ChatRepository — single source of truth      │
 ├────────────────┬────────────────┬────────────────┤
 │    Room DB     │     Crypto     │    Firebase     │
 │   (SQLCipher)  │  CryptoMgr +   │   Relay +       │
-│                │   Ratchet      │    FCM          │
+│                │  Ratchet +     │    FCM          │
+│                │  PQXDH(ML-KEM) │                │
 └────────────────┴────────────────┴────────────────┘
                 Cloud Function (push triggers)
 ```
@@ -44,7 +45,11 @@
 | **Mutex per conversation** | Ratchet operations are serialized (thread-safe) |
 | **Atomic sending** | Ratchet advances only if Firebase confirms the send |
 | **Delete-after-delivery** | Ciphertext removed from Firebase after decryption |
-| **Double-listener guard** | `processedFirebaseKeys` prevents duplicate processing |
+| **Delete-after-failure** | Failed decryption messages cleaned from Firebase |
+| **Double-listener guard** | `ConcurrentHashMap.putIfAbsent()` + LRU eviction prevents duplicate processing |
+| **lastDeliveredAt** | Per-conversation lower bound to prevent Firebase message re-processing |
+| **Deferred PQXDH** | Post-quantum root_key upgrade on first message (no bootstrap) |
+| **Independent verification** | Each user verifies fingerprint on their own side (local Room state only) |
 | **Invitation system** | Invite → inbox notification → accept → active chat |
 
 ---
@@ -55,10 +60,10 @@
 |-------|------|-----------|
 | **UI** | Screens, navigation, interactions | `ui/` — Fragments, ViewModels, Adapters (Material 3) |
 | **Repository** | Local/crypto/remote coordination | `data/repository/ChatRepository.kt` |
-| **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519 | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
-| **Local DB** | Room v14 — users, contacts, messages, ratchet (composite indexes) | `data/local/` — DAOs, Database (SQLCipher) |
+| **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519, PQXDH (ML-KEM-768) | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
+| **Local DB** | Room v16 — users, contacts, messages, ratchet (composite indexes) | `data/local/` — DAOs, Database (SQLCipher) |
 | **Remote** | Firebase Relay RTDB + Storage (ciphertext only) | `data/remote/FirebaseRelay.kt` |
-| **Util** | QR, 5 themes, app lock, ephemeral, dummy traffic | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt` |
+| **Util** | QR, 5 themes, app lock, ephemeral, dummy traffic, DeviceSecurityManager | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt`, `DeviceSecurityManager.kt` |
 
 ---
 

@@ -7,6 +7,7 @@
 # 🔐 Protocole Cryptographique
 
 <img src="https://img.shields.io/badge/Key_Exchange-X25519_ECDH-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Post--Quantum-PQXDH_(ML--KEM--768)-4A148C?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Encryption-AES--256--GCM-9C4DCC?style=for-the-badge" />
 <img src="https://img.shields.io/badge/PFS-Double_Ratchet-6A1B9A?style=for-the-badge" />
 
@@ -20,19 +21,28 @@
 Alice                                         Bob
   │                                             │
   │◄──────── Échange clés publiques ──────────►│
-  │           (QR code ou copier/coller)        │
+  │           (QR code v2 : X25519 + ML-KEM)    │
   │                                             │
   │  shared_secret = X25519(sk_A, pk_B)         │  shared_secret = X25519(sk_B, pk_A)
   │  root_key = HKDF(shared_secret)            │  root_key = HKDF(shared_secret)
   │  send_chain = HKDF(root, "init-send")      │  recv_chain = HKDF(root, "init-send")
   │  recv_chain = HKDF(root, "init-recv")      │  send_chain = HKDF(root, "init-recv")
   │                                             │
+  │  ┌─ PQXDH (premier message) ────────────┐  │
+  │  │ kem_ct = ML-KEM-768.Encaps(pk_kem_B)   │  │
+  │  │ kem_ss = shared secret ML-KEM          │  │
+  │  │ root_key' = HKDF(root_key || kem_ss)   │  │
+  │  └──────────────────────────────────────┘  │
+  │                                             │
   │  msg_key = HMAC(send_chain, 0x01)          │
   │  send_chain = HMAC(send_chain, 0x02)       │
   │  ct = AES-GCM(msg_key, iv, plaintext)      │
   │                                             │
-  │  ──── {ct, iv, ephemeralKey} ──────────────►│
+  │  ──── {ct, iv, ephKey, kemCiphertext} ────►│
   │           (Firebase relay)                  │
+  │                                             │
+  │                                             │  kem_ss = ML-KEM-768.Decaps(sk_kem_B, kem_ct)
+  │                                             │  root_key' = HKDF(root_key || kem_ss)
   │                                             │  msg_key = HMAC(recv_chain, 0x01)
   │                                             │  recv_chain = HMAC(recv_chain, 0x02)
   │                                             │  plaintext = AES-GCM-dec(msg_key, iv, ct)
@@ -53,9 +63,12 @@ Alice                                         Bob
 ## Échange de clés
 
 1. Alice montre son **QR code** (ou partage sa clé publique)
-2. Bob scanne le QR → entre le pseudo d'Alice → crée le contact
+2. Bob scanne le QR → le pseudo d'Alice est pré-rempli automatiquement → crée le contact
 3. Chaque côté calcule : `shared_secret = X25519(ma_clé_privée, clé_publique_contact)`
 4. Le rôle (initiator/responder) est déterminé par l'**ordre lexicographique** des clés publiques
+5. Le QR v2 encode aussi la clé publique **ML-KEM-768** pour l'upgrade PQXDH
+
+> **Format QR v2 :** `securechat://contact?key=<X25519_base64>&kem=<ML-KEM-768_base64>&name=<displayName>`
 
 ---
 
@@ -76,8 +89,10 @@ Les deux téléphones calculent la **même** empreinte. L'utilisateur compare vi
 
 - ✅ Palette de 64 emojis (puissance de 2 → zéro biais modulo)
 - ✅ 96 bits d'entropie (7.9 × 10²⁸ combinaisons)
-- ✅ Badge dans le chat : vert (vérifié ✓) ou orange (non vérifié ➤)
-- ✅ Persisté en Room, état de vérification par conversation
+- ✅ Badge dans le chat : ✅ Vérifié / ⚠️ Non vérifié
+- ✅ Vérification **indépendante** par utilisateur (état local Room uniquement)
+- ✅ Messages système dans le chat lors de la vérification/retrait (avec lien cliquable "Voir l'empreinte")
+- ✅ Notification événementielle Firebase (`fingerprintEvent: "verified:<timestamp>"`) — notifie le pair, ne synchronise pas l'état
 
 ---
 
@@ -131,7 +146,7 @@ Avant chiffrement, chaque message est paddé vers le bucket supérieur :
 
 ## Signature de message (Ed25519, V3.2)
 
-Chaque message est signé avec une clé **Ed25519** dédiée (séparée de la clé d'identité X25519) via BouncyCastle 1.78.1.
+Chaque message est signé avec une clé **Ed25519** dédiée (séparée de la clé d'identité X25519) via BouncyCastle 1.80.
 
 ```
 Envoi :
@@ -154,6 +169,43 @@ Réception :
 - ✅ **Anti-manipulation temporelle** : `createdAt` (timestamp client) inclus dans les données signées
 - ✅ **Clé de signature séparée** de la clé d'identité X25519 (pas de mélange des usages)
 - ✅ **Nettoyage** : clé de signature supprimée de Firebase (`/signing_keys/{hash}`) à la suppression du compte
+
+---
+
+## PQXDH — Upgrade Post-Quantique (V3.4)
+
+SecureChat implémente un échange de clés **hybride** combinant X25519 (classique) et ML-KEM-768 (post-quantique) via le protocole PQXDH.
+
+### Principe
+
+```
+À l'ajout du contact (QR scan) :
+  Les clés publiques X25519 ET ML-KEM-768 sont échangées via le QR code v2.
+  La conversation démarre en mode classique X25519 uniquement (root_key classique).
+
+Premier message (initiator) :
+  kem_ct, kem_ss = ML-KEM-768.Encaps(contact_kem_publicKey)
+  root_key' = HKDF(root_key || kem_ss, "pqxdh-upgrade")
+  → message Firebase inclut { ..., "kemCiphertext": Base64(kem_ct) }
+  → root_key upgradé localement (chains recalculées)
+
+Réception du premier message (responder) :
+  kem_ss = ML-KEM-768.Decaps(my_kem_privateKey, kemCiphertext)
+  root_key' = HKDF(root_key || kem_ss, "pqxdh-upgrade")
+  → root_key upgradé localement (chains recalculées)
+
+Messages suivants :
+  kemCiphertext n'est plus envoyé (upgrade unique)
+  Double Ratchet continue avec root_key' (hybride)
+```
+
+### Propriétés
+
+- ✅ **Résistance post-quantique** : même si X25519 est cassé par un ordinateur quantique, ML-KEM-768 protège le root_key
+- ✅ **Upgrade différée** : pas de message bootstrap — l'upgrade se fait au premier vrai message
+- ✅ **Aucune régression** : si ML-KEM échoue, la conversation reste protégée par X25519 classique
+- ✅ **BouncyCastle 1.80** : implémentation ML-KEM-768 certifiée (package `org.bouncycastle.pqc.crypto.mlkem`)
+- ✅ **StrongBox probe** : `DeviceSecurityManager` détecte le support matériel StrongBox pour la protection des clés
 
 ---
 
@@ -182,6 +234,15 @@ Réception :
 ```
 /conversations/{id}/settings/ephemeralDuration = 3600000
 ```
+
+### Événements fingerprint (V3.4)
+
+```
+/conversations/{id}/settings/fingerprintEvent = "verified:<timestamp>"
+```
+
+- Notification événementielle uniquement — **ne synchronise pas** l'état de vérification
+- Chaque utilisateur gère son état `fingerprintVerified` localement en Room
 
 ### Supprimé du wire format (V1.1 metadata hardening)
 
@@ -224,9 +285,9 @@ Réception :
 |--------|-----------|--------|
 | Firebase lit les messages | ✅ | Chiffré E2E, Firebase ne voit que du ciphertext |
 | Compromission d'une clé message | ✅ | PFS — chaque message a sa propre clé |
-| Replay d'anciens messages | ✅ | sinceTimestamp + messageIndex (embedded dans ciphertext) |
-| Race conditions ratchet | ✅ | Mutex par conversation |
-| Attaque MITM | ✅ | Fingerprint emojis 96-bit (vérification visuelle) |
+| Replay d'anciens messages | ✅ | sinceTimestamp + lastDeliveredAt + messageIndex (embedded dans ciphertext) |
+| Race conditions ratchet | ✅ | Mutex par conversation + ConcurrentHashMap.putIfAbsent() + éviction LRU |
+| Attaque MITM | ✅ | Fingerprint emojis 96-bit (vérification visuelle indépendante) |
 | Vol du téléphone déverrouillé | ✅ | Keystore, SQLCipher, App Lock PIN + biométrie, auto-lock |
 | Messages sensibles oubliés | ✅ | Messages éphémères (timer sur envoi / lecture) |
 | Falsification de message | ✅ | Signature Ed25519 par message (V3.2) — badge ✅/⚠️ |
@@ -236,6 +297,8 @@ Réception :
 | Perte du téléphone | ✅ | Phrase mnémonique 24 mots (BIP-39) pour restaurer l'identité |
 | App Lock brute-force | ✅ | PBKDF2 600 000 itérations + verrouillage biométrique |
 | Contact supprime son compte | ✅ | Détection automatique conversation morte + nettoyage + re-invitation |
+| Ordinateur quantique (futur) | ✅ | PQXDH hybride ML-KEM-768 — root_key upgradé avec secret post-quantique (V3.4) |
+| Désynchronisation ratchet | ✅ | syncExistingMessages à l'acceptation, delete-after-failure, lastDeliveredAt lower-bound |
 
 > Voir aussi [`SECURITY.md`](../../SECURITY.md) pour l'analyse complète des mesures de sécurité.
 
