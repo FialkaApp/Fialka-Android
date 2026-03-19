@@ -430,7 +430,7 @@ object FirebaseRelay {
                         val senderPublicKey = json.getString("p")
                         val senderDisplayName = json.optString("n", "Inconnu")
                         val conversationId = json.getString("c")
-                        val senderSigningPublicKey = json.optString("s", null).takeIf { !it.isNullOrEmpty() }
+                        val senderSigningPublicKey = json.optString("s", "").takeIf { it.isNotEmpty() }
                         trySend(ContactRequest(senderPublicKey, senderDisplayName, conversationId, createdAt, senderSigningPublicKey))
                     } catch (_: Exception) {
                         // Decryption failed — ignore corrupt entry
