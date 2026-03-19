@@ -52,9 +52,9 @@ class ProfileFragment : Fragment() {
                 binding.tvInitial.text = user.displayName.firstOrNull()?.uppercase() ?: "?"
                 binding.tvDisplayNameHeader.text = user.displayName
 
-                // Short invite link (without ML-KEM — recipient fetches it from Firebase)
-                // This keeps the QR code small and easily scannable
-                val inviteLink = QrCodeGenerator.buildDeepLink(user.publicKey, null)
+                // Short invite link — name embedded so recipient's form auto-fills
+                // ML-KEM key not included (fetched from Firebase) to keep QR small
+                val inviteLink = QrCodeGenerator.buildDeepLink(user.publicKey, null, user.displayName)
                 binding.tvPublicKey.text = inviteLink
 
                 try {

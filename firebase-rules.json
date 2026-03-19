@@ -51,7 +51,6 @@
         ".read": "auth != null",
         ".write": "auth.uid === $uid",
         "publicKey":        { ".validate": "newData.isString() && newData.val().length < 500" },
-        "displayName":      { ".validate": "newData.isString() && newData.val().length < 100" },
         "fcm_token":        {
           ".read":     "auth.uid === $uid",
           ".validate": "newData.isString() && newData.val().length < 500"

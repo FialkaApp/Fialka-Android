@@ -38,6 +38,20 @@
             app:layout_constraintTop_toBottomOf="@id/toolbar" />
 
         <TextView
+            android:id="@+id/tvScanHint"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="24dp"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="@string/scan_hint"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/btnScanQr" />
+
+        <TextView
             android:id="@+id/tvOrDivider"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -49,7 +63,7 @@
             android:textSize="14sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btnScanQr" />
+            app:layout_constraintTop_toBottomOf="@id/tvScanHint" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilContactName"
@@ -58,6 +72,7 @@
             android:layout_marginHorizontal="24dp"
             android:layout_marginTop="20dp"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            app:helperTextEnabled="true"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvOrDivider">

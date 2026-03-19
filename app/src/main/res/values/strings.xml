@@ -29,7 +29,8 @@
     <string name="rename">Renommer</string>
     <string name="key_copied">Lien d\'invitation copié !</string>
     <string name="save">Enregistrer</string>
-    <string name="qr_hint">Montrez ce QR code ou partagez le lien pour être ajouté</string>
+    <string name="qr_hint">Montrez ce QR code ou partagez le lien\nTon pseudo est inclus — le contact n\'aura rien à saisir !</string>
+    <string name="invite_badge">✅ Pseudo + clé publique inclus dans le lien</string>
 
     <!-- Conversations -->
     <string name="conversations_title">Conversations</string>
@@ -48,7 +49,8 @@
     <string name="error_invalid_key">Clé publique invalide.</string>
     <string name="error_same_key">Vous ne pouvez pas ajouter votre propre clé.</string>
     <string name="contact_added">Contact ajouté et conversation créée !</string>
-    <string name="qr_scanned_success">Clé publique scannée !</string>
+    <string name="qr_scanned_success">QR scanné — champs pré-remplis !</string>
+    <string name="scan_hint">Le pseudo du contact sera auto-rempli depuis son QR</string>
     <string name="camera_permission_denied">Permission caméra refusée</string>
 
     <!-- Chat -->

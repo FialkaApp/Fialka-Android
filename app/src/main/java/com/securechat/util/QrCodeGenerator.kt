@@ -6,6 +6,8 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 /**
  * Utility to generate QR code bitmaps from text content.
@@ -24,14 +26,17 @@ object QrCodeGenerator {
      * Build a PQXDH v2 deep link from X25519 and ML-KEM public keys.
      * @param x25519PublicKeyBase64  X25519 identity public key (Base64, ~44 chars).
      * @param mlkemPublicKeyBase64   ML-KEM-768 identity public key (Base64, ~1580 chars). Pass null for classic-only invite.
+     * @param displayName            Optional display name to embed so the recipient's form auto-fills.
      */
-    fun buildDeepLink(x25519PublicKeyBase64: String, mlkemPublicKeyBase64: String?): String {
-        return if (mlkemPublicKeyBase64 != null) {
+    fun buildDeepLink(x25519PublicKeyBase64: String, mlkemPublicKeyBase64: String?, displayName: String? = null): String {
+        val base = if (mlkemPublicKeyBase64 != null) {
             "securechat://invite?v=2&x25519=$x25519PublicKeyBase64&mlkem=$mlkemPublicKeyBase64"
         } else {
-            // Short link — ML-KEM key is fetched from Firebase by the recipient when adding contact
             "securechat://invite?v=2&x25519=$x25519PublicKeyBase64"
         }
+        return if (!displayName.isNullOrBlank()) {
+            "$base&name=${URLEncoder.encode(displayName, "UTF-8")}"
+        } else base
     }
 
     /**
@@ -50,11 +55,12 @@ object QrCodeGenerator {
                     .toMap()
                 val x25519 = params["x25519"] ?: return null
                 val mlkem  = params["mlkem"]
-                InviteData(x25519, mlkem)
+                val name   = params["name"]?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrNull() }
+                InviteData(x25519, mlkem, name)
             }
             raw.isNotBlank() -> {
                 // Legacy v1: raw public key only
-                InviteData(x25519PublicKey = raw, mlkemPublicKey = null)
+                InviteData(x25519PublicKey = raw, mlkemPublicKey = null, displayName = null)
             }
             else -> null
         }
@@ -62,7 +68,8 @@ object QrCodeGenerator {
 
     data class InviteData(
         val x25519PublicKey: String,
-        val mlkemPublicKey: String?   // null = contact has no ML-KEM key (classic fallback)
+        val mlkemPublicKey: String?,   // null = contact has no ML-KEM key (classic fallback)
+        val displayName: String? = null
     )
 
     /**

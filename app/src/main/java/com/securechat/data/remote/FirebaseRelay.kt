@@ -227,20 +227,12 @@ object FirebaseRelay {
     }
 
     /**
-     * Store the user's display name on Firebase so Cloud Functions can include it
-     * in push notifications. Path: /users/{firebaseUid}/displayName
+     * No-op — display name is no longer stored in cleartext on Firebase.
+     * The real name is transmitted only inside the ECIES-encrypted inbox payload.
+     * Kept for API compatibility with existing call sites.
      */
-    suspend fun storeDisplayName(displayName: String) {
-        val uid = auth.currentUser?.uid ?: return
-        suspendCancellableCoroutine { cont ->
-            database.reference
-                .child("users")
-                .child(uid)
-                .child("displayName")
-                .setValue(displayName)
-                .addOnSuccessListener { cont.resume(Unit) }
-                .addOnFailureListener { cont.resume(Unit) }
-        }
+    suspend fun storeDisplayName(@Suppress("UNUSED_PARAMETER") displayName: String) {
+        // Intentionally empty — do not store PII in cleartext
     }
 
     /**

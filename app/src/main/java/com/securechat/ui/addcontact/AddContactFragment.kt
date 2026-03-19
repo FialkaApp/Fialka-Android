@@ -42,12 +42,15 @@ class AddContactFragment : Fragment() {
             val scanned = result.contents
             when {
                 scanned.startsWith("securechat://invite?") -> {
-                    // V2 PQXDH deep link: extract X25519 + ML-KEM keys
+                    // V2 PQXDH deep link: extract X25519 + ML-KEM keys + sender name
                     val invite = QrCodeGenerator.parseInvite(scanned)
                     if (invite != null) {
                         binding.etPublicKey.setText(invite.x25519PublicKey)
-                        // Store ML-KEM key in tag so submit button can pass it to ViewModel
                         binding.etPublicKey.tag = invite.mlkemPublicKey
+                        if (!invite.displayName.isNullOrBlank()) {
+                            binding.etContactName.setText(invite.displayName)
+                            binding.tilContactName.helperText = "✅ Pré-rempli depuis le QR"
+                        }
                     } else {
                         binding.etPublicKey.setText(scanned)
                     }
@@ -93,9 +96,24 @@ class AddContactFragment : Fragment() {
             if (invite != null) {
                 binding.etPublicKey.setText(invite.x25519PublicKey)
                 binding.etPublicKey.tag = invite.mlkemPublicKey
+                if (!invite.displayName.isNullOrBlank()) {
+                    binding.etContactName.setText(invite.displayName)
+                    binding.tilContactName.helperText = "✅ Pré-rempli depuis le lien"
+                }
             }
             requireActivity().intent.data = null // consume so it doesn't re-fill on back+return
         }
+
+        // Clear helperText if user manually edits the name field
+        binding.etContactName.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (binding.tilContactName.helperText != null) {
+                    binding.tilContactName.helperText = null
+                }
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
 
         binding.btnScanQr.setOnClickListener {
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
