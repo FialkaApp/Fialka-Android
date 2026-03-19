@@ -878,6 +878,57 @@ object FirebaseRelay {
     }
 
     // ========================================================================
+    // FINGERPRINT VERIFICATION EVENT
+    // ========================================================================
+
+    /**
+     * Push a fingerprint verification event to Firebase so the other participant
+     * is notified. Each event is a unique string: "verified:<timestamp>" or
+     * "unverified:<timestamp>". Verification state itself is local-only —
+     * this is purely a notification mechanism.
+     * Path: /conversations/{id}/settings/fingerprintEvent
+     */
+    suspend fun pushFingerprintEvent(conversationId: String, event: String) {
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("conversations")
+                .child(conversationId)
+                .child("settings")
+                .child("fingerprintEvent")
+                .setValue(event)
+                .addOnSuccessListener { cont.resume(Unit) }
+                .addOnFailureListener { cont.resume(Unit) }
+        }
+    }
+
+    /**
+     * Listen for fingerprint verification events on Firebase.
+     * Emits the event string whenever either participant verifies/unverifies.
+     */
+    fun listenForFingerprintEvent(conversationId: String): Flow<String> = callbackFlow {
+        val ref = database.reference
+            .child("conversations")
+            .child(conversationId)
+            .child("settings")
+            .child("fingerprintEvent")
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val event = snapshot.getValue(String::class.java) ?: ""
+                if (event.isNotEmpty()) trySend(event)
+            }
+
+            override fun onCancelled(error: DatabaseError) {}
+        }
+
+        ref.addValueEventListener(listener)
+
+        awaitClose {
+            ref.removeEventListener(listener)
+        }
+    }
+
+    // ========================================================================
     // ML-KEM PUBLIC KEY (PQXDH)
     // ========================================================================
 

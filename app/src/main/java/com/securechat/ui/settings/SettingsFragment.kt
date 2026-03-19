@@ -1,5 +1,7 @@
 package com.securechat.ui.settings
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,7 +11,10 @@ import androidx.navigation.fragment.findNavController
 import com.securechat.R
 import com.securechat.databinding.FragmentSettingsBinding
 import com.securechat.util.AppLockManager
+import com.securechat.util.DeviceSecurityManager
 import com.securechat.util.EphemeralManager
+import com.securechat.util.SecurityLevel
+import com.securechat.util.StrongBoxStatus
 import com.securechat.util.ThemeManager
 
 class SettingsFragment : Fragment() {
@@ -51,6 +56,9 @@ class SettingsFragment : Fragment() {
             val info = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
             binding.tvVersion.text = info.versionName ?: "1.0"
         } catch (_: Exception) { }
+
+        // Device security card
+        setupDeviceSecurity()
     }
 
     override fun onResume() {
@@ -84,6 +92,33 @@ class SettingsFragment : Fragment() {
             pinSet -> "PIN activé · $lockLabel"
             else -> "Désactivé"
         }
+    }
+
+    private fun setupDeviceSecurity() {
+        val profile = DeviceSecurityManager.getSecurityProfile(requireContext())
+
+        binding.tvAboutOsName.text = "Android"
+        binding.tvAboutDeviceName.text = profile.deviceName
+        binding.tvAboutSecurityLevel.text = profile.securityLevelLabel
+
+        val badgeColor = when (profile.securityLevel) {
+            SecurityLevel.MAXIMUM  -> Color.parseColor("#1DB954")
+            SecurityLevel.STANDARD -> Color.parseColor("#888780")
+        }
+        binding.tvAboutBadge.backgroundTintList = ColorStateList.valueOf(badgeColor)
+        binding.tvAboutBadge.text = profile.securityLevelLabel
+
+        binding.tvAboutKeyStorage.text = when {
+            profile.isStrongBoxAvailable                                       -> "Secure Element actif"
+            profile.strongBoxStatus == StrongBoxStatus.NOT_AVAILABLE            -> "TEE standard (KeyStore)"
+            profile.strongBoxStatus == StrongBoxStatus.DECLARED_BUT_UNAVAILABLE -> "Déclaré mais non fonctionnel"
+            else                                                                -> "TEE standard (KeyStore)"
+        }
+
+        binding.bannerStrongboxNonGos.visibility =
+            if (profile.isStrongBoxAvailable) View.VISIBLE else View.GONE
+        binding.bannerSecondaryProfile.visibility =
+            if (profile.isSecondaryProfile) View.VISIBLE else View.GONE
     }
 
     override fun onDestroyView() {

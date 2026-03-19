@@ -74,7 +74,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 items.add(ChatItem.UnreadDivider)
             }
             if (msg.isInfoMessage) {
-                items.add(ChatItem.InfoMessage(msg.plaintext, msg.timestamp))
+                val isFingerprint = msg.plaintext.startsWith("🔐") || msg.plaintext.startsWith("🔓")
+                items.add(ChatItem.InfoMessage(msg.plaintext, msg.timestamp, clickable = isFingerprint))
             } else {
                 items.add(ChatItem.Message(msg))
             }
@@ -110,6 +111,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             // Listen for remote ephemeral setting changes (other user changed it)
             listenForEphemeralChanges(conversationId)
+
+            // Listen for remote fingerprint verification changes
+            listenForFingerprintChanges(conversationId)
 
             // Ensure Firebase auth is still active (can expire after app kill)
             if (!FirebaseRelay.isAuthenticated()) {
@@ -236,6 +240,35 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     repository.syncEphemeralDurationLocally(conversationId, duration)
                     repository.insertEphemeralInfoMessage(conversationId, duration)
                 }
+            }
+            .catch { /* Silently handle */ }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Listen for remote fingerprint verification events from Firebase.
+     * Each user's verification state is independent — this only shows
+     * an info message when the OTHER user verifies/unverifies.
+     * Self-echo is filtered using the timestamp embedded in the event.
+     */
+    private fun listenForFingerprintChanges(conversationId: String) {
+        var isFirstEmission = true
+        repository.listenForFingerprintEvent(conversationId)
+            .onEach { event ->
+                // Skip initial Firebase snapshot (stale event from last session)
+                if (isFirstEmission) {
+                    isFirstEmission = false
+                    return@onEach
+                }
+                // Parse event: "verified:1679000000000" or "unverified:1679000000000"
+                val parts = event.split(":")
+                if (parts.size != 2) return@onEach
+                val verified = parts[0] == "verified"
+                val timestamp = parts[1].toLongOrNull() ?: return@onEach
+                // Skip self-echo (our own push)
+                if (timestamp == ChatRepository.lastFingerprintPushTimestamp) return@onEach
+                // This is from the other participant — show info message
+                repository.insertFingerprintInfoMessage(conversationId, verified, isLocal = false)
             }
             .catch { /* Silently handle */ }
             .launchIn(viewModelScope)

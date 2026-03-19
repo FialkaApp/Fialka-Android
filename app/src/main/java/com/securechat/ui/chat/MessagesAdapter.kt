@@ -25,10 +25,12 @@ import java.util.Locale
 sealed class ChatItem {
     data class Message(val message: MessageLocal) : ChatItem()
     object UnreadDivider : ChatItem()
-    data class InfoMessage(val text: String, val timestamp: Long) : ChatItem()
+    data class InfoMessage(val text: String, val timestamp: Long, val clickable: Boolean = false) : ChatItem()
 }
 
-class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
+class MessagesAdapter(
+    private val onFingerprintInfoClick: (() -> Unit)? = null
+) : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
 
     private var lastAnimatedPosition = -1
 
@@ -123,7 +125,7 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
             }
             is InfoViewHolder -> {
                 val info = getItem(position) as ChatItem.InfoMessage
-                holder.bind(info.text)
+                holder.bind(info.text, if (info.clickable) onFingerprintInfoClick else null)
             }
             is UnreadDividerViewHolder -> { /* static view, nothing to bind */ }
         }
@@ -204,8 +206,29 @@ class MessagesAdapter : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemD
 
     class InfoViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvInfoMessage: android.widget.TextView = view.findViewById(R.id.tvInfoMessage)
-        fun bind(text: String) {
-            tvInfoMessage.text = text
+        fun bind(text: String, onClick: (() -> Unit)?) {
+            if (onClick != null) {
+                val link = "Voir l'empreinte"
+                val full = "$text\n$link"
+                val spannable = android.text.SpannableString(full)
+                val start = full.indexOf(link)
+                spannable.setSpan(
+                    object : android.text.style.ClickableSpan() {
+                        override fun onClick(widget: View) { onClick() }
+                        override fun updateDrawState(ds: android.text.TextPaint) {
+                            ds.isUnderlineText = true
+                            ds.color = ds.linkColor
+                        }
+                    },
+                    start, start + link.length,
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                tvInfoMessage.text = spannable
+                tvInfoMessage.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+            } else {
+                tvInfoMessage.text = text
+                tvInfoMessage.movementMethod = null
+            }
         }
     }
 

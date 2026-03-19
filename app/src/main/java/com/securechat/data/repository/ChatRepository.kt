@@ -75,6 +75,10 @@ class ChatRepository(private val appContext: Context) {
         /** The conversation currently being viewed. Unread count won't increment for it. */
         @Volatile
         var currentlyViewedConversation: String? = null
+
+        /** Timestamp of the last fingerprint event we pushed — used to filter self-echo. */
+        @Volatile
+        var lastFingerprintPushTimestamp: Long = 0L
     }
 
     // ========================================================================
@@ -1108,10 +1112,50 @@ class ChatRepository(private val appContext: Context) {
     // ========================================================================
 
     /**
-     * Mark a conversation's fingerprint as verified (user has manually compared emojis).
+     * Mark a conversation's fingerprint as verified/unverified.
+     * Verification state is LOCAL-ONLY — each participant decides independently.
+     * A notification event is pushed to Firebase so the other side sees a message.
      */
     suspend fun verifyFingerprint(conversationId: String, verified: Boolean) {
         conversationDao.updateFingerprintVerified(conversationId, verified)
+        insertFingerprintInfoMessage(conversationId, verified, isLocal = true)
+        val ts = System.currentTimeMillis()
+        lastFingerprintPushTimestamp = ts
+        val event = "${if (verified) "verified" else "unverified"}:$ts"
+        try {
+            FirebaseRelay.pushFingerprintEvent(conversationId, event)
+        } catch (_: Exception) { }
+    }
+
+    /**
+     * Listen for remote fingerprint verification events from Firebase.
+     */
+    fun listenForFingerprintEvent(conversationId: String): Flow<String> =
+        FirebaseRelay.listenForFingerprintEvent(conversationId)
+
+    /**
+     * Insert a local-only info message when fingerprint verification changes.
+     * [isLocal] = true  → "Vous avez vérifié …"
+     * [isLocal] = false → "Votre contact a vérifié …"
+     */
+    suspend fun insertFingerprintInfoMessage(conversationId: String, verified: Boolean, isLocal: Boolean) {
+        val text = if (verified) {
+            if (isLocal) "🔐 Vous avez vérifié l'empreinte de sécurité"
+            else "🔐 Votre contact a vérifié l'empreinte de sécurité"
+        } else {
+            if (isLocal) "🔓 Vous avez retiré la vérification de l'empreinte"
+            else "🔓 Votre contact a retiré la vérification de l'empreinte"
+        }
+        val infoMessage = MessageLocal(
+            localId = UUID.randomUUID().toString(),
+            conversationId = conversationId,
+            senderPublicKey = "",
+            plaintext = text,
+            timestamp = System.currentTimeMillis(),
+            isMine = false,
+            isInfoMessage = true
+        )
+        messageDao.insertMessage(infoMessage)
     }
 
     /**

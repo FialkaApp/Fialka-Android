@@ -18,23 +18,20 @@ private const val TAG = "DeviceSecurityManager"
 
 enum class StrongBoxStatus { AVAILABLE, NOT_AVAILABLE, DECLARED_BUT_UNAVAILABLE }
 enum class UserProfileType { OWNER, SECONDARY, UNKNOWN }
-enum class SecurityLevel { MAXIMUM, HIGH, STANDARD }
+enum class SecurityLevel { MAXIMUM, STANDARD }
 
 data class SecurityProfile(
-    val isGrapheneOS: Boolean,
     val strongBoxStatus: StrongBoxStatus,
     val userProfileType: UserProfileType,
-    val deviceName: String,           // "$MANUFACTURER $MODEL"
-    val securityLevel: SecurityLevel  // GOS+SB→MAX, GOS seul OU SB seul→HIGH, rien→STD
+    val deviceName: String,
+    val securityLevel: SecurityLevel
 ) {
     val isStrongBoxAvailable: Boolean get() = strongBoxStatus == StrongBoxStatus.AVAILABLE
     val isSecondaryProfile: Boolean   get() = userProfileType == UserProfileType.SECONDARY
     val securityLevelLabel: String    get() = when (securityLevel) {
         SecurityLevel.MAXIMUM  -> "Maximum"
-        SecurityLevel.HIGH     -> "Élevé"
         SecurityLevel.STANDARD -> "Standard"
     }
-    val osLabel: String get() = if (isGrapheneOS) "GrapheneOS" else "Android"
 }
 
 // ============================================================================
@@ -67,43 +64,20 @@ object DeviceSecurityManager {
     // -------------------------------------------------------------------------
 
     private fun buildProfile(context: Context): SecurityProfile {
-        val isGos         = detectGrapheneOS()
         val strongBox     = probeStrongBox(context)
         val userProfile   = detectUserProfile()
         val deviceName    = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
-        val securityLevel = when {
-            isGos && strongBox == StrongBoxStatus.AVAILABLE                    -> SecurityLevel.MAXIMUM
-            isGos || strongBox == StrongBoxStatus.AVAILABLE                    -> SecurityLevel.HIGH
-            else                                                                -> SecurityLevel.STANDARD
+        val securityLevel = if (strongBox == StrongBoxStatus.AVAILABLE) {
+            SecurityLevel.MAXIMUM
+        } else {
+            SecurityLevel.STANDARD
         }
         return SecurityProfile(
-            isGrapheneOS       = isGos,
             strongBoxStatus    = strongBox,
             userProfileType    = userProfile,
             deviceName         = deviceName,
             securityLevel      = securityLevel
         )
-    }
-
-    // -------------------------------------------------------------------------
-    // GrapheneOS detection
-    // -------------------------------------------------------------------------
-
-    private fun detectGrapheneOS(): Boolean {
-        return try {
-            val flavor      = System.getProperty("ro.build.flavor") ?: ""
-            val fingerprint = Build.FINGERPRINT ?: ""
-            val brand       = Build.BRAND ?: ""
-            val product     = Build.PRODUCT ?: ""
-
-            flavor.contains("grapheneos", ignoreCase = true)
-                || fingerprint.contains("grapheneos", ignoreCase = true)
-                || brand.contains("graphene", ignoreCase = true)
-                || product.contains("graphene", ignoreCase = true)
-        } catch (e: Exception) {
-            Log.w(TAG, "GrapheneOS detection failed", e)
-            false
-        }
     }
 
     // -------------------------------------------------------------------------

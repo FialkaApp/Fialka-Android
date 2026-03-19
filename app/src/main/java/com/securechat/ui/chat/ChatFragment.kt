@@ -170,7 +170,15 @@ class ChatFragment : Fragment() {
         // Load fingerprint badge
         loadFingerprintBadge()
 
-        adapter = MessagesAdapter()
+        adapter = MessagesAdapter {
+            findNavController().navigate(
+                R.id.action_chat_to_fingerprint,
+                bundleOf(
+                    "conversationId" to conversationId,
+                    "contactName" to contactName
+                )
+            )
+        }
         binding.rvMessages.adapter = adapter
 
         // Initialize ViewModel with conversation ID
@@ -287,12 +295,12 @@ class ChatFragment : Fragment() {
             if (conversation != null && _binding != null) {
                 val preview = conversation.sharedFingerprint.take(8) // First 4 emojis
                 if (conversation.fingerprintVerified) {
-                    binding.tvFingerprintBadge.text = "$preview ✓"
+                    binding.tvFingerprintBadge.text = "$preview  ✅ Vérifié"
                     binding.tvFingerprintBadge.setTextColor(
                         ContextCompat.getColor(requireContext(), R.color.green_verified)
                     )
                 } else {
-                    binding.tvFingerprintBadge.text = "$preview ➤"
+                    binding.tvFingerprintBadge.text = "$preview  ⚠️ Non vérifié"
                     binding.tvFingerprintBadge.setTextColor(
                         ContextCompat.getColor(requireContext(), R.color.orange_warning)
                     )

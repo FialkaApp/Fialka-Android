@@ -26,6 +26,7 @@ class FingerprintFragment : Fragment() {
     private lateinit var repository: ChatRepository
     private var conversationId: String = ""
     private var contactName: String = ""
+    private var isVerified: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,13 +58,17 @@ class FingerprintFragment : Fragment() {
             val conversation = repository.getConversation(conversationId) ?: return@launch
 
             binding.tvFingerprint.text = conversation.sharedFingerprint
-            updateVerificationUI(conversation.fingerprintVerified)
+            isVerified = conversation.fingerprintVerified
+            updateVerificationUI(isVerified)
 
             binding.btnVerify.setOnClickListener {
                 lifecycleScope.launch {
-                    repository.verifyFingerprint(conversationId, true)
-                    updateVerificationUI(true)
-                    Toast.makeText(requireContext(), "Empreinte vérifiée ✓", Toast.LENGTH_SHORT).show()
+                    val newState = !isVerified
+                    repository.verifyFingerprint(conversationId, newState)
+                    isVerified = newState
+                    updateVerificationUI(isVerified)
+                    val msg = if (newState) "Empreinte vérifiée ✓" else "Vérification retirée"
+                    Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -75,12 +80,14 @@ class FingerprintFragment : Fragment() {
             binding.tvVerificationStatus.setTextColor(
                 ContextCompat.getColor(requireContext(), R.color.green_verified)
             )
-            binding.btnVerify.visibility = View.GONE
+            binding.btnVerify.text = "Retirer la vérification"
+            binding.btnVerify.visibility = View.VISIBLE
         } else {
             binding.tvVerificationStatus.text = "⚠️ Non vérifié"
             binding.tvVerificationStatus.setTextColor(
                 ContextCompat.getColor(requireContext(), R.color.orange_warning)
             )
+            binding.btnVerify.text = "Marquer comme vérifié"
             binding.btnVerify.visibility = View.VISIBLE
         }
     }

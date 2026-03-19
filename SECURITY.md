@@ -28,7 +28,7 @@ SecureChat uses the following cryptographic primitives:
 | Identity keys | X25519 (Curve25519) | Software JCA, private in EncryptedSharedPreferences (Keystore-backed) |
 | Identity backup | BIP-39 mnemonic (24 words) | 256 bits entropy + 8-bit SHA-256 checksum = 264 bits = 24 × 11-bit words |
 | Key restore | X25519 DH with base point u=9 | Private key → DH(priv, basepoint) → public key derivation |
-| Key exchange | X25519 ECDH | Shared secret derived from Curve25519 keys |
+| Key exchange | PQXDH: X25519 + ML-KEM-768 | Hybrid classic + post-quantum key agreement, deferred rootKey upgrade |
 | Key derivation | HKDF-SHA256 | Root key → send/recv chain keys |
 | Message keys | HMAC-SHA256 KDF chain | Double Ratchet (DH ratchet + KDF chains, PFS + healing) |
 | DH Ratchet | X25519 ephemeral keys | New key pair per direction change → post-compromise healing |

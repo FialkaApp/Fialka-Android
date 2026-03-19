@@ -14,7 +14,7 @@
 
 [![Android](https://img.shields.io/badge/Android-33%2B-a855f7?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7c3aed?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-[![E2E](https://img.shields.io/badge/X25519-AES--256--GCM-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/fr/CRYPTO.md)
+[![E2E](https://img.shields.io/badge/PQXDH-X25519%20%2B%20ML--KEM--768-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/fr/CRYPTO.md)
 [![License](https://img.shields.io/badge/GPLv3-License-8b5cf6?style=for-the-badge)](LICENSE)
 
 <br/>
@@ -53,8 +53,8 @@
 
 ### 🔐 Crypto
 
-- **X25519 ECDH** + **AES-256-GCM**
-- **Double Ratchet** avec PFS + healing
+- **PQXDH** : X25519 + **ML-KEM-768** (post-quantique)
+- **AES-256-GCM** + **Double Ratchet** avec PFS + healing
 - **Fingerprint emojis** 96-bit anti-MITM
 - **BIP-39** backup (24 mots)
 - Clé privée dans **Android Keystore**
@@ -102,7 +102,7 @@
 
 | | Feature | Détail |
 |---|---------|--------|
-| 🔐 | **Chiffrement E2E** | X25519 ECDH + AES-256-GCM |
+| 🔐 | **Chiffrement E2E** | PQXDH : X25519 + ML-KEM-768 + AES-256-GCM |
 | 🔄 | **Perfect Forward Secrecy** | Double Ratchet (DH + KDF chains) |
 | 🔏 | **Fingerprint emojis** | 96-bit, 16 emojis, anti-MITM |
 | 🕵️ | **Metadata hardening** | senderUid hashé HMAC + messageIndex chiffré |
@@ -189,7 +189,7 @@
 │      ChatRepository — source de vérité unique     │
 ├────────────────┬────────────────┬────────────────┤
 │    Room DB     │     Crypto     │    Firebase     │
-│   (SQLCipher)  │  X25519 + DR   │  Relay + FCM    │
+│   (SQLCipher)  │  PQXDH + DR    │  Relay + FCM    │
 └────────────────┴────────────────┴────────────────┘
 ```
 
@@ -226,7 +226,7 @@ cd SecureChat
 
 | Mesure | Statut |
 |--------|--------|
-| Chiffrement E2E (X25519 + AES-256-GCM) | ✅ |
+| Chiffrement E2E (PQXDH : X25519 + ML-KEM-768 + AES-256-GCM) | ✅ |
 | Double Ratchet avec PFS + healing | ✅ |
 | Zeroing mémoire (clés intermédiaires) | ✅ |
 | Envoi atomique (ratchet + Firebase) | ✅ |
@@ -254,6 +254,7 @@ cd SecureChat
 | Toggle Tor dans Paramètres Sécurité + reconnexion | ✅ |
 | Dummy traffic par conversation | ✅ |
 | Signature Ed25519 par message (anti-falsification) | ✅ |
+| PQXDH : X25519 + ML-KEM-768 (résistance post-quantique) | ✅ |
 | Nettoyage clés de signature à la suppression de compte | ✅ |
 
 > 📖 **Analyse complète** — [`SECURITY.md`](SECURITY.md) · [Protocole crypto](docs/fr/CRYPTO.md)
@@ -276,7 +277,8 @@ cd SecureChat
 | **V3.1** | Settings Redesign — Paramètres Signal-like, PIN 6 chiffres, sous-écran Confidentialité, coroutines PIN | ✅ Done |
 | **V3.2** | Ed25519 Signing — Signature par message, badge ✅/⚠️, durcissement Firebase rules, nettoyage clés | ✅ Done |
 | **V3.3** | Material 3 + Tor + Attachment UX — Migration M3, intégration Tor complète, icônes inline Session, permissions Android 13+, durcissement logs | ✅ Done |
-| **V3.4** | Planned — Camouflage app + faux écran, Dual PIN, panic button, FLAG_SECURE, messages vocaux E2E, sealed sender, reply/quote | 🔜 |
+| **V3.4** | PQXDH — Chiffrement post-quantique ML-KEM-768, durcissement ratchet, fix désync crypto | ✅ Done |
+| **V3.5** | Planned — Camouflage app + faux écran, Dual PIN, panic button, FLAG_SECURE, messages vocaux E2E, sealed sender, reply/quote | 🔜 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
 
