@@ -125,10 +125,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             _isAccepted.value = conversation?.accepted ?: true
 
             if (conversation?.accepted == true) {
-                startListening(conversationId, conversation.createdAt)
+                // Use lastDeliveredAt as lower-bound when known — this skips all messages
+                // we already processed (or failed to process) so the ratchet isn't
+                // re-exposed to stale ciphertexts that remain on Firebase.
+                val since = if ((conversation.lastDeliveredAt) > 0L)
+                    conversation.lastDeliveredAt
+                else
+                    conversation.createdAt
+                startListening(conversationId, since)
             } else {
-                // Listen for acceptance
-                repository.listenForAcceptances()
+                // Listen directly on /accepted/{conversationId} — avoids PERMISSION_DENIED
+                // that the global /accepted listener would hit
+                repository.listenForAcceptance(conversationId)
                     .onEach { acceptedId ->
                         if (acceptedId == conversationId) {
                             repository.markConversationAccepted(conversationId)

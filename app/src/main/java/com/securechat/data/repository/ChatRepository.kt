@@ -729,6 +729,14 @@ class ChatRepository(private val appContext: Context) {
                 )
                 // Delete-after-delivery: remove ciphertext from Firebase
                 FirebaseRelay.deleteMessage(conversationId, firebaseMessage.firebaseKey)
+                // Track the latest successfully delivered timestamp so the listener
+                // lower-bound stays fresh across app restarts (prevents re-processing
+                // undecryptable stale messages that were never deleted from Firebase).
+                conversationDao.updateLastDeliveredAt(conversationId, firebaseMessage.createdAt)
+            } else if (firebaseMessage.firebaseKey.isNotEmpty()) {
+                // Decryption failed — delete from Firebase anyway so the ciphertext
+                // doesn't block the ratchet indefinitely on every restart.
+                FirebaseRelay.deleteMessage(conversationId, firebaseMessage.firebaseKey)
             }
 
             // Verify Ed25519 signature (after ratchet advance — ratchet must ALWAYS progress)
@@ -967,6 +975,13 @@ class ChatRepository(private val appContext: Context) {
             conversationId = request.conversationId
         )
 
+        // Sync any messages Bob sent before we accepted — critically, this picks up
+        // his first message which carries the PQXDH kemCiphertext. Without this step,
+        // the real-time listener (started later with sinceTimestamp = now) would miss
+        // that message and Alice's PQXDH upgrade would never run, causing all of Bob's
+        // messages to show [Échec du déchiffrement].
+        syncExistingMessages(conversation.conversationId)
+
         // Notify sender that we accepted
         val myPublicKey = userDao.getUser()?.publicKey
         if (myPublicKey != null) {
@@ -1004,6 +1019,20 @@ class ChatRepository(private val appContext: Context) {
     suspend fun isContactRequestAlreadyAccepted(conversationId: String): Boolean {
         return conversationDao.getConversationById(conversationId) != null
     }
+
+    /**
+     * Listen for an acceptance notification for ONE specific pending conversation.
+     * This targets /accepted/{conversationId} directly so Firebase rules (per-participant
+     * read) are satisfied — fixing the PERMISSION_DENIED the global listener had.
+     */
+    fun listenForAcceptance(conversationId: String): Flow<String> =
+        FirebaseRelay.listenForAcceptance(conversationId)
+
+    /**
+     * Return all conversationIds where accepted = false (outgoing pending invites).
+     */
+    suspend fun getPendingConversationIds(): List<String> =
+        conversationDao.getPendingConversationIds()
 
     /**
      * Listen for acceptance notifications from Firebase.
@@ -1194,12 +1223,17 @@ class ChatRepository(private val appContext: Context) {
             if (publicKey != null) {
                 FirebaseRelay.deleteInbox(publicKey)
                 FirebaseRelay.deleteSigningKey(publicKey)
+                FirebaseRelay.deleteMLKEMKey(publicKey)       // was missing
             }
             for (convo in conversations) {
                 FirebaseRelay.deleteConversation(convo.conversationId)
+                // Remove any pending /accepted/{id} node we may have written
+                if (!convo.accepted) {
+                    try { FirebaseRelay.removeAcceptanceNotification(convo.conversationId) } catch (_: Exception) {}
+                }
             }
         } catch (_: Exception) {
-            // Best-effort cleanup — don't block account deletion
+            // Best-effort cleanup — don\'t block account deletion
         }
 
         // Clear local data

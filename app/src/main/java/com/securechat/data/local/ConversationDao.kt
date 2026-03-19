@@ -42,8 +42,14 @@ interface ConversationDao {
     @Query("UPDATE conversations SET dummyTrafficEnabled = :enabled WHERE conversationId = :conversationId")
     suspend fun updateDummyTraffic(conversationId: String, enabled: Boolean)
 
+    @Query("UPDATE conversations SET lastDeliveredAt = :timestamp WHERE conversationId = :conversationId AND :timestamp > lastDeliveredAt")
+    suspend fun updateLastDeliveredAt(conversationId: String, timestamp: Long)
+
     @Query("SELECT * FROM conversations WHERE accepted = 1 AND dummyTrafficEnabled = 1")
     suspend fun getConversationsWithDummyTraffic(): List<Conversation>
+
+    @Query("SELECT conversationId FROM conversations WHERE accepted = 0")
+    suspend fun getPendingConversationIds(): List<String>
 
     @Delete
     suspend fun deleteConversation(conversation: Conversation)

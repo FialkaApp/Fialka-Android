@@ -2,6 +2,7 @@ package com.securechat.util
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.util.Base64
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -22,6 +23,32 @@ import java.net.URLEncoder
  */
 object QrCodeGenerator {
 
+    // Fixed 12-byte DER header for X25519 SubjectPublicKeyInfo (identical for every key)
+    private val X25519_HEADER = byteArrayOf(
+        0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x6E, 0x03, 0x21, 0x00
+    )
+
+    /** Strip the known 12-byte X.509 header → 32 raw bytes → Base64 (URL-safe, no padding). */
+    private fun x25519ToRaw(fullBase64: String): String {
+        val full = Base64.decode(fullBase64, Base64.NO_WRAP)
+        require(full.size == 44) { "Expected 44-byte X25519 key, got ${full.size}" }
+        return Base64.encodeToString(full.copyOfRange(12, 44), Base64.NO_WRAP)
+    }
+
+    /** Restore the 12-byte X.509 header onto a 32-byte raw Base64 key. */
+    private fun rawToX25519(rawBase64: String): String {
+        val raw = Base64.decode(rawBase64, Base64.NO_WRAP)
+        if (raw.size == 44) return rawBase64          // already full X.509 (legacy link)
+        require(raw.size == 32) { "Expected 32-byte raw key, got ${raw.size}" }
+        return Base64.encodeToString(X25519_HEADER + raw, Base64.NO_WRAP)
+    }
+
+    /**
+     * Encode a full X.509 Base64 X25519 key as stripped 32-byte Base64.
+     * Used by ProfileFragment to display the key without the fixed prefix.
+     */
+    fun stripX25519Header(fullBase64: String): String = runCatching { x25519ToRaw(fullBase64) }.getOrDefault(fullBase64)
+
     /**
      * Build a PQXDH v2 deep link from X25519 and ML-KEM public keys.
      * @param x25519PublicKeyBase64  X25519 identity public key (Base64, ~44 chars).
@@ -29,10 +56,11 @@ object QrCodeGenerator {
      * @param displayName            Optional display name to embed so the recipient's form auto-fills.
      */
     fun buildDeepLink(x25519PublicKeyBase64: String, mlkemPublicKeyBase64: String?, displayName: String? = null): String {
+        val rawX25519 = runCatching { x25519ToRaw(x25519PublicKeyBase64) }.getOrDefault(x25519PublicKeyBase64)
         val base = if (mlkemPublicKeyBase64 != null) {
-            "securechat://invite?v=2&x25519=$x25519PublicKeyBase64&mlkem=$mlkemPublicKeyBase64"
+            "securechat://invite?v=2&x25519=$rawX25519&mlkem=$mlkemPublicKeyBase64"
         } else {
-            "securechat://invite?v=2&x25519=$x25519PublicKeyBase64"
+            "securechat://invite?v=2&x25519=$rawX25519"
         }
         return if (!displayName.isNullOrBlank()) {
             "$base&name=${URLEncoder.encode(displayName, "UTF-8")}"
@@ -53,7 +81,7 @@ object QrCodeGenerator {
                         if (idx > 0) part.substring(0, idx) to part.substring(idx + 1) else null
                     }
                     .toMap()
-                val x25519 = params["x25519"] ?: return null
+                val x25519 = params["x25519"]?.let { runCatching { rawToX25519(it) }.getOrDefault(it) } ?: return null
                 val mlkem  = params["mlkem"]
                 val name   = params["name"]?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrNull() }
                 InviteData(x25519, mlkem, name)

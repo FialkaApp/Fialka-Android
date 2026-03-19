@@ -1,6 +1,7 @@
 package com.securechat.data.remote
 
 import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
@@ -217,11 +218,14 @@ object FirebaseRelay {
             return@suspendCancellableCoroutine
         }
 
+        // Strip the fixed 12-byte X.509 header so all stored keys look unique from byte 1
+        val storedKey = stripX25519Header(publicKey)
+
         database.reference
             .child("users")
             .child(uid)
             .child("publicKey")
-            .setValue(publicKey)
+            .setValue(storedKey)
             .addOnSuccessListener { cont.resume(Unit) }
             .addOnFailureListener { cont.resumeWithException(it) }
     }
@@ -488,8 +492,31 @@ object FirebaseRelay {
     }
 
     /**
-     * Listen for acceptance notifications for pending conversations.
-     * Returns a Flow that emits conversationIds when they are accepted.
+     * Listen for acceptance notification for ONE specific conversation.
+     * Uses a ValueEventListener on /accepted/{conversationId} directly — this works
+     * with the per-conversation Firebase read rule (participant check) and avoids the
+     * PERMISSION_DENIED that a parent-level ChildEventListener would get.
+     */
+    fun listenForAcceptance(conversationId: String): Flow<String> = callbackFlow {
+        val ref = database.reference.child("accepted").child(conversationId)
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (snapshot.exists()) trySend(conversationId)
+            }
+            override fun onCancelled(error: DatabaseError) {
+                Log.w(TAG, "listenForAcceptance($conversationId) cancelled: ${error.message}")
+                close(error.toException())
+            }
+        }
+
+        ref.addValueEventListener(listener)
+        awaitClose { ref.removeEventListener(listener) }
+    }
+
+    /**
+     * @deprecated Use listenForAcceptance(conversationId) instead.
+     * This method listens on the /accepted parent which requires a root-level read rule.
      */
     fun listenForAcceptances(): Flow<String> = callbackFlow {
         val ref = database.reference.child("accepted")
@@ -735,11 +762,12 @@ object FirebaseRelay {
      * Used during restore to clean up the orphaned old profile.
      */
     suspend fun removeOldUserByPublicKey(publicKey: String) {
+        val storedKey = stripX25519Header(publicKey)
         suspendCancellableCoroutine { cont ->
             database.reference
                 .child("users")
                 .orderByChild("publicKey")
-                .equalTo(publicKey)
+                .equalTo(storedKey)
                 .addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         for (child in snapshot.children) {
@@ -777,6 +805,23 @@ object FirebaseRelay {
     /**
      * Sign out from Firebase Authentication.
      */
+    // ======================================================================
+    // PRIVATE HELPERS
+    // ======================================================================
+
+    /** Strip the fixed 12-byte X.509 DER header from an X25519 public key.
+     *  Returns the 32 raw bytes as Base64. Falls back to the original if the key
+     *  is already stripped or doesn't match the expected size. */
+    private fun stripX25519Header(fullBase64: String): String {
+        return try {
+            val full = Base64.decode(fullBase64, Base64.NO_WRAP)
+            if (full.size == 44) Base64.encodeToString(full.copyOfRange(12, 44), Base64.NO_WRAP)
+            else fullBase64  // already stripped or unexpected format
+        } catch (e: Exception) {
+            fullBase64
+        }
+    }
+
     fun signOut() {
         database.goOffline()
         auth.signOut()

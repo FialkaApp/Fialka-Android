@@ -167,7 +167,7 @@
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
 
-                    <!-- Badge : ce que contient le lien -->
+                    <!-- Badge : nom inclus dans le QR seulement -->
                     <TextView
                         android:id="@+id/tvInviteBadge"
                         android:layout_width="wrap_content"
@@ -178,7 +178,7 @@
                         android:paddingVertical="6dp"
                         android:text="@string/invite_badge"
                         android:textColor="@color/primary"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         android:textStyle="bold" />
 
                     <!-- Lien complet masqué — utilisé par Copier / Partager -->
@@ -213,6 +213,67 @@
                             android:text="📤 Partager"
                             android:textSize="13sp" />
                     </LinearLayout>
+
+                    <!-- Note : lien sans pseudo pour préserver la vie privée -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:drawablePadding="4dp"
+                        android:gravity="center"
+                        android:text="@string/share_note"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ========== SECTION : Clé publique ========== -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/public_key_section"
+                android:textColor="@color/primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tvRawKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.05"
+                        android:paddingVertical="8dp"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/tvKeyRevealHint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="end"
+                        android:text="@string/key_reveal_hint"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

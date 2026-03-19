@@ -34,16 +34,24 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
 
     // Track which conversations already have active Firebase message listeners
     private val activeMessageListeners = mutableSetOf<String>()
+    // Track pending conversations that already have an acceptance listener running
+    private val activeAcceptanceListeners = mutableSetOf<String>()
 
     // Observer to react when conversations change (new conversation added, etc.)
-    private val conversationsObserver = Observer<List<Conversation>> { _ ->
+    private val conversationsObserver = Observer<List<Conversation>> { convos ->
         refreshMessageListeners()
+        // Start acceptance listeners for any pending conversation not yet covered
+        convos.filter { !it.accepted }.forEach { conv ->
+            if (activeAcceptanceListeners.add(conv.conversationId)) {
+                startAcceptanceListener(conv.conversationId)
+            }
+        }
     }
 
     init {
         ensureAuthenticated()
         listenForIncomingRequests()
-        listenForAcceptances()
+        // Acceptance listeners are started dynamically via conversationsObserver
         conversations.observeForever(conversationsObserver)
         DummyTrafficManager.start(viewModelScope, repository)
         // Publish signing key once per process (skip on subsequent ViewModel recreations)
@@ -135,6 +143,18 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
+    private fun startAcceptanceListener(conversationId: String) {
+        viewModelScope.launch {
+            if (!FirebaseRelay.isAuthenticated()) {
+                try { FirebaseRelay.signInAnonymously() } catch (_: Exception) { return@launch }
+            }
+            repository.listenForAcceptance(conversationId)
+                .onEach { repository.markConversationAccepted(it) }
+                .catch { e -> Log.e("SecureChat", "Acceptance listener error for $conversationId", e) }
+                .launchIn(viewModelScope)
+        }
+    }
+
     private fun listenForAcceptances() {
         viewModelScope.launch {
             if (!FirebaseRelay.isAuthenticated()) {
@@ -143,14 +163,19 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
                 } catch (_: Exception) { return@launch }
             }
 
-            repository.listenForAcceptances()
-                .onEach { conversationId ->
-                    repository.markConversationAccepted(conversationId)
-                }
-                .catch { e ->
-                    Log.e("SecureChat", "Acceptance listener error", e)
-                }
-                .launchIn(viewModelScope)
+            // Listen per-conversationId on /accepted/{id} so Firebase per-participant
+            // read rules are satisfied (global /accepted parent would get PERMISSION_DENIED)
+            val pendingIds = repository.getPendingConversationIds()
+            pendingIds.forEach { conversationId ->
+                repository.listenForAcceptance(conversationId)
+                    .onEach { acceptedId ->
+                        repository.markConversationAccepted(acceptedId)
+                    }
+                    .catch { e ->
+                        Log.e("SecureChat", "Acceptance listener error for $conversationId", e)
+                    }
+                    .launchIn(viewModelScope)
+            }
         }
     }
 

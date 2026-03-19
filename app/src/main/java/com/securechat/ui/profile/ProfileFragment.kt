@@ -45,20 +45,41 @@ class ProfileFragment : Fragment() {
             findNavController().navigateUp()
         }
 
+        var isKeyRevealed = false
+
         viewModel.user.observe(viewLifecycleOwner) { user ->
             if (user != null) {
                 binding.etDisplayName.setText(user.displayName)
-                binding.tvPublicKey.text = user.publicKey
                 binding.tvInitial.text = user.displayName.firstOrNull()?.uppercase() ?: "?"
                 binding.tvDisplayNameHeader.text = user.displayName
 
-                // Short invite link — name embedded so recipient's form auto-fills
-                // ML-KEM key not included (fetched from Firebase) to keep QR small
-                val inviteLink = QrCodeGenerator.buildDeepLink(user.publicKey, null, user.displayName)
+                // Raw key — masked by default, tap to reveal
+                binding.tvRawKey.text = maskKey(user.publicKey)
+                binding.tvRawKey.tag = user.publicKey
+                isKeyRevealed = false
+                binding.tvKeyRevealHint.setText(R.string.key_reveal_hint)
+                binding.tvRawKey.setOnClickListener {
+                    val realKey = binding.tvRawKey.tag as? String ?: return@setOnClickListener
+                    val displayKey = runCatching { QrCodeGenerator.stripX25519Header(realKey) }.getOrDefault(realKey)
+                    isKeyRevealed = !isKeyRevealed
+                    if (isKeyRevealed) {
+                        binding.tvRawKey.text = displayKey
+                        binding.tvKeyRevealHint.setText(R.string.key_hide_hint)
+                    } else {
+                        binding.tvRawKey.text = maskKey(realKey)
+                        binding.tvKeyRevealHint.setText(R.string.key_reveal_hint)
+                    }
+                }
+
+                // Link WITHOUT name — used by Copy / Share buttons (don't leak pseudo in shared URL)
+                val inviteLink = QrCodeGenerator.buildDeepLink(user.publicKey, null, null)
                 binding.tvPublicKey.text = inviteLink
 
+                // Link WITH name — embedded only in the QR so the recipient's form auto-fills on scan
+                val inviteLinkWithName = QrCodeGenerator.buildDeepLink(user.publicKey, null, user.displayName)
+
                 try {
-                    val qrBitmap = QrCodeGenerator.generate(inviteLink, 512)
+                    val qrBitmap = QrCodeGenerator.generate(inviteLinkWithName, 512)
                     if (qrBitmap != null) {
                         binding.ivQrCode.setImageBitmap(qrBitmap)
                         binding.ivQrCode.visibility = View.VISIBLE
@@ -113,6 +134,13 @@ class ProfileFragment : Fragment() {
                 findNavController().navigate(R.id.action_profile_to_onboarding)
             }
         }
+    }
+
+    private fun maskKey(key: String): String {
+        // Strip the fixed X.509 header so the displayed key looks fully random
+        val display = runCatching { QrCodeGenerator.stripX25519Header(key) }.getOrDefault(key)
+        if (display.length <= 12) return "\u2022".repeat(display.length)
+        return display.take(6) + "\u2022".repeat(display.length - 10) + display.takeLast(4)
     }
 
     private fun showDeleteAccountDialog() {
