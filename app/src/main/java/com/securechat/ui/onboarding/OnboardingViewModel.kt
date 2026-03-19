@@ -53,6 +53,8 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 
                     // Publish Ed25519 signing public key
                     repository.publishSigningPublicKey()
+                    // Publish ML-KEM-768 public key for PQXDH
+                    repository.publishMLKEMPublicKey()
                     ConversationsViewModel.markSigningKeyPublished()
 
                     _state.value = OnboardingState.Success(user)

@@ -7,14 +7,14 @@ import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.securechat.util.DeviceSecurityManager
-import org.bouncycastle.crypto.SecretWithEncapsulation
 import org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator
 import org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
 import org.bouncycastle.crypto.signers.Ed25519Signer
-import org.bouncycastle.pqc.crypto.mlkem.MLKEMKEMExtractor
-import org.bouncycastle.pqc.crypto.mlkem.MLKEMKEMGenerator
+import org.bouncycastle.crypto.SecretWithEncapsulation
+import org.bouncycastle.pqc.crypto.mlkem.MLKEMExtractor
+import org.bouncycastle.pqc.crypto.mlkem.MLKEMGenerator
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMKeyGenerationParameters
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMKeyPairGenerator
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMParameters
@@ -55,6 +55,7 @@ object CryptoManager {
     private const val AES_KEY_LENGTH_BYTES = 32
 
     private const val HKDF_INFO = "SecureChat-v2-message-key"
+    private const val INBOX_HKDF_INFO = "SecureChat-Inbox-v1"
 
     private val secureRandom = SecureRandom()
 
@@ -402,7 +403,83 @@ object CryptoManager {
     }
 
     // ========================================================================
-    // 7. EMOJI FINGERPRINT (96-bit)
+    // 7. INBOX PAYLOAD ENCRYPTION (ECIES: ephemeral X25519 + HKDF + AES-GCM)
+    // Encrypts contact request fields so only the recipient can read them.
+    // Format (base64): [44-byte X.509 ephemPub][12-byte IV][AES-GCM ciphertext+tag]
+    // ========================================================================
+
+    /**
+     * Encrypt a contact request payload for inbox delivery.
+     * No senderPublicKey, displayName or conversationId is stored in cleartext.
+     */
+    fun encryptInboxPayload(plaintext: ByteArray, recipientPublicKeyBase64: String): String {
+        val kpg = KeyPairGenerator.getInstance("X25519")
+        val ephemKP = kpg.generateKeyPair()
+        val kf = KeyFactory.getInstance("X25519")
+        val recipientPub = kf.generatePublic(
+            X509EncodedKeySpec(Base64.decode(recipientPublicKeyBase64, Base64.NO_WRAP))
+        )
+        val ka = KeyAgreement.getInstance("X25519")
+        ka.init(ephemKP.private)
+        ka.doPhase(recipientPub, true)
+        val dhSecret = ka.generateSecret()
+
+        val aesKeyBytes = hkdfExtractExpand(dhSecret, INBOX_HKDF_INFO.toByteArray(Charsets.UTF_8))
+        dhSecret.fill(0)
+
+        val iv = ByteArray(GCM_IV_LENGTH_BYTES).also { secureRandom.nextBytes(it) }
+        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(aesKeyBytes, "AES"), GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        val ciphertext = cipher.doFinal(plaintext)
+        aesKeyBytes.fill(0)
+
+        val combined = ephemKP.public.encoded + iv + ciphertext  // 44 + 12 + n bytes
+        iv.fill(0)
+        return Base64.encodeToString(combined, Base64.NO_WRAP)
+    }
+
+    /**
+     * Decrypt an inbox payload using our own identity X25519 private key.
+     */
+    fun decryptInboxPayload(encryptedBase64: String): ByteArray {
+        val combined = Base64.decode(encryptedBase64, Base64.NO_WRAP)
+        require(combined.size > 44 + 12 + 16) { "Invalid encrypted inbox payload" }
+
+        val ephemPubBytes = combined.copyOfRange(0, 44)
+        val iv = combined.copyOfRange(44, 56)
+        val ciphertext = combined.copyOfRange(56, combined.size)
+
+        val kf = KeyFactory.getInstance("X25519")
+        val ephemPub = kf.generatePublic(X509EncodedKeySpec(ephemPubBytes))
+        val ka = KeyAgreement.getInstance("X25519")
+        ka.init(getIdentityPrivateKey())
+        ka.doPhase(ephemPub, true)
+        val dhSecret = ka.generateSecret()
+
+        val aesKeyBytes = hkdfExtractExpand(dhSecret, INBOX_HKDF_INFO.toByteArray(Charsets.UTF_8))
+        dhSecret.fill(0)
+
+        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
+        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(aesKeyBytes, "AES"), GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        val plaintext = cipher.doFinal(ciphertext)
+        aesKeyBytes.fill(0)
+        return plaintext
+    }
+
+    /** HKDF-SHA256 extract+expand → 32 output bytes. Does NOT zero ikm. */
+    private fun hkdfExtractExpand(ikm: ByteArray, info: ByteArray): ByteArray {
+        val prk = hmacSha256(ByteArray(32), ikm)
+        val expandInput = ByteArray(info.size + 1)
+        System.arraycopy(info, 0, expandInput, 0, info.size)
+        expandInput[expandInput.size - 1] = 0x01
+        val okm = hmacSha256(prk, expandInput)
+        prk.fill(0)
+        expandInput.fill(0)
+        return okm.copyOf(32)
+    }
+
+    // ========================================================================
+    // 8. EMOJI FINGERPRINT (96-bit)
     // ========================================================================
 
     private val EMOJI_PALETTE = listOf(
@@ -673,12 +750,10 @@ object CryptoManager {
         val pubBytes = Base64.decode(recipientPublicKeyBase64, Base64.NO_WRAP)
         val recipientPub = MLKEMPublicKeyParameters(MLKEMParameters.ml_kem_768, pubBytes)
 
-        val kemGenerator = MLKEMKEMGenerator(secureRandom)
-        val secretWithEnc: SecretWithEncapsulation = kemGenerator.generateEncapsulated(recipientPub)
-
-        val ciphertextBase64 = Base64.encodeToString(secretWithEnc.encapsulation, Base64.NO_WRAP)
-        val sharedSecret = secretWithEnc.secret.copyOf()
-        secretWithEnc.destroy()
+        val genResult: SecretWithEncapsulation = MLKEMGenerator(secureRandom).generateEncapsulated(recipientPub)
+        val ciphertextBase64 = Base64.encodeToString(genResult.encapsulation, Base64.NO_WRAP)
+        val sharedSecret = genResult.secret.copyOf()
+        genResult.destroy()
         return Pair(ciphertextBase64, sharedSecret)
     }
 
@@ -696,7 +771,7 @@ object CryptoManager {
         privBytes.fill(0)
 
         val ciphertextBytes = Base64.decode(ciphertextBase64, Base64.NO_WRAP)
-        val kemExtractor = MLKEMKEMExtractor(privateKey)
+        val kemExtractor = MLKEMExtractor(privateKey)
         return kemExtractor.extractSecret(ciphertextBytes)
     }
 

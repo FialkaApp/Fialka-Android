@@ -88,6 +88,8 @@ class ChatRepository(private val appContext: Context) {
 
     suspend fun createUser(displayName: String): UserLocal {
         val publicKey = CryptoManager.generateIdentityKeyPair()
+        // Generate ML-KEM-768 identity key pair for PQXDH (idempotent)
+        CryptoManager.generateMLKEMIdentityKeyPair()
         val user = UserLocal(
             userId = UUID.randomUUID().toString(),
             displayName = displayName,
@@ -118,13 +120,24 @@ class ChatRepository(private val appContext: Context) {
 
     fun getAllContacts(): LiveData<List<Contact>> = contactDao.getAllContacts()
 
-    suspend fun addContact(displayName: String, publicKey: String, signingPublicKey: String? = null): Contact {
+    suspend fun addContact(
+        displayName: String,
+        publicKey: String,
+        signingPublicKey: String? = null,
+        mlkemPublicKey: String? = null
+    ): Contact {
         // Check for duplicate contact by public key
         val existing = contactDao.getContactByPublicKey(publicKey)
         if (existing != null) {
-            // Update signing key if we didn't have it before
+            // Update keys if we now have them but didn't before
+            var updated = existing
             if (existing.signingPublicKey == null && signingPublicKey != null) {
-                val updated = existing.copy(signingPublicKey = signingPublicKey)
+                updated = updated.copy(signingPublicKey = signingPublicKey)
+            }
+            if (existing.mlkemPublicKey == null && mlkemPublicKey != null) {
+                updated = updated.copy(mlkemPublicKey = mlkemPublicKey)
+            }
+            if (updated !== existing) {
                 contactDao.insertContact(updated)
                 return updated
             }
@@ -136,11 +149,17 @@ class ChatRepository(private val appContext: Context) {
             FirebaseRelay.fetchSigningPublicKeyByIdentity(publicKey)
         } catch (_: Exception) { null }
 
+        // If no ML-KEM key provided, try to fetch from Firebase
+        val finalMlkemKey = mlkemPublicKey ?: try {
+            FirebaseRelay.fetchMLKEMPublicKeyByIdentity(publicKey)
+        } catch (_: Exception) { null }
+
         val contact = Contact(
             contactId = UUID.randomUUID().toString(),
             displayName = displayName,
             publicKey = publicKey,
-            signingPublicKey = finalSigningKey
+            signingPublicKey = finalSigningKey,
+            mlkemPublicKey = finalMlkemKey
         )
         contactDao.insertContact(contact)
         return contact
@@ -161,21 +180,29 @@ class ChatRepository(private val appContext: Context) {
     suspend fun getConversation(conversationId: String): Conversation? =
         conversationDao.getConversationById(conversationId)
 
-    suspend fun createConversation(contactPublicKey: String, contactName: String, accepted: Boolean = true): Conversation {
+    suspend fun createConversation(
+        contactPublicKey: String,
+        contactName: String,
+        accepted: Boolean = true,
+        conversationId: String? = null
+    ): Conversation {
         val myPublicKey = userDao.getUser()?.publicKey
             ?: throw IllegalStateException("User not initialized")
 
-        val conversationId = CryptoManager.deriveConversationId(myPublicKey, contactPublicKey)
+        // Use provided ID, or look up existing one for this contact, or generate a random UUID
+        val finalConversationId = conversationId
+            ?: conversationDao.getConversationByParticipantPublicKey(contactPublicKey)?.conversationId
+            ?: java.util.UUID.randomUUID().toString()
 
         // Check if conversation already exists
-        val existing = conversationDao.getConversationById(conversationId)
+        val existing = conversationDao.getConversationById(finalConversationId)
         if (existing != null) return existing
 
         // Compute shared emoji fingerprint (96-bit, same on both sides)
         val sharedFingerprint = CryptoManager.getSharedFingerprint(myPublicKey, contactPublicKey)
 
         val conversation = Conversation(
-            conversationId = conversationId,
+            conversationId = finalConversationId,
             participantPublicKey = contactPublicKey,
             contactDisplayName = contactName,
             accepted = accepted,
@@ -188,11 +215,11 @@ class ChatRepository(private val appContext: Context) {
             if (!FirebaseRelay.isAuthenticated()) {
                 FirebaseRelay.signInAnonymously()
             }
-            FirebaseRelay.registerParticipant(conversationId)
+            FirebaseRelay.registerParticipant(finalConversationId)
         } catch (_: Exception) { }
 
         // Initialize ratchet state for this conversation
-        initializeRatchet(conversationId, myPublicKey, contactPublicKey)
+        initializeRatchet(finalConversationId, myPublicKey, contactPublicKey)
 
         return conversation
     }
@@ -216,26 +243,73 @@ class ChatRepository(private val appContext: Context) {
         myPublicKey: String,
         contactPublicKey: String
     ) {
-        val sharedSecret = CryptoManager.performKeyAgreement(contactPublicKey)
+        val ssClassic = CryptoManager.performKeyAgreement(contactPublicKey)
         val isInitiator = myPublicKey < contactPublicKey
 
-        val init = if (isInitiator) {
-            DoubleRatchet.initializeAsInitiator(sharedSecret)
+        // Look up contact's ML-KEM key from the local DB (populated during addContact)
+        val contact = contactDao.getContactByPublicKey(contactPublicKey)
+        val remoteMlkemKey = contact?.mlkemPublicKey
+
+        val ratchetState: RatchetState
+
+        if (isInitiator) {
+            if (remoteMlkemKey != null) {
+                // PQXDH initiator path: encapsulate + combine (ssClassic || ssPQ)
+                val (kemCt, ssPQ) = CryptoManager.mlkemEncaps(remoteMlkemKey)
+                val combined = ssClassic + ssPQ
+                ssClassic.fill(0)
+                ssPQ.fill(0)
+                val init = DoubleRatchet.initializeAsInitiator(combined)
+                ratchetState = RatchetState(
+                    conversationId = conversationId,
+                    rootKey = init.rootKey,
+                    sendChainKey = init.sendChainKey,
+                    recvChainKey = init.recvChainKey,
+                    sendIndex = 0,
+                    recvIndex = 0,
+                    localDhPublic = init.localDhPublic,
+                    localDhPrivate = init.localDhPrivate,
+                    remoteDhPublic = init.remoteDhPublic,
+                    remoteMlkemPublicKey = remoteMlkemKey,
+                    pqxdhInitialized = true,
+                    pendingKemCiphertext = kemCt
+                )
+            } else {
+                // Classic-only initiator fallback (contact hasn't published ML-KEM key)
+                val init = DoubleRatchet.initializeAsInitiator(ssClassic)
+                ssClassic.fill(0)
+                ratchetState = RatchetState(
+                    conversationId = conversationId,
+                    rootKey = init.rootKey,
+                    sendChainKey = init.sendChainKey,
+                    recvChainKey = init.recvChainKey,
+                    sendIndex = 0,
+                    recvIndex = 0,
+                    localDhPublic = init.localDhPublic,
+                    localDhPrivate = init.localDhPrivate,
+                    remoteDhPublic = init.remoteDhPublic
+                )
+            }
         } else {
-            DoubleRatchet.initializeAsResponder(sharedSecret)
+            // Responder path: store ssClassic bytes — will combine with ssPQ when first
+            // message carrying kemCiphertext arrives and re-initialize all chain keys then.
+            val ssClassicBase64 = android.util.Base64.encodeToString(ssClassic, android.util.Base64.NO_WRAP)
+            val init = DoubleRatchet.initializeAsResponder(ssClassic)
+            ssClassic.fill(0)
+            ratchetState = RatchetState(
+                conversationId = conversationId,
+                rootKey = init.rootKey,
+                sendChainKey = init.sendChainKey,
+                recvChainKey = init.recvChainKey,
+                sendIndex = 0,
+                recvIndex = 0,
+                localDhPublic = init.localDhPublic,
+                localDhPrivate = init.localDhPrivate,
+                remoteDhPublic = init.remoteDhPublic,
+                pendingClassicSecret = ssClassicBase64
+            )
         }
 
-        val ratchetState = RatchetState(
-            conversationId = conversationId,
-            rootKey = init.rootKey,
-            sendChainKey = init.sendChainKey,
-            recvChainKey = init.recvChainKey,
-            sendIndex = 0,
-            recvIndex = 0,
-            localDhPublic = init.localDhPublic,
-            localDhPrivate = init.localDhPrivate,
-            remoteDhPublic = init.remoteDhPublic
-        )
         ratchetDao.insertOrUpdate(ratchetState)
     }
 
@@ -317,21 +391,24 @@ class ChatRepository(private val appContext: Context) {
             } catch (_: Exception) { "" }
 
             // 6. Send to Firebase — include ephemeral DH public key for Double Ratchet
+            //    and KEM ciphertext on first message (PQXDH initiator)
             val firebaseMessage = FirebaseMessage(
                 ciphertext = encryptedData.ciphertext,
                 iv = encryptedData.iv,
                 createdAt = createdAt,
                 senderUid = CryptoManager.hashSenderUid(conversationId, FirebaseRelay.getCurrentUid() ?: ""),
                 ephemeralKey = ratchetState.localDhPublic,
-                signature = signature
+                signature = signature,
+                kemCiphertext = ratchetState.pendingKemCiphertext
             )
             FirebaseRelay.sendMessage(conversationId, firebaseMessage)
 
-            // 7. Firebase succeeded → persist ratchet state
+            // 7. Firebase succeeded → persist ratchet state; clear pendingKemCiphertext
             ratchetDao.insertOrUpdate(
                 ratchetState.copy(
                     sendChainKey = newSendChainKey,
-                    sendIndex = messageIndex + 1
+                    sendIndex = messageIndex + 1,
+                    pendingKemCiphertext = ""
                 )
             )
 
@@ -576,6 +653,38 @@ class ChatRepository(private val appContext: Context) {
                 ratchetDao.insertOrUpdate(ratchetState)
             }
 
+            // PQXDH upgrade: if this is the initiator's first message and it carries a KEM
+            // ciphertext, decapsulate and re-derive all chain keys from the combined secret.
+            // This ensures every message — including the very first — has post-quantum security.
+            if (!ratchetState.pqxdhInitialized
+                && firebaseMessage.kemCiphertext.isNotEmpty()
+                && ratchetState.pendingClassicSecret.isNotEmpty()
+            ) {
+                try {
+                    val classicBytes = android.util.Base64.decode(
+                        ratchetState.pendingClassicSecret, android.util.Base64.NO_WRAP
+                    )
+                    val ssPQ = CryptoManager.mlkemDecaps(firebaseMessage.kemCiphertext)
+                    val combined = classicBytes + ssPQ
+                    classicBytes.fill(0)
+                    ssPQ.fill(0)
+                    val newInit = DoubleRatchet.initializeAsResponder(combined)
+                    // Preserve remoteDhPublic already captured from ephemeralKey above
+                    ratchetState = ratchetState.copy(
+                        rootKey = newInit.rootKey,
+                        sendChainKey = newInit.sendChainKey,
+                        recvChainKey = newInit.recvChainKey,
+                        localDhPublic = newInit.localDhPublic,
+                        localDhPrivate = newInit.localDhPrivate,
+                        pqxdhInitialized = true,
+                        pendingClassicSecret = ""
+                    )
+                    ratchetDao.insertOrUpdate(ratchetState)
+                } catch (e: Exception) {
+                    Log.w("SecureChat", "PQXDH re-init failed, falling back to classic chains", e)
+                }
+            }
+
             // Trial decryption: messageIndex is embedded in ciphertext as "index|plaintext"
             var tempChainKey = ratchetState.recvChainKey
             var decryptedPlaintext: String? = null
@@ -747,6 +856,26 @@ class ChatRepository(private val appContext: Context) {
     }
 
     /**
+     * Publish the ML-KEM-768 public key on Firebase.
+     * Should be called once after account creation or BIP-39 restore.
+     */
+    suspend fun publishMLKEMPublicKey() {
+        val publicKey = CryptoManager.getPublicKey()
+        if (publicKey == null) {
+            Log.e("SecureChat", "publishMLKEMPublicKey: identity key is null!")
+            return
+        }
+        val mlkemPubKey = CryptoManager.getMLKEMPublicKey()
+        if (mlkemPubKey == null) {
+            Log.e("SecureChat", "publishMLKEMPublicKey: ML-KEM key not yet generated")
+            return
+        }
+        Log.d("SecureChat", "publishMLKEMPublicKey: publishing to Firebase")
+        FirebaseRelay.registerMLKEMPublicKey(mlkemPubKey)
+        FirebaseRelay.storeMLKEMPublicKeyByIdentity(publicKey, mlkemPubKey)
+    }
+
+    /**
      * Publish the Ed25519 signing public key on Firebase (by identity public key hash).
      * Should be called once after account creation or BIP-39 restore.
      */
@@ -787,7 +916,9 @@ class ChatRepository(private val appContext: Context) {
      */
     suspend fun sendContactRequest(contactPublicKey: String) {
         val user = userDao.getUser() ?: return
-        val conversationId = CryptoManager.deriveConversationId(user.publicKey, contactPublicKey)
+        // Use stored conversationId — never re-derive from public keys
+        val conversationId = conversationDao.getConversationByParticipantPublicKey(contactPublicKey)?.conversationId
+            ?: return  // No conversation found for this contact
         val signingPublicKey = try { CryptoManager.getSigningPublicKeyBase64() } catch (_: Exception) { null }
 
         try {
@@ -828,8 +959,13 @@ class ChatRepository(private val appContext: Context) {
         // Add contact (with signing key from the request if available)
         addContact(request.senderDisplayName, request.senderPublicKey, request.senderSigningPublicKey)
 
-        // Create conversation (accepted = true, ratchet initialized, participant registered)
-        val conversation = createConversation(request.senderPublicKey, request.senderDisplayName, accepted = true)
+        // Create conversation using the ID sent by the initiator
+        val conversation = createConversation(
+            request.senderPublicKey,
+            request.senderDisplayName,
+            accepted = true,
+            conversationId = request.conversationId
+        )
 
         // Notify sender that we accepted
         val myPublicKey = userDao.getUser()?.publicKey
@@ -913,6 +1049,9 @@ class ChatRepository(private val appContext: Context) {
     /**
      * Check if a conversation still exists on Firebase (not deleted by other user).
      */
+    suspend fun getConversationIdByContactPublicKey(publicKey: String): String? =
+        conversationDao.getConversationByParticipantPublicKey(publicKey)?.conversationId
+
     suspend fun isConversationAliveOnFirebase(conversationId: String): Boolean {
         return try {
             FirebaseRelay.conversationExists(conversationId)

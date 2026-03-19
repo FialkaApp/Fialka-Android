@@ -109,7 +109,7 @@ dependencies {
     // Security / Crypto
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("androidx.biometric:biometric:1.1.0")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.80")  // ML-KEM-768 (mlkem package) added in 1.80
 
     // Tor — native binaries (libtor.so + libtun2socks.so) must be placed
     // in app/src/main/jniLibs/{arm64-v8a,armeabi-v7a}/ manually.

@@ -29,5 +29,9 @@ data class RatchetState(
     val remoteDhPublic: String = "",  // Base64 — their latest ephemeral DH public key
     // --- PQXDH (ML-KEM-768) state ---
     val remoteMlkemPublicKey: String = "",  // Base64 — recipient's ML-KEM public key (stored on init)
-    val pqxdhInitialized: Boolean = false   // true once the first PQXDH exchange is complete
+    val pqxdhInitialized: Boolean = false,  // true once the first PQXDH exchange is complete
+    // Initiator: KEM ciphertext to attach to first outgoing message (cleared after send)
+    val pendingKemCiphertext: String = "",
+    // Responder: raw X25519 shared secret (Base64) held until first kemCiphertext arrives
+    val pendingClassicSecret: String = ""
 )

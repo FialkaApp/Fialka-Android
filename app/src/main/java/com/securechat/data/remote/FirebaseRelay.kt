@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
 import com.securechat.data.model.FirebaseMessage
+import com.securechat.crypto.CryptoManager
 import com.securechat.tor.TorManager
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -375,21 +376,28 @@ object FirebaseRelay {
     ) {
         val recipientHash = hashPublicKey(recipientPublicKey)
 
+        // Encrypt all identifying fields — only the recipient can decrypt
+        val json = org.json.JSONObject().apply {
+            put("p", senderPublicKey)
+            put("n", senderDisplayName)
+            put("c", conversationId)
+            if (senderSigningPublicKey != null) put("s", senderSigningPublicKey)
+        }
+        val encryptedPayload = CryptoManager.encryptInboxPayload(
+            json.toString().toByteArray(Charsets.UTF_8),
+            recipientPublicKey
+        )
+
         suspendCancellableCoroutine { cont ->
             val ref = database.reference
                 .child("inbox")
                 .child(recipientHash)
-                .child(conversationId) // Use conversationId as key to avoid duplicates
+                .child(conversationId) // opaque UUID key — no longer derivable
 
-            val requestMap = mutableMapOf<String, Any>(
-                "senderPublicKey" to senderPublicKey,
-                "senderDisplayName" to senderDisplayName,
-                "conversationId" to conversationId,
+            val requestMap = mapOf(
+                "e" to encryptedPayload,
                 "createdAt" to ServerValue.TIMESTAMP
             )
-            if (senderSigningPublicKey != null) {
-                requestMap["senderSigningPublicKey"] = senderSigningPublicKey
-            }
 
             ref.setValue(requestMap)
                 .addOnSuccessListener { cont.resume(Unit) }
@@ -411,13 +419,30 @@ object FirebaseRelay {
 
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                val senderPublicKey = snapshot.child("senderPublicKey").getValue(String::class.java) ?: return
-                val senderDisplayName = snapshot.child("senderDisplayName").getValue(String::class.java) ?: "Inconnu"
-                val conversationId = snapshot.child("conversationId").getValue(String::class.java) ?: return
                 val createdAt = snapshot.child("createdAt").getValue(Long::class.java) ?: 0L
-                val senderSigningPublicKey = snapshot.child("senderSigningPublicKey").getValue(String::class.java)
+                val encryptedPayload = snapshot.child("e").getValue(String::class.java)
 
-                trySend(ContactRequest(senderPublicKey, senderDisplayName, conversationId, createdAt, senderSigningPublicKey))
+                if (encryptedPayload != null) {
+                    // Encrypted format (v4+)
+                    try {
+                        val plaintext = CryptoManager.decryptInboxPayload(encryptedPayload)
+                        val json = org.json.JSONObject(String(plaintext, Charsets.UTF_8))
+                        val senderPublicKey = json.getString("p")
+                        val senderDisplayName = json.optString("n", "Inconnu")
+                        val conversationId = json.getString("c")
+                        val senderSigningPublicKey = json.optString("s", null).takeIf { !it.isNullOrEmpty() }
+                        trySend(ContactRequest(senderPublicKey, senderDisplayName, conversationId, createdAt, senderSigningPublicKey))
+                    } catch (_: Exception) {
+                        // Decryption failed — ignore corrupt entry
+                    }
+                } else {
+                    // Legacy plaintext format (backward compat)
+                    val senderPublicKey = snapshot.child("senderPublicKey").getValue(String::class.java) ?: return
+                    val senderDisplayName = snapshot.child("senderDisplayName").getValue(String::class.java) ?: "Inconnu"
+                    val conversationId = snapshot.child("conversationId").getValue(String::class.java) ?: return
+                    val senderSigningPublicKey = snapshot.child("senderSigningPublicKey").getValue(String::class.java)
+                    trySend(ContactRequest(senderPublicKey, senderDisplayName, conversationId, createdAt, senderSigningPublicKey))
+                }
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}

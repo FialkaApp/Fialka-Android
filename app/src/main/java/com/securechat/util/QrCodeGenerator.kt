@@ -29,8 +29,8 @@ object QrCodeGenerator {
         return if (mlkemPublicKeyBase64 != null) {
             "securechat://invite?v=2&x25519=$x25519PublicKeyBase64&mlkem=$mlkemPublicKeyBase64"
         } else {
-            // Classic v1 format — keeps backward compat with contacts on older app versions
-            x25519PublicKeyBase64
+            // Short link — ML-KEM key is fetched from Firebase by the recipient when adding contact
+            "securechat://invite?v=2&x25519=$x25519PublicKeyBase64"
         }
     }
 

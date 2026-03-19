@@ -14,6 +14,7 @@ import com.journeyapps.barcodescanner.ScanIntentResult
 import com.journeyapps.barcodescanner.ScanOptions
 import com.securechat.R
 import com.securechat.databinding.FragmentAddContactBinding
+import com.securechat.util.QrCodeGenerator
 
 /**
  * Add Contact screen — scan a QR code or paste a contact's public key.
@@ -39,16 +40,31 @@ class AddContactFragment : Fragment() {
     private val qrScannerLauncher = registerForActivityResult(ScanContract()) { result: ScanIntentResult ->
         if (result.contents != null) {
             val scanned = result.contents
-            if (scanned.startsWith("SECURECHAT:")) {
-                val parts = scanned.removePrefix("SECURECHAT:").split(":", limit = 2)
-                if (parts.size == 2) {
-                    binding.etPublicKey.setText(parts[0])
-                    binding.etContactName.setText(parts[1])
-                } else {
+            when {
+                scanned.startsWith("securechat://invite?") -> {
+                    // V2 PQXDH deep link: extract X25519 + ML-KEM keys
+                    val invite = QrCodeGenerator.parseInvite(scanned)
+                    if (invite != null) {
+                        binding.etPublicKey.setText(invite.x25519PublicKey)
+                        // Store ML-KEM key in tag so submit button can pass it to ViewModel
+                        binding.etPublicKey.tag = invite.mlkemPublicKey
+                    } else {
+                        binding.etPublicKey.setText(scanned)
+                    }
+                }
+                scanned.startsWith("SECURECHAT:") -> {
+                    // Legacy V1 format: SECURECHAT:pubkey:displayname
+                    val parts = scanned.removePrefix("SECURECHAT:").split(":", limit = 2)
+                    if (parts.size == 2) {
+                        binding.etPublicKey.setText(parts[0])
+                        binding.etContactName.setText(parts[1])
+                    } else {
+                        binding.etPublicKey.setText(scanned)
+                    }
+                }
+                else -> {
                     binding.etPublicKey.setText(scanned)
                 }
-            } else {
-                binding.etPublicKey.setText(scanned)
             }
             Toast.makeText(requireContext(), R.string.qr_scanned_success, Toast.LENGTH_SHORT).show()
         }
@@ -70,14 +86,29 @@ class AddContactFragment : Fragment() {
             findNavController().navigateUp()
         }
 
+        // Pre-fill from deep link if app was opened via securechat://invite
+        val intentData = requireActivity().intent?.data
+        if (intentData != null && intentData.scheme == "securechat" && intentData.host == "invite") {
+            val invite = QrCodeGenerator.parseInvite(intentData.toString())
+            if (invite != null) {
+                binding.etPublicKey.setText(invite.x25519PublicKey)
+                binding.etPublicKey.tag = invite.mlkemPublicKey
+            }
+            requireActivity().intent.data = null // consume so it doesn't re-fill on back+return
+        }
+
         binding.btnScanQr.setOnClickListener {
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
 
         binding.btnCreateConversation.setOnClickListener {
             val name = binding.etContactName.text.toString()
-            val key = binding.etPublicKey.text.toString()
-            viewModel.addContact(name, key)
+            val rawInput = binding.etPublicKey.text.toString().trim()
+            // Support both pasted deep links (securechat://invite?...) and raw X25519 keys
+            val invite = QrCodeGenerator.parseInvite(rawInput)
+            val key = invite?.x25519PublicKey ?: rawInput
+            val mlkemKey = (binding.etPublicKey.tag as? String) ?: invite?.mlkemPublicKey
+            viewModel.addContact(name, key, mlkemKey)
         }
 
         viewModel.state.observe(viewLifecycleOwner) { state ->

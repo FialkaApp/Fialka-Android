@@ -52,11 +52,19 @@ class ProfileFragment : Fragment() {
                 binding.tvInitial.text = user.displayName.firstOrNull()?.uppercase() ?: "?"
                 binding.tvDisplayNameHeader.text = user.displayName
 
-                // Generate QR code with public key + display name
+                // Short invite link (without ML-KEM — recipient fetches it from Firebase)
+                // This keeps the QR code small and easily scannable
+                val inviteLink = QrCodeGenerator.buildDeepLink(user.publicKey, null)
+                binding.tvPublicKey.text = inviteLink
+
                 try {
-                    val qrContent = "SECURECHAT:${user.publicKey}:${user.displayName}"
-                    val qrBitmap = QrCodeGenerator.generate(qrContent, 512)
-                    binding.ivQrCode.setImageBitmap(qrBitmap)
+                    val qrBitmap = QrCodeGenerator.generate(inviteLink, 512)
+                    if (qrBitmap != null) {
+                        binding.ivQrCode.setImageBitmap(qrBitmap)
+                        binding.ivQrCode.visibility = View.VISIBLE
+                    } else {
+                        binding.ivQrCode.visibility = View.GONE
+                    }
                 } catch (e: Exception) {
                     Log.e("SecureChat", "QR generation failed", e)
                 }
@@ -75,23 +83,23 @@ class ProfileFragment : Fragment() {
         }
 
         binding.btnCopyKey.setOnClickListener {
-            val key = binding.tvPublicKey.text.toString()
-            if (key.isNotEmpty()) {
+            val link = binding.tvPublicKey.text.toString()
+            if (link.isNotEmpty()) {
                 val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("Public Key", key))
+                clipboard.setPrimaryClip(ClipData.newPlainText("Invite Link", link))
                 Toast.makeText(requireContext(), R.string.key_copied, Toast.LENGTH_SHORT).show()
             }
         }
 
         binding.btnShareKey.setOnClickListener {
-            val key = binding.tvPublicKey.text.toString()
-            if (key.isNotEmpty()) {
+            val link = binding.tvPublicKey.text.toString()
+            if (link.isNotEmpty()) {
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
-                    putExtra(Intent.EXTRA_TEXT, key)
-                    putExtra(Intent.EXTRA_SUBJECT, "Ma clé publique SecureChat")
+                    putExtra(Intent.EXTRA_TEXT, link)
+                    putExtra(Intent.EXTRA_SUBJECT, "Mon lien d'invitation SecureChat")
                 }
-                startActivity(Intent.createChooser(intent, "Partager ma clé publique"))
+                startActivity(Intent.createChooser(intent, "Partager mon invitation"))
             }
         }
 

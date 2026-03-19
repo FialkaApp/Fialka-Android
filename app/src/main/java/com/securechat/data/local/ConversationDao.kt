@@ -15,6 +15,9 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations WHERE conversationId = :conversationId LIMIT 1")
     suspend fun getConversationById(conversationId: String): Conversation?
 
+    @Query("SELECT * FROM conversations WHERE participantPublicKey = :publicKey LIMIT 1")
+    suspend fun getConversationByParticipantPublicKey(publicKey: String): Conversation?
+
     @Query("SELECT * FROM conversations WHERE accepted = 1")
     suspend fun getAcceptedConversations(): List<Conversation>
 

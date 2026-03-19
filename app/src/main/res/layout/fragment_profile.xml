@@ -123,14 +123,14 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- ========== SECTION : Clé publique ========== -->
+            <!-- ========== SECTION : Lien d'invitation ========== -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="8dp"
-                android:text="🔑 Clé publique"
+                android:text="🔗 Lien d'invitation"
                 android:textColor="@color/primary"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -151,11 +151,11 @@
 
                     <ImageView
                         android:id="@+id/ivQrCode"
-                        android:layout_width="180dp"
-                        android:layout_height="180dp"
+                        android:layout_width="220dp"
+                        android:layout_height="220dp"
                         android:background="@color/white"
-                        android:contentDescription="QR Code de votre clé publique"
-                        android:padding="4dp" />
+                        android:contentDescription="QR Code de votre lien d'invitation"
+                        android:padding="8dp" />
 
                     <TextView
                         android:id="@+id/tvQrHint"

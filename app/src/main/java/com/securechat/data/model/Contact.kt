@@ -19,5 +19,6 @@ data class Contact(
     val publicKey: String,          // Base64-encoded X25519 public key
     val verificationStatus: String = "unverified", // "unverified" or "verified"
     val addedAt: Long = System.currentTimeMillis(),
-    val signingPublicKey: String? = null  // Base64 Ed25519 public key for signature verification
+    val signingPublicKey: String? = null,  // Base64 Ed25519 public key for signature verification
+    val mlkemPublicKey: String? = null     // Base64 ML-KEM-768 public key for PQXDH
 )

@@ -16,7 +16,7 @@
           ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
           ".indexOn": ["createdAt"],
           "$messageId": {
-            ".validate": "newData.hasChildren(['ciphertext', 'iv', 'createdAt', 'senderUid']) && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('senderUid').isString() && (!newData.hasChild('ephemeralKey') || newData.child('ephemeralKey').isString())"
+            ".validate": "newData.hasChildren(['ciphertext', 'iv', 'createdAt', 'senderUid']) && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('senderUid').isString() && (!newData.hasChild('ephemeralKey') || newData.child('ephemeralKey').isString()) && (!newData.hasChild('kemCiphertext') || newData.child('kemCiphertext').isString())"
           }
         },
         "settings": {
@@ -33,30 +33,48 @@
         ".read": "auth != null",
         ".write": "auth != null",
         "$requestId": {
-          ".validate": "newData.hasChildren(['senderPublicKey', 'senderDisplayName', 'conversationId', 'createdAt'])"
+          ".validate": "newData.hasChildren(['e', 'createdAt']) && newData.child('e').isString() && newData.child('e').val().length < 8192 && newData.child('createdAt').isNumber()"
         }
       }
     },
     "accepted": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+      "$conversationId": {
+        ".read": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
+        ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
+        "acceptedBy": { ".validate": "newData.isString() && newData.val().length < 500" },
+        "createdAt": { ".validate": "newData.isNumber()" }
+      }
     },
     "users": {
+      ".indexOn": ["publicKey"],
       "$uid": {
         ".read": "auth != null",
         ".write": "auth.uid === $uid",
-        "publicKey": { ".validate": "newData.isString()" },
-        "displayName": { ".validate": "newData.isString() && newData.val().length < 100" },
-        "fcm_token": { ".validate": "newData.isString() && newData.val().length < 500" },
-        "signingPublicKey": { ".validate": "newData.isString() && newData.val().length < 500" }
+        "publicKey":        { ".validate": "newData.isString() && newData.val().length < 500" },
+        "displayName":      { ".validate": "newData.isString() && newData.val().length < 100" },
+        "fcm_token":        {
+          ".read":     "auth.uid === $uid",
+          ".validate": "newData.isString() && newData.val().length < 500"
+        },
+        "signingPublicKey": { ".validate": "newData.isString() && newData.val().length < 500" },
+        "mlkemPublicKey":   { ".validate": "newData.isString() && newData.val().length < 2500" }
       }
     },
     "signing_keys": {
       "$pubKeyHash": {
-        ".read": "auth != null",
-        ".write": "auth != null",
+        ".read":     "auth != null",
+        ".write":    "auth != null",
         ".validate": "newData.isString() && newData.val().length < 500"
+      }
+    },
+    "mlkem_keys": {
+      "$pubKeyHash": {
+        ".read":     "auth != null",
+        ".write":    "auth != null",
+        ".validate": "newData.isString() && newData.val().length < 2500"
       }
     }
   }
 }
+
+

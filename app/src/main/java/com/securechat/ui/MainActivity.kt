@@ -9,6 +9,9 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.navigation.NavController
+import androidx.navigation.NavDestination
+import androidx.navigation.fragment.NavHostFragment
 import com.securechat.R
 import com.securechat.util.AppLockManager
 import com.securechat.util.DummyTrafficManager
@@ -71,6 +74,42 @@ class MainActivity : AppCompatActivity() {
             showLockScreen()
         }
 
+        // Navigate to Add Contact if app opened via securechat://invite deep link
+        handleInviteIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent) // Update so fragments read the new intent via requireActivity().intent
+        handleInviteIntent(intent)
+    }
+
+    /**
+     * When the app receives a securechat://invite deep link, auto-navigate to
+     * AddContactFragment as soon as the user lands on ConversationsFragment.
+     */
+    private fun handleInviteIntent(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme != "securechat" || uri.host != "invite") return
+
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
+        val navController = navHostFragment.navController
+
+        navController.addOnDestinationChangedListener(object : NavController.OnDestinationChangedListener {
+            override fun onDestinationChanged(
+                controller: NavController,
+                destination: NavDestination,
+                arguments: Bundle?
+            ) {
+                if (destination.id == R.id.conversationsFragment) {
+                    controller.removeOnDestinationChangedListener(this)
+                    try {
+                        controller.navigate(R.id.action_conversations_to_addContact)
+                    } catch (_: Exception) { /* already navigating */ }
+                }
+            }
+        })
     }
 
     override fun onPause() {

@@ -17,7 +17,7 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
     private val _state = MutableLiveData<AddContactState>(AddContactState.Idle)
     val state: LiveData<AddContactState> = _state
 
-    fun addContact(displayName: String, publicKey: String) {
+    fun addContact(displayName: String, publicKey: String, mlkemPublicKey: String? = null) {
         // Validate input
         if (displayName.isBlank() || publicKey.isBlank()) {
             _state.value = AddContactState.Error("Veuillez remplir tous les champs.")
@@ -45,21 +45,24 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
                 // Check for duplicate contact — if conversation is dead, reset it
                 val existingContact = repository.getContactByPublicKey(trimmedKey)
                 if (existingContact != null) {
-                    val myKey = CryptoManager.getPublicKey() ?: ""
-                    val convoId = CryptoManager.deriveConversationId(myKey, trimmedKey)
-                    val convoAlive = repository.isConversationAliveOnFirebase(convoId)
-                    if (convoAlive) {
-                        _state.value = AddContactState.Error(
-                            "Ce contact existe déjà sous le nom \"${existingContact.displayName}\"."
-                        )
-                        return@launch
+                    val convoId = repository.getConversationIdByContactPublicKey(trimmedKey)
+                    if (convoId != null) {
+                        val convoAlive = repository.isConversationAliveOnFirebase(convoId)
+                        if (convoAlive) {
+                            _state.value = AddContactState.Error(
+                                "Ce contact existe déjà sous le nom \"${existingContact.displayName}\"."
+                            )
+                            return@launch
+                        }
+                        // Dead conversation — clean up and recreate
+                        repository.deleteStaleConversation(convoId, existingContact)
+                    } else {
+                        // Contact exists but no conversation yet — fall through to recreate
                     }
-                    // Dead conversation — clean up and recreate
-                    repository.deleteStaleConversation(convoId, existingContact)
                 }
 
-                // Add contact to local DB
-                repository.addContact(displayName.trim(), trimmedKey)
+                // Add contact to local DB (with ML-KEM key from QR scan if available)
+                repository.addContact(displayName.trim(), trimmedKey, mlkemPublicKey = mlkemPublicKey)
 
                 // Create conversation as pending (not yet accepted by the other user)
                 val conversation = repository.createConversation(trimmedKey, displayName.trim(), accepted = false)

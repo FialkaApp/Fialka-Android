@@ -27,9 +27,9 @@
     <string name="copy_key">Copier</string>
     <string name="share_key">Partager</string>
     <string name="rename">Renommer</string>
-    <string name="key_copied">Clé publique copiée !</string>
+    <string name="key_copied">Lien d\'invitation copié !</string>
     <string name="save">Enregistrer</string>
-    <string name="qr_hint">Montrez ce QR code pour que votre contact vous ajoute</string>
+    <string name="qr_hint">Montrez ce QR code ou partagez le lien pour être ajouté</string>
 
     <!-- Conversations -->
     <string name="conversations_title">Conversations</string>
@@ -42,7 +42,7 @@
     <string name="scan_qr_code">📷  Scanner un QR code</string>
     <string name="or_manual_entry">— ou entrer manuellement —</string>
     <string name="contact_name_hint">Pseudo du contact</string>
-    <string name="contact_public_key_hint">Clé publique du contact (base64)</string>
+    <string name="contact_public_key_hint">Lien d\'invitation (securechat://…) ou clé base64</string>
     <string name="create_conversation">Créer la conversation</string>
     <string name="error_empty_fields">Veuillez remplir tous les champs.</string>
     <string name="error_invalid_key">Clé publique invalide.</string>
