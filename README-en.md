@@ -16,6 +16,8 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7c3aed?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![E2E](https://img.shields.io/badge/PQXDH-X25519%20%2B%20ML--KEM--768-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/en/CRYPTO.md)
 [![License](https://img.shields.io/badge/GPLv3-License-8b5cf6?style=for-the-badge)](LICENSE)
+[![Terms](https://img.shields.io/badge/Terms-Conditions-8b5cf6?style=for-the-badge)](TERMS.md)
+[![Privacy](https://img.shields.io/badge/Privacy-Policy-8b5cf6?style=for-the-badge)](PRIVACY.md)
 
 <br/>
 
@@ -332,9 +334,13 @@ cd SecureChat
 
 <div align="center">
 
-This project is licensed under [GPLv3](LICENSE).
+This project is licensed under [GPLv3](LICENSE). See the [Terms of Service](TERMS.md) before use.
 
 Provided for **educational** purposes. Use it as a definitive base to understand E2E encryption on mobile.
+
+<br/>
+
+> **⚠️ Disclaimer** : This software is a personal and educational project. The cryptographic implementation has **NOT been audited** by a third-party security firm. No guarantee of absolute security is provided. Do not rely on it as your sole means of secure communication in critical situations. Use of this software is **at your own risk**. See [TERMS.md](TERMS.md).
 
 <br/>
 
