@@ -20,10 +20,12 @@ package com.securechat.ui
 import android.content.Intent
 import android.os.Bundle
 import android.view.animation.AnimationUtils
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
@@ -31,6 +33,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.securechat.R
+import com.securechat.crypto.CryptoManager
+import com.securechat.crypto.MnemonicManager
 import com.securechat.util.AppLockManager
 import com.securechat.util.ThemeManager
 import kotlinx.coroutines.launch
@@ -87,6 +91,59 @@ class LockScreenActivity : AppCompatActivity() {
             biometricBtn.setOnClickListener { showBiometricPrompt() }
             showBiometricPrompt()
         }
+
+        // Forgot PIN → verify recovery phrase
+        findViewById<TextView>(R.id.tvForgotPin).setOnClickListener { showForgotPinDialog() }
+    }
+
+    private fun showForgotPinDialog() {
+        val input = EditText(this).apply {
+            hint = "Entrez vos 24 mots séparés par des espaces"
+            minLines = 3
+            setPadding(48, 32, 48, 32)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                    android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Récupération par phrase secrète")
+            .setMessage("Entrez votre phrase de récupération (24 mots) pour réinitialiser votre code PIN.")
+            .setView(input)
+            .setPositiveButton("Vérifier") { _, _ ->
+                val text = input.text.toString().trim()
+                val words = text.lowercase().split("\\s+".toRegex()).filter { it.isNotBlank() }
+
+                if (words.size != 24) {
+                    Toast.makeText(this, "La phrase doit contenir exactement 24 mots", Toast.LENGTH_LONG).show()
+                    return@setPositiveButton
+                }
+
+                if (!MnemonicManager.validateMnemonic(words)) {
+                    Toast.makeText(this, "Phrase invalide", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+
+                try {
+                    val mnemonicKey = MnemonicManager.mnemonicToPrivateKey(words)
+                    val storedKey = CryptoManager.getIdentityPrivateKeyBytes()
+                    if (mnemonicKey.contentEquals(storedKey)) {
+                        // Identity verified — remove PIN and unlock
+                        mnemonicKey.fill(0)
+                        storedKey.fill(0)
+                        AppLockManager.removePin(this)
+                        Toast.makeText(this, "PIN supprimé. Vous pouvez en configurer un nouveau dans les paramètres.", Toast.LENGTH_LONG).show()
+                        unlock()
+                    } else {
+                        mnemonicKey.fill(0)
+                        storedKey.fill(0)
+                        Toast.makeText(this, "La phrase ne correspond pas à ce compte", Toast.LENGTH_LONG).show()
+                    }
+                } catch (_: Exception) {
+                    Toast.makeText(this, "Erreur de vérification", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 
     private fun onDigitPressed(digit: String) {

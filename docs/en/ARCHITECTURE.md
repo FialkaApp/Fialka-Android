@@ -61,7 +61,7 @@
 | **UI** | Screens, navigation, interactions | `ui/` — Fragments, ViewModels, Adapters (Material 3) |
 | **Repository** | Local/crypto/remote coordination | `data/repository/ChatRepository.kt` |
 | **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519, PQXDH (ML-KEM-768) | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
-| **Local DB** | Room v16 — users, contacts, messages, ratchet (composite indexes) | `data/local/` — DAOs, Database (SQLCipher) |
+| **Local DB** | Room v17 — users, contacts, messages, ratchet (composite indexes) | `data/local/` — DAOs, Database (SQLCipher) |
 | **Remote** | Firebase Relay RTDB + Storage (ciphertext only) | `data/remote/FirebaseRelay.kt` |
 | **Util** | QR, 5 themes, app lock, ephemeral, dummy traffic, DeviceSecurityManager | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt`, `DeviceSecurityManager.kt` |
 
@@ -168,6 +168,34 @@ Receive (ChatRepository):
   → decryptFile(fileKey, cipherBytes) → plainBytes
   → save to app internal storage
   → display clickable link in chat
+```
+
+---
+
+## One-Shot Photo (view once)
+
+```
+Send:
+  photo file → AES-256-GCM encryption → upload Firebase Storage
+  → message = "FILE|url|key|iv|fileName|fileSize|1" (one-shot flag = "1")
+  → encrypt with Double Ratchet → send to Firebase RTDB
+
+Receive:
+  → decrypt message → detect one-shot flag (7th field = "1")
+  → download + decrypt file → local storage
+  → display bubble with 🔥 icon "Open (1 time)"
+
+Open (2 phases):
+  Phase 1 (immediate): flagOneShotOpened() → UPDATE oneShotOpened=1 in Room
+                        → bubble switches to "Locked" state immediately
+  Phase 2 (5s delay) : coroutine delay(5000)
+                        → delete physical file (File.delete())
+                        → markOneShotOpened() → UPDATE localFilePath=NULL
+
+Anti-bypass:
+  • DB flag is set BEFORE opening the viewer Intent
+  • Even if user leaves the conversation, the flag is already in DB
+  • On return, bubble shows "Ephemeral already viewed / Expired"
 ```
 
 ---

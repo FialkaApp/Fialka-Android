@@ -57,9 +57,10 @@
 
 - **PQXDH**: X25519 + **ML-KEM-768** (post-quantum)
 - **AES-256-GCM** + **Double Ratchet** with PFS + healing
-- **Fingerprint emojis** 96-bit anti-MITM
+- **Fingerprint emojis** 96-bit anti-MITM + **QR code scanner**
 - **Independent verification** per user + system messages
-- **BIP-39** backup (24 words)
+- **BIP-39** backup (24 words) + autocomplete grid
+- **One-shot photos** — view once, 2-phase secure deletion
 - Private key in **Android Keystore** (StrongBox when available)
 - Encrypted local DB **SQLCipher**
 - **Message padding** fixed-size (256/1K/4K/16K)
@@ -83,6 +84,7 @@
 - **Dynamic bubbles** colored by theme
 - **App Lock** PIN + biometrics
 - **Disappearing messages** (30s → 1 month)
+- **One-shot photos** view once 🔥
 
 </td>
 </tr>
@@ -107,7 +109,7 @@
 |---|---------|---------|
 | 🔐 | **E2E Encryption** | PQXDH: X25519 + ML-KEM-768 + AES-256-GCM |
 | 🔄 | **Perfect Forward Secrecy** | Double Ratchet (DH + KDF chains) |
-| 🔏 | **Fingerprint emojis** | 96-bit, 16 emojis, anti-MITM |
+| 🔏 | **Fingerprint emojis + QR** | 96-bit, 16 emojis + QR code SHA-256, built-in scanner |
 | ✅ | **Independent verification** | Each user verifies separately, system message + clickable link |
 | 🛡️ | **DeviceSecurityManager** | StrongBox detection, MAXIMUM/STANDARD level |
 | 🕵️ | **Metadata hardening** | senderUid HMAC-hashed + messageIndex encrypted |
@@ -121,6 +123,7 @@
 | 📎 | **E2E file sharing** | Per-file AES-256-GCM via Firebase Storage |
 | 🔒 | **PBKDF2 PIN** | 600K iterations + salt (replaces SHA-256) |
 | ✍️ | **Ed25519 Signatures** | Every message signed, ✅/⚠️ badge anti-forgery |
+| 📸 | **One-shot photos** | View once (sender + receiver), 2-phase secure deletion |
 
 </details>
 
@@ -168,7 +171,7 @@
 | 🔒 | **App Lock** | 6-digit PIN + opt-in biometrics |
 | ⏰ | **Auto-lock** | Configurable timeout (5s → 5min) |
 | 🔑 | **BIP-39 Backup** | 24 words to backup identity key |
-| ♻️ | **Restore** | Recover on a new device via mnemonic |
+| ♻️ | **Restore** | Autocomplete 24-word grid + recover on new device |
 | 🗑️ | **Full deletion** | Cleans Firebase (profile, inbox, convos, signing keys) |
 | 📵 | **Anonymous** | Zero number, zero email, zero tracking |
 
@@ -245,7 +248,7 @@ cd SecureChat
 | E2E file sharing (AES-256-GCM + Firebase Storage) | ✅ |
 | PBKDF2 PIN (600K iterations + salt) | ✅ |
 | R8/ProGuard obfuscation + complete log stripping (d/v/i/w/e/wtf) | ✅ |
-| Fingerprint emojis 96-bit anti-MITM | ✅ |
+| Fingerprint emojis 96-bit anti-MITM + QR code SHA-256 scanner | ✅ |
 | App Lock (PIN + biometrics) | ✅ |
 | Restrictive Firebase security rules | ✅ |
 | BIP-39 backup/restore (24 words) | ✅ |
@@ -271,6 +274,10 @@ cd SecureChat
 | Delete-after-failure (cleanup failed messages from Firebase) | ✅ |
 | Atomic dual-listener deduplication (ConcurrentHashMap) | ✅ |
 | Signing key cleanup on account deletion | ✅ |
+| One-shot photos (view once, 2-phase secure deletion) | ✅ |
+| QR code fingerprint scanner (SHA-256 hex, CustomScannerActivity) | ✅ |
+| BIP-39 autocomplete 24-word grid (restore redesign) | ✅ |
+| Forgot PIN (recovery via mnemonic phrase) | ✅ |
 
 > 📖 **Full Analysis** — [`SECURITY.md`](SECURITY.md) · [Crypto Protocol](docs/en/CRYPTO.md)
 
@@ -293,6 +300,7 @@ cd SecureChat
 | **V3.2** | Ed25519 Signing — Per-message signatures, ✅/⚠️ badge, Firebase rules hardening, signing key cleanup | ✅ Done |
 | **V3.3** | Material 3 + Tor + Attachment UX — M3 migration, full Tor integration, Session-style inline icons, Android 13+ permissions, log hardening | ✅ Done |
 | **V3.4** | PQXDH + Security — Post-quantum ML-KEM-768, deep link v2, QR name auto-fill, displayName hidden from Firebase, DeviceSecurityManager StrongBox, independent fingerprint verification, system messages, PQXDH desync fix, dual-listener fix, lastDeliveredAt | ✅ Done |
+| **V3.4.1** | One-Shot + UX — One-shot ephemeral photos, BIP-39 autocomplete grid, QR fingerprint scanner, send confirmation, progress bar, retry, 29 layout audit, forgot PIN | ✅ Done |
 | **V3.5** | Planned — App disguise + cover screen, Dual PIN, panic button, FLAG_SECURE, E2E voice messages, sealed sender, reply/quote | 🔜 |
 
 > 📖 **Details** — [Full Changelog](docs/en/CHANGELOG.md)
@@ -325,7 +333,7 @@ cd SecureChat
 | [**Crypto Protocol**](docs/en/CRYPTO.md) | X25519, Double Ratchet, fingerprint, threat model |
 | [**Setup**](docs/en/SETUP.md) | Prerequisites, Firebase, build, dependencies |
 | [**Structure**](docs/en/STRUCTURE.md) | Full project tree |
-| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V3.4 history |
+| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V3.4.1 history |
 | [**Security**](SECURITY.md) | Full audit, known limitations |
 
 </div>
@@ -344,7 +352,7 @@ Provided for **educational** purposes. Use it as a definitive base to understand
 
 <br/>
 
-<img src="https://img.shields.io/badge/SecureChat-V3.4-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/SecureChat-V3.4.1-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

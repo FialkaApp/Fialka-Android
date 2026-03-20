@@ -6,7 +6,7 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V3.4-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V3.4.1-7B2D8E?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Next-V3.5-9C4DCC?style=for-the-badge" />
 
 </div>
@@ -253,6 +253,50 @@
 ### 🗄️ Base de données
 - [x] **Room v16** — Migration v15→v16 : ajout colonne `lastDeliveredAt` sur Conversation
 - [x] **Version 3.4.0** — `versionCode 5`, `versionName "3.4.0"`
+
+---
+
+## ✅ V3.4.1 — One-Shot Photos, Restore Redesign & QR Fingerprint
+
+> Photos éphémères one-shot, écran de restauration repensé avec grille BIP-39, vérification d'empreinte par QR code, améliorations UI.
+
+### 📸 Photos éphémères One-Shot
+- [x] **Envoi one-shot** — Option "photo éphémère" : la photo ne peut être vue qu'une seule fois par le destinataire ET l'expéditeur
+- [x] **Suppression sécurisée 2 phases** — Phase 1 : flag `oneShotOpened=1` immédiat dans Room (empêche la re-visualisation) ; Phase 2 : suppression physique du fichier après 5 secondes (délai pour l'app de visualisation)
+- [x] **Protection anti-navigation** — Le flag DB est posé immédiatement au clic (pas dans un `Handler.postDelayed`), empêchant le contournement par retour arrière
+- [x] **UI expéditeur** — 4 états : one-shot expiré (🔥 verrouillé, grisé), one-shot prêt (🔥 "Ouvrir 1 fois"), fichier normal, message texte
+- [x] **UI destinataire** — 6 états avec gestion one-shot intégrée dans les bulles reçues
+- [x] **Indicateur d'envoi** — Icône ✓ de confirmation d'envoi dans les bulles
+
+### 🔑 Écran de restauration repensé
+- [x] **Grille BIP-39 professionnelle** — 24 cellules `AutoCompleteTextView` en grille 3×8 avec numérotation
+- [x] **Autocomplete BIP-39** — Chaque cellule propose les 2048 mots BIP-39 avec seuil de 1 caractère
+- [x] **Auto-avancement** — Sélection d'un mot ou Entrée passe automatiquement à la cellule suivante
+- [x] **Coloration de focus** — Vert = mot valide BIP-39, rouge = mot invalide
+- [x] **Compteur de mots** — Affichage "X / 24 mots" en temps réel
+- [x] **Validation visuelle** — Mots invalides surlignés en rouge lors de la tentative de restauration
+
+### 🔏 QR Code Fingerprint
+- [x] **Toggle emoji/QR** — Bascule animée (rotation 180° + fade) entre emojis 16 caractères et QR code
+- [x] **QR SHA-256 hex** — Le QR encode le fingerprint en hexadécimal SHA-256 (64 caractères ASCII, pas les emojis) pour éviter les problèmes d'encodage Unicode
+- [x] **Scanner QR fingerprint** — Utilise le même `CustomScannerActivity` que l'invitation de contact (torche, orientation libre)
+- [x] **Vérification automatique** — Scan QR → comparaison hex `ignoreCase` → dialogue ✅ match ou ❌ MITM warning
+- [x] **Méthode `getSharedFingerprintHex()`** — Nouvelle méthode dans CryptoManager retournant le SHA-256 hex brut des clés publiques triées
+
+### 🎨 Améliorations UI
+- [x] **Dialogue de confirmation d'envoi** — Confirmation avant envoi de fichiers
+- [x] **Barre de progression** — Indicateur d'upload/download de fichiers
+- [x] **Bouton retry** — Réessayer l'envoi en cas d'échec
+- [x] **Protocole affiché** — "PQXDH · X25519 + ML-KEM-768 · AES-256-GCM · Double Ratchet" dans le profil du contact
+- [x] **Fix timestamps** — Correction de l'affichage des horodatages dans les bulles
+- [x] **Fix maxWidth** — Largeur maximale des bulles corrigée
+- [x] **Audit 29 layouts** — Revue complète et corrections des 29 fichiers de layout
+- [x] **PIN oublié** — Flux de récupération "PIN oublié" avec phrase mnémonique
+
+### 🗄️ Base de données
+- [x] **Room v17** — Migration v16→v17 : ajout colonne `oneShotOpened` sur MessageLocal
+- [x] **`flagOneShotOpened()`** — Nouvelle requête DAO : `UPDATE messages SET oneShotOpened = 1 WHERE localId = :messageId`
+- [x] **Version 3.4.1** — `versionCode 6`, `versionName "3.4.1"`
 
 ---
 

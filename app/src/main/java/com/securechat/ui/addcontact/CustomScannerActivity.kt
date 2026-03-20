@@ -17,13 +17,36 @@
  */
 package com.securechat.ui.addcontact
 
+import android.os.Bundle
+import android.widget.ImageButton
 import com.journeyapps.barcodescanner.CaptureActivity
 import com.journeyapps.barcodescanner.DecoratedBarcodeView
 import com.securechat.R
 
 class CustomScannerActivity : CaptureActivity() {
+
+    private var torchOn = false
+
     override fun initializeContent(): DecoratedBarcodeView {
         setContentView(R.layout.activity_custom_scanner)
         return findViewById(R.id.zxing_barcode_scanner)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val btnTorch = findViewById<ImageButton>(R.id.btnTorch)
+        val scanner = findViewById<DecoratedBarcodeView>(R.id.zxing_barcode_scanner)
+
+        btnTorch.setOnClickListener {
+            torchOn = !torchOn
+            if (torchOn) {
+                scanner.setTorchOn()
+                btnTorch.setImageResource(R.drawable.ic_flashlight_on)
+            } else {
+                scanner.setTorchOff()
+                btnTorch.setImageResource(R.drawable.ic_flashlight_off)
+            }
+        }
     }
 }

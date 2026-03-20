@@ -187,15 +187,23 @@ class ChatFragment : Fragment() {
         // Load fingerprint badge
         loadFingerprintBadge()
 
-        adapter = MessagesAdapter {
-            findNavController().navigate(
-                R.id.action_chat_to_fingerprint,
-                bundleOf(
-                    "conversationId" to conversationId,
-                    "contactName" to contactName
+        adapter = MessagesAdapter(
+            onFingerprintInfoClick = {
+                findNavController().navigate(
+                    R.id.action_chat_to_fingerprint,
+                    bundleOf(
+                        "conversationId" to conversationId,
+                        "contactName" to contactName
+                    )
                 )
-            )
-        }
+            },
+            onRetryDownload = { messageId ->
+                viewModel.retryFileDownload(messageId)
+            },
+            onOneShotOpen = { messageId ->
+                viewModel.markOneShotOpened(messageId)
+            }
+        )
         binding.rvMessages.adapter = adapter
 
         // Initialize ViewModel with conversation ID
@@ -540,10 +548,12 @@ class ChatFragment : Fragment() {
         val layoutFileInfo = dialogView.findViewById<LinearLayout>(R.id.layoutFileInfo)
         val tvFileName = dialogView.findViewById<TextView>(R.id.tvFileName)
         val tvFileSize = dialogView.findViewById<TextView>(R.id.tvFileSize)
+        val cbOneShot = dialogView.findViewById<android.widget.CheckBox>(R.id.cbOneShot)
 
         if (isImage) {
             ivPreview.visibility = View.VISIBLE
             layoutFileInfo.visibility = View.GONE
+            cbOneShot.visibility = View.VISIBLE
             try {
                 val bitmap = BitmapFactory.decodeByteArray(fileBytes, 0, fileBytes.size)
                 if (bitmap != null) {
@@ -557,6 +567,7 @@ class ChatFragment : Fragment() {
         } else {
             ivPreview.visibility = View.GONE
             layoutFileInfo.visibility = View.VISIBLE
+            cbOneShot.visibility = View.GONE
             tvFileName.text = fileName
             tvFileSize.text = formatFileSize(fileBytes.size.toLong())
         }
@@ -565,7 +576,7 @@ class ChatFragment : Fragment() {
             .setTitle("Envoyer à $contactName ?")
             .setView(dialogView)
             .setPositiveButton("Envoyer") { _, _ ->
-                viewModel.sendFile(fileBytes, fileName)
+                viewModel.sendFile(fileBytes, fileName, cbOneShot.isChecked)
             }
             .setNegativeButton("Annuler", null)
             .show()

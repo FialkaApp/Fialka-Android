@@ -61,7 +61,7 @@
 | **UI** | Écrans, navigation, interactions | `ui/` — Fragments, ViewModels, Adapters (Material 3) |
 | **Repository** | Coordination local/crypto/remote | `data/repository/ChatRepository.kt` |
 | **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519, PQXDH (ML-KEM-768) | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
-| **Local DB** | Room v16 — users, contacts, messages, ratchet (indexes composites) | `data/local/` — DAOs, Database (SQLCipher) |
+| **Local DB** | Room v17 — users, contacts, messages, ratchet (indexes composites) | `data/local/` — DAOs, Database (SQLCipher) |
 | **Remote** | Relay Firebase RTDB + Storage (ciphertext only) | `data/remote/FirebaseRelay.kt` |
 | **Util** | QR, 5 thèmes, app lock, éphémère, dummy traffic, DeviceSecurityManager | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt`, `DeviceSecurityManager.kt` |
 
@@ -168,6 +168,34 @@ Réception (ChatRepository):
   → decryptFile(fileKey, cipherBytes) → plainBytes
   → sauvegarde dans stockage interne app
   → affiche lien cliquable dans le chat
+```
+
+---
+
+## Photo One-Shot (vue unique)
+
+```
+Envoi :
+  fichier photo → chiffrement AES-256-GCM → upload Firebase Storage
+  → message = "FILE|url|key|iv|fileName|fileSize|1" (flag one-shot = "1")
+  → chiffre avec Double Ratchet → envoie sur Firebase RTDB
+
+Réception :
+  → déchiffre message → détecte flag one-shot (7ème champ = "1")
+  → télécharge + déchiffre fichier → stockage local
+  → affiche bulle avec icône 🔥 "Ouvrir (1 fois)"
+
+Ouverture (2 phases) :
+  Phase 1 (immédiate) : flagOneShotOpened() → UPDATE oneShotOpened=1 dans Room
+                         → la bulle passe en état "Vérouillée" immédiatement
+  Phase 2 (5s delay)  : coroutine delay(5000)
+                         → supprime fichier physique (File.delete())
+                         → markOneShotOpened() → UPDATE localFilePath=NULL
+
+Anti-contournement :
+  • Le flag DB est posé AVANT l'ouverture de l'Intent viewer
+  • Même si l'utilisateur quitte la conversation, le flag est déjà en base
+  • Au retour, la bulle affiche "Éphémère déjà vue / Expirée"
 ```
 
 ---

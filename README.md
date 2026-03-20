@@ -57,9 +57,10 @@
 
 - **PQXDH** : X25519 + **ML-KEM-768** (post-quantique)
 - **AES-256-GCM** + **Double Ratchet** avec PFS + healing
-- **Fingerprint emojis** 96-bit anti-MITM
+- **Fingerprint emojis** 96-bit anti-MITM + **QR code scanner**
 - **Vérification indépendante** par utilisateur + messages système
-- **BIP-39** backup (24 mots)
+- **BIP-39** backup (24 mots) + grille autocomplete
+- **Photos one-shot** — vue unique, suppression sécurisée 2 phases
 - Clé privée dans **Android Keystore** (StrongBox si dispo)
 - Base locale chiffrée **SQLCipher**
 - **Message padding** taille fixe (256/1K/4K/16K)
@@ -83,6 +84,7 @@
 - **Bulles dynamiques** colorées par thème
 - **App Lock** PIN + biométrie
 - **Messages éphémères** (30s → 1 mois)
+- **Photos one-shot** vue unique 🔥
 
 </td>
 </tr>
@@ -107,7 +109,7 @@
 |---|---------|--------|
 | 🔐 | **Chiffrement E2E** | PQXDH : X25519 + ML-KEM-768 + AES-256-GCM |
 | 🔄 | **Perfect Forward Secrecy** | Double Ratchet (DH + KDF chains) |
-| 🔏 | **Fingerprint emojis** | 96-bit, 16 emojis, anti-MITM |
+| 🔏 | **Fingerprint emojis + QR** | 96-bit, 16 emojis + QR code SHA-256, scanner intégré |
 | ✅ | **Vérification indépendante** | Chacun vérifie de son côté, message système + lien cliquable |
 | 🛡️ | **DeviceSecurityManager** | Détection StrongBox, niveau MAXIMUM/STANDARD |
 | 🕵️ | **Metadata hardening** | senderUid hashé HMAC + messageIndex chiffré |
@@ -121,6 +123,7 @@
 | 📎 | **Fichiers E2E** | Chiffrement AES-256-GCM par fichier via Firebase Storage |
 | 🔒 | **PBKDF2 PIN** | 600K itérations + salt (remplace SHA-256) |
 | ✍️ | **Signature Ed25519** | Chaque message signé, badge ✅/⚠️ anti-falsification |
+| 📸 | **Photos one-shot** | Vue unique (sender + receiver), suppression sécurisée 2 phases |
 
 </details>
 
@@ -168,7 +171,7 @@
 | 🔒 | **App Lock** | PIN 6 chiffres + biométrie opt-in |
 | ⏰ | **Auto-lock** | Timeout configurable (5s → 5min) |
 | 🔑 | **Backup BIP-39** | 24 mots pour sauvegarder la clé d'identité |
-| ♻️ | **Restauration** | Restaurer sur un nouvel appareil via phrase |
+| ♻️ | **Restauration** | Grille autocomplete 24 mots + restaurer sur nouvel appareil |
 | 🗑️ | **Suppression complète** | Nettoie Firebase (profil, inbox, convos, clés de signature) |
 | 📵 | **Anonyme** | Zéro numéro, zéro email, zéro tracking |
 
@@ -245,7 +248,7 @@ cd SecureChat
 | Fichiers E2E (AES-256-GCM + Firebase Storage) | ✅ |
 | PBKDF2 PIN (600K itérations + salt) | ✅ |
 | R8/ProGuard obfuscation + log stripping complet (d/v/i/w/e/wtf) | ✅ |
-| Fingerprint emojis 96-bit anti-MITM | ✅ |
+| Fingerprint emojis 96-bit anti-MITM + QR code SHA-256 scanner | ✅ |
 | App Lock (PIN + biométrie) | ✅ |
 | Firebase security rules restrictives | ✅ |
 | BIP-39 backup/restore (24 mots) | ✅ |
@@ -293,6 +296,7 @@ cd SecureChat
 | **V3.2** | Ed25519 Signing — Signature par message, badge ✅/⚠️, durcissement Firebase rules, nettoyage clés | ✅ Done |
 | **V3.3** | Material 3 + Tor + Attachment UX — Migration M3, intégration Tor complète, icônes inline Session, permissions Android 13+, durcissement logs | ✅ Done |
 | **V3.4** | PQXDH + Security — ML-KEM-768 post-quantique, deep link v2, QR auto-fill nom, displayName masqué Firebase, DeviceSecurityManager StrongBox, vérification empreinte indépendante, messages système, fix désync PQXDH, fix dual-listener, lastDeliveredAt | ✅ Done |
+| **V3.4.1** | One-Shot + UX — Photos éphémères one-shot, grille BIP-39 autocomplete, QR fingerprint scanner, confirmation d'envoi, barre de progression, retry, audit 29 layouts, PIN oublié | ✅ Done |
 | **V3.5** | Planned — Camouflage app + faux écran, Dual PIN, panic button, FLAG_SECURE, messages vocaux E2E, sealed sender, reply/quote | 🔜 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
@@ -325,7 +329,7 @@ cd SecureChat
 | [**Protocole Crypto**](docs/fr/CRYPTO.md) | X25519, Double Ratchet, fingerprint, modèle de menace |
 | [**Installation**](docs/fr/SETUP.md) | Prérequis, Firebase, build, dépendances |
 | [**Structure**](docs/fr/STRUCTURE.md) | Arbre complet du projet |
-| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V3.4 |
+| [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V3.4.1 |
 | [**Sécurité**](SECURITY.md) | Audit complet, limites connues |
 
 </div>
@@ -344,7 +348,7 @@ Fourni à des fins **éducatives**. Utilisez-le comme base pour comprendre le ch
 
 <br/>
 
-<img src="https://img.shields.io/badge/SecureChat-V3.4-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/SecureChat-V3.4.1-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

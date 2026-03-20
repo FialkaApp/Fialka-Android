@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="start"
         android:orientation="vertical"
-        android:maxWidth="280dp">
+        android:maxWidth="320dp">
 
         <LinearLayout
             android:id="@+id/bubbleReceived"
@@ -27,6 +27,114 @@
                 android:textColor="?attr/colorBubbleReceivedText"
                 android:textSize="15sp"
                 android:lineSpacingExtra="2dp" />
+
+            <!-- Secure image preview (sandboxed BitmapFactory, no auto-execution) -->
+            <ImageView
+                android:id="@+id/ivImagePreviewReceived"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:scaleType="centerInside"
+                android:visibility="gone"
+                android:importantForAccessibility="no" />
+
+            <!-- File attachment row -->
+            <LinearLayout
+                android:id="@+id/fileRowReceived"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="4dp"
+                android:minWidth="180dp"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/ivFileIconReceived"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_file"
+                    android:contentDescription="Fichier"
+                    android:importantForAccessibility="no" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:id="@+id/tvFileNameReceived"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/colorBubbleReceivedText"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:maxWidth="160dp"
+                        android:maxLines="1"
+                        android:ellipsize="middle" />
+
+                    <TextView
+                        android:id="@+id/tvFileSizeReceived"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/colorTextSecondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/btnOpenFileReceived"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ouvrir"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless" />
+            </LinearLayout>
+
+            <!-- Download status row (progress / error + retry) -->
+            <LinearLayout
+                android:id="@+id/statusRowReceived"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="6dp"
+                android:minWidth="180dp"
+                android:visibility="gone">
+
+                <ProgressBar
+                    android:id="@+id/progressReceived"
+                    style="?android:attr/progressBarStyleSmall"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:indeterminate="true" />
+
+                <TextView
+                    android:id="@+id/tvStatusReceived"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorBubbleReceivedText"
+                    android:textSize="13sp"
+                    android:layout_marginStart="8dp" />
+
+                <TextView
+                    android:id="@+id/btnRetryReceived"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Réessayer"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:visibility="gone" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -58,7 +166,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:textColor="?attr/colorTextSecondary"
-                    android:textSize="11sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

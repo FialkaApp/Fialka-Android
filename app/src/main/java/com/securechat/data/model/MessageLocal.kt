@@ -47,5 +47,7 @@ data class MessageLocal(
     val fileName: String? = null,         // Original file name
     val fileSize: Long = 0,               // File size in bytes
     val localFilePath: String? = null,    // Path to decrypted file on device
-    val signatureValid: Boolean? = null   // null = no signature, true = valid, false = invalid
+    val signatureValid: Boolean? = null,  // null = no signature, true = valid, false = invalid
+    val isOneShot: Boolean = false,       // true = image visible once then deleted
+    val oneShotOpened: Boolean = false    // true = one-shot image was already viewed
 )

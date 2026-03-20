@@ -60,4 +60,15 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- One-shot checkbox (visible only for images) -->
+    <CheckBox
+        android:id="@+id/cbOneShot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🔥 Photo éphémère (visible une seule fois)"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="14sp"
+        android:visibility="gone"
+        android:buttonTint="?attr/colorPrimary" />
+
 </LinearLayout>

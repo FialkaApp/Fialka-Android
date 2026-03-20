@@ -28,6 +28,9 @@ object MnemonicManager {
 
     private var wordList: List<String> = emptyList()
 
+    /** Expose the loaded BIP-39 wordlist for autocomplete UI. */
+    fun getWordList(): List<String> = wordList
+
     fun init(context: Context) {
         if (wordList.isNotEmpty()) return
         wordList = context.resources.openRawResource(

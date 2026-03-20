@@ -532,7 +532,8 @@ class ChatRepository(private val appContext: Context) {
     suspend fun sendFile(
         conversationId: String,
         fileBytes: ByteArray,
-        fileName: String
+        fileName: String,
+        isOneShot: Boolean = false
     ): MessageLocal {
         // 1. Encrypt file client-side
         val encResult = CryptoManager.encryptFile(fileBytes)
@@ -541,8 +542,9 @@ class ChatRepository(private val appContext: Context) {
         val ext = fileName.substringAfterLast('.', "bin")
         val downloadUrl = FirebaseRelay.uploadEncryptedFile(conversationId, encResult.encryptedBytes, ext)
 
-        // 3. Build metadata plaintext: FILE|url|key|iv|filename|size
-        val metadata = "${FILE_PREFIX}${downloadUrl}|${encResult.keyBase64}|${encResult.ivBase64}|${fileName}|${fileBytes.size}"
+        // 3. Build metadata plaintext: FILE|url|key|iv|filename|size|oneshot
+        val oneShotFlag = if (isOneShot) "1" else "0"
+        val metadata = "${FILE_PREFIX}${downloadUrl}|${encResult.keyBase64}|${encResult.ivBase64}|${fileName}|${fileBytes.size}|${oneShotFlag}"
 
         // 4. Send via the normal ratchet pipeline (E2E encrypted metadata)
         val sentMessage = sendMessage(conversationId, metadata)
@@ -551,11 +553,13 @@ class ChatRepository(private val appContext: Context) {
         val localFile = saveFileLocally(conversationId, fileName, fileBytes)
 
         // 6. Update the local message with file info
+        val displayPrefix = if (isOneShot) "\uD83D\uDD25" else "\uD83D\uDCCE"  // 🔥 or 📎
         val fileMessage = sentMessage.copy(
-            plaintext = "\uD83D\uDCCE $fileName",  // 📎 emoji + filename for display
+            plaintext = "$displayPrefix $fileName",
             fileName = fileName,
             fileSize = fileBytes.size.toLong(),
-            localFilePath = localFile.absolutePath
+            localFilePath = localFile.absolutePath,
+            isOneShot = isOneShot
         )
         messageDao.insertMessage(fileMessage)  // REPLACE because same localId
         updateConversationLastMessage(conversationId, fileMessage.plaintext)
@@ -585,6 +589,10 @@ class ChatRepository(private val appContext: Context) {
      * Parse and process a received file attachment message.
      * Downloads encrypted file from Firebase Storage, decrypts locally, saves to disk.
      * Format: FILE|downloadUrl|keyBase64|ivBase64|fileName|fileSize
+     *
+     * Two-phase insert:
+     * 1. Insert a placeholder immediately (shows download progress in UI).
+     * 2. Update on success (localFilePath set) or failure (retry metadata in plaintext).
      */
     private suspend fun handleReceivedFile(
         conversationId: String,
@@ -593,60 +601,133 @@ class ChatRepository(private val appContext: Context) {
         timestamp: Long,
         signatureValid: Boolean?
     ): MessageLocal? {
+        // Parse: strip FILE_PREFIX, then split remaining by |
+        val payload = decryptedPlaintext.removePrefix(FILE_PREFIX)
+        val parts = payload.split("|", limit = 6)
+        if (parts.size < 5) return null
+
+        val downloadUrl = parts[0]
+        val keyBase64 = parts[1]
+        val ivBase64 = parts[2]
+        val fileName = parts[3]
+        val fileSize = parts[4].toLongOrNull() ?: 0L
+        val isOneShot = parts.getOrNull(5) == "1"
+
+        val ephDuration = conversation.ephemeralDuration
+        val isCurrentlyViewing = currentlyViewedConversation == conversationId
+        val expiresAt = if (ephDuration > 0 && isCurrentlyViewing) {
+            System.currentTimeMillis() + ephDuration
+        } else { 0L }
+
+        val localId = UUID.randomUUID().toString()
+
+        // Phase 1: Insert downloading placeholder (localFilePath = null → UI shows progress)
+        val placeholder = MessageLocal(
+            localId = localId,
+            conversationId = conversationId,
+            senderPublicKey = conversation.participantPublicKey,
+            plaintext = "⏳ $fileName",
+            timestamp = timestamp,
+            isMine = false,
+            ephemeralDuration = ephDuration,
+            expiresAt = expiresAt,
+            fileName = fileName,
+            fileSize = fileSize,
+            signatureValid = signatureValid,
+            isOneShot = isOneShot
+        )
+        messageDao.insertMessage(placeholder)
+        if (currentlyViewedConversation != conversationId) {
+            conversationDao.incrementUnreadCount(conversationId)
+        }
+
+        // Phase 2: Download, decrypt, save
         return try {
-            // Parse: strip FILE_PREFIX, then split remaining by |
-            val payload = decryptedPlaintext.removePrefix(FILE_PREFIX)
-            val parts = payload.split("|", limit = 5)
-            if (parts.size < 5) return null
-
-            val downloadUrl = parts[0]
-            val keyBase64 = parts[1]
-            val ivBase64 = parts[2]
-            val fileName = parts[3]
-            val fileSize = parts[4].toLongOrNull() ?: 0L
-
-            // Download encrypted bytes from Firebase Storage
             val encryptedBytes = FirebaseRelay.downloadEncryptedFile(downloadUrl)
-
-            // Decrypt locally
             val decryptedBytes = CryptoManager.decryptFile(encryptedBytes, keyBase64, ivBase64)
-
-            // Save to disk
             val localFile = saveFileLocally(conversationId, fileName, decryptedBytes)
-
-            // Delete encrypted file from Storage (ephemeral storage)
             FirebaseRelay.deleteEncryptedFile(downloadUrl)
 
-            // Save message locally
-            val ephDuration = conversation.ephemeralDuration
-            val isCurrentlyViewing = currentlyViewedConversation == conversationId
-            val expiresAt = if (ephDuration > 0 && isCurrentlyViewing) {
-                System.currentTimeMillis() + ephDuration
-            } else { 0L }
+            val displayPrefix = if (isOneShot) "\uD83D\uDD25" else "\uD83D\uDCCE"
+            val finalMessage = placeholder.copy(
+                plaintext = "$displayPrefix $fileName",
+                localFilePath = localFile.absolutePath
+            )
+            messageDao.insertMessage(finalMessage)  // REPLACE by same localId
+            updateConversationLastMessage(conversationId, finalMessage.plaintext)
+            finalMessage
+        } catch (e: Exception) {
+            android.util.Log.w("ChatRepository", "File receive failed: ${e.message}")
+            // Store retry metadata in plaintext: ⚠️|url|key|iv|fileName|fileSize
+            val errorMessage = placeholder.copy(
+                plaintext = "⚠️|$downloadUrl|$keyBase64|$ivBase64|$fileName|$fileSize"
+            )
+            messageDao.insertMessage(errorMessage)  // REPLACE by same localId
+            updateConversationLastMessage(conversationId, "⚠️ Échec : $fileName")
+            errorMessage
+        }
+    }
 
-            val localMessage = MessageLocal(
-                localId = UUID.randomUUID().toString(),
-                conversationId = conversationId,
-                senderPublicKey = conversation.participantPublicKey,
+    /**
+     * Retry a failed file download.
+     * Reads the retry metadata from the message's plaintext, re-downloads and decrypts.
+     */
+    suspend fun retryFileDownload(messageId: String) {
+        val message = messageDao.getMessageById(messageId) ?: return
+        if (!message.plaintext.startsWith("⚠️|")) return
+
+        val parts = message.plaintext.removePrefix("⚠️|").split("|", limit = 5)
+        if (parts.size < 5) return
+
+        val downloadUrl = parts[0]
+        val keyBase64 = parts[1]
+        val ivBase64 = parts[2]
+        val fileName = parts[3]
+        val fileSize = parts[4].toLongOrNull() ?: 0L
+
+        // Update to downloading state
+        val downloading = message.copy(plaintext = "⏳ $fileName", fileName = fileName, fileSize = fileSize)
+        messageDao.insertMessage(downloading)
+
+        try {
+            val encryptedBytes = FirebaseRelay.downloadEncryptedFile(downloadUrl)
+            val decryptedBytes = CryptoManager.decryptFile(encryptedBytes, keyBase64, ivBase64)
+            val localFile = saveFileLocally(message.conversationId, fileName, decryptedBytes)
+            FirebaseRelay.deleteEncryptedFile(downloadUrl)
+
+            val finalMessage = message.copy(
                 plaintext = "\uD83D\uDCCE $fileName",
-                timestamp = timestamp,
-                isMine = false,
-                ephemeralDuration = ephDuration,
-                expiresAt = expiresAt,
                 fileName = fileName,
                 fileSize = fileSize,
-                localFilePath = localFile.absolutePath,
-                signatureValid = signatureValid
+                localFilePath = localFile.absolutePath
             )
-            messageDao.insertMessage(localMessage)
-            updateConversationLastMessage(conversationId, localMessage.plaintext)
-            if (currentlyViewedConversation != conversationId) {
-                conversationDao.incrementUnreadCount(conversationId)
-            }
-            localMessage
-        } catch (_: Exception) {
-            null  // File download/decrypt failed — don't crash
+            messageDao.insertMessage(finalMessage)
+            updateConversationLastMessage(message.conversationId, finalMessage.plaintext)
+        } catch (e: Exception) {
+            android.util.Log.w("ChatRepository", "File retry failed: ${e.message}")
+            val errorMessage = message.copy(
+                plaintext = "⚠️|$downloadUrl|$keyBase64|$ivBase64|$fileName|$fileSize"
+            )
+            messageDao.insertMessage(errorMessage)
         }
+    }
+
+    /**
+     * Mark a one-shot message as opened: immediately flag in DB (prevents re-viewing),
+     * then delay file deletion so the viewer app has time to load it.
+     */
+    suspend fun markOneShotOpened(messageId: String) {
+        val message = messageDao.getMessageById(messageId) ?: return
+        if (!message.isOneShot || message.oneShotOpened) return
+        // Immediately flag as opened in DB — even if user leaves, it stays locked
+        messageDao.flagOneShotOpened(messageId)
+        // Wait for viewer app to load the file
+        kotlinx.coroutines.delay(5000)
+        // Now delete the physical file and clear the path
+        message.localFilePath?.let { path ->
+            try { java.io.File(path).delete() } catch (_: Exception) { }
+        }
+        messageDao.markOneShotOpened(messageId)
     }
 
     /**

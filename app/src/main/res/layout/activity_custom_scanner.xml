@@ -11,4 +11,17 @@
         android:layout_height="match_parent"
         app:zxing_scanner_layout="@layout/custom_barcode_scanner" />
 
+    <!-- Torch / flashlight toggle -->
+    <ImageButton
+        android:id="@+id/btnTorch"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:background="@android:color/transparent"
+        android:src="@drawable/ic_flashlight_off"
+        android:scaleType="centerInside"
+        android:padding="12dp"
+        android:contentDescription="Lampe torche" />
+
 </FrameLayout>

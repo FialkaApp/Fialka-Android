@@ -18,10 +18,15 @@
 package com.securechat.ui.chat
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
+import android.webkit.MimeTypeMap
+import android.widget.ImageView
+import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -46,7 +51,9 @@ sealed class ChatItem {
 }
 
 class MessagesAdapter(
-    private val onFingerprintInfoClick: (() -> Unit)? = null
+    private val onFingerprintInfoClick: (() -> Unit)? = null,
+    private val onRetryDownload: ((String) -> Unit)? = null,
+    private val onOneShotOpen: ((String) -> Unit)? = null
 ) : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
 
     private var lastAnimatedPosition = -1
@@ -58,23 +65,109 @@ class MessagesAdapter(
         private const val VIEW_TYPE_INFO = 3
         private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
+        /** Format file size to human-readable string. */
+        private fun formatFileSize(bytes: Long): String = when {
+            bytes < 1024 -> "$bytes o"
+            bytes < 1024 * 1024 -> "${bytes / 1024} Ko"
+            else -> String.format(Locale.getDefault(), "%.1f Mo", bytes / (1024.0 * 1024.0))
+        }
+
+        /** Safe image extensions (only raster images decoded by BitmapFactory). */
+        private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "bmp", "gif")
+
+        /** Check if a filename is a supported image type. */
+        private fun isImageFile(fileName: String): Boolean {
+            val ext = fileName.substringAfterLast('.', "").lowercase()
+            return ext in IMAGE_EXTENSIONS
+        }
+
+        /**
+         * Safely decode a thumbnail from a local file.
+         * Security: BitmapFactory is a pure pixel decoder — no code execution.
+         * - First pass: inJustDecodeBounds to validate dimensions without allocating memory.
+         * - Rejects images > 16384px on either axis (memory bomb protection).
+         * - Uses inSampleSize to downsample to a max of 512px.
+         * - Catches both Exception and OutOfMemoryError.
+         */
+        private fun loadSecureThumbnail(filePath: String, maxDim: Int = 512): Bitmap? {
+            return try {
+                val file = File(filePath)
+                if (!file.exists() || file.length() <= 0) return null
+
+                val opts = BitmapFactory.Options()
+                opts.inJustDecodeBounds = true
+                BitmapFactory.decodeFile(filePath, opts)
+
+                val w = opts.outWidth
+                val h = opts.outHeight
+                if (w <= 0 || h <= 0 || w > 16384 || h > 16384) return null
+
+                var sampleSize = 1
+                while (w / sampleSize > maxDim || h / sampleSize > maxDim) {
+                    sampleSize *= 2
+                }
+
+                opts.inJustDecodeBounds = false
+                opts.inSampleSize = sampleSize
+                BitmapFactory.decodeFile(filePath, opts)
+            } catch (_: Exception) {
+                null
+            } catch (_: OutOfMemoryError) {
+                null
+            }
+        }
+
+        /** Bind a secure image preview into the given ImageView. Returns true if an image was loaded. */
+        private fun bindImagePreview(imageView: ImageView, filePath: String?, fileName: String?): Boolean {
+            if (filePath == null || fileName == null || !isImageFile(fileName)) {
+                imageView.visibility = View.GONE
+                imageView.setImageDrawable(null)
+                return false
+            }
+            val bitmap = loadSecureThumbnail(filePath)
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap)
+                imageView.visibility = View.VISIBLE
+                return true
+            }
+            imageView.visibility = View.GONE
+            imageView.setImageDrawable(null)
+            return false
+        }
+
         /** Open a decrypted file using the system file viewer. */
         private fun openFile(view: View, filePath: String) {
             try {
                 val file = File(filePath)
-                if (!file.exists()) return
+                if (!file.exists()) {
+                    Toast.makeText(view.context, "Fichier introuvable", Toast.LENGTH_SHORT).show()
+                    return
+                }
                 val context = view.context
                 val uri = FileProvider.getUriForFile(
                     context,
                     "${context.packageName}.fileprovider",
                     file
                 )
+                // Resolve MIME type from file extension (contentResolver.getType is unreliable for FileProvider)
+                val ext = file.extension.lowercase()
+                val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext)
+                    ?: "application/octet-stream"
+
                 val intent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, context.contentResolver.getType(uri) ?: "*/*")
+                    setDataAndType(uri, mimeType)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                context.startActivity(intent)
-            } catch (_: Exception) { }
+                if (intent.resolveActivity(context.packageManager) != null) {
+                    context.startActivity(intent)
+                } else {
+                    // Fallback: let user pick an app
+                    val chooser = Intent.createChooser(intent, "Ouvrir avec…")
+                    context.startActivity(chooser)
+                }
+            } catch (e: Exception) {
+                Toast.makeText(view.context, "Impossible d'ouvrir le fichier", Toast.LENGTH_SHORT).show()
+            }
         }
 
         /** Bind the signature badge: ✅ valid, ⚠️ invalid, hidden if null (no signature). */
@@ -134,11 +227,11 @@ class MessagesAdapter(
         when (holder) {
             is SentViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
-                holder.bind(msg)
+                holder.bind(msg, onOneShotOpen)
             }
             is ReceivedViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
-                holder.bind(msg)
+                holder.bind(msg, onRetryDownload, onOneShotOpen)
             }
             is InfoViewHolder -> {
                 val info = getItem(position) as ChatItem.InfoMessage
@@ -168,15 +261,68 @@ class MessagesAdapter(
     class SentViewHolder(
         private val binding: ItemMessageSentBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: MessageLocal) {
-            binding.tvMessageSent.text = message.plaintext
+        fun bind(message: MessageLocal, onOneShotOpen: ((String) -> Unit)? = null) {
             binding.tvTimeSent.text = timeFormat.format(Date(message.timestamp))
+            binding.ivImagePreviewSent.visibility = View.GONE
 
-            // File attachment — click to open
-            if (message.localFilePath != null) {
-                binding.root.setOnClickListener { openFile(it, message.localFilePath) }
-            } else {
-                binding.root.setOnClickListener(null)
+            val isOneShotExpired = message.isOneShot && message.oneShotOpened
+            val isFileReady = message.localFilePath != null && message.fileName != null
+
+            when {
+                isOneShotExpired -> {
+                    // One-shot already viewed by sender: locked
+                    binding.tvMessageSent.visibility = View.GONE
+                    binding.fileRowSent.visibility = View.VISIBLE
+                    binding.ivFileIconSent.setImageResource(R.drawable.ic_oneshot)
+                    binding.tvFileNameSent.text = "Photo éphémère"
+                    binding.tvFileSizeSent.text = "Déjà vue"
+                    binding.btnOpenFileSent.text = "Verrouillée"
+                    binding.btnOpenFileSent.alpha = 0.5f
+                    binding.btnOpenFileSent.setOnClickListener(null)
+                    binding.bubbleSent.setOnClickListener(null)
+                }
+                isFileReady && message.isOneShot -> {
+                    // One-shot ready: sender can view once
+                    binding.tvMessageSent.visibility = View.GONE
+                    binding.fileRowSent.visibility = View.VISIBLE
+                    binding.ivFileIconSent.setImageResource(R.drawable.ic_oneshot)
+                    binding.tvFileNameSent.text = "Photo éphémère"
+                    binding.tvFileSizeSent.text = "Vérifier / Ouvrir (1 fois)"
+                    binding.btnOpenFileSent.text = "Ouvrir"
+                    binding.btnOpenFileSent.alpha = 1.0f
+                    val clickListener = View.OnClickListener { v ->
+                        // Disable immediately to prevent multiple opens
+                        binding.btnOpenFileSent.setOnClickListener(null)
+                        binding.bubbleSent.setOnClickListener(null)
+                        binding.btnOpenFileSent.text = "Verrouillée"
+                        binding.btnOpenFileSent.alpha = 0.5f
+                        binding.tvFileSizeSent.text = "Déjà vue"
+                        openFile(v, message.localFilePath!!)
+                        // Flag as opened immediately in DB (file deletion is delayed in repository)
+                        onOneShotOpen?.invoke(message.localId)
+                    }
+                    binding.btnOpenFileSent.setOnClickListener(clickListener)
+                    binding.bubbleSent.setOnClickListener(clickListener)
+                }
+                isFileReady -> {
+                    // Normal file
+                    binding.tvMessageSent.visibility = View.GONE
+                    binding.fileRowSent.visibility = View.VISIBLE
+                    binding.ivFileIconSent.setImageResource(R.drawable.ic_file)
+                    binding.tvFileNameSent.text = message.fileName
+                    binding.tvFileSizeSent.text = formatFileSize(message.fileSize)
+                    binding.btnOpenFileSent.text = "Ouvrir"
+                    binding.btnOpenFileSent.alpha = 1.0f
+                    binding.btnOpenFileSent.setOnClickListener { openFile(it, message.localFilePath!!) }
+                    binding.bubbleSent.setOnClickListener { openFile(it, message.localFilePath!!) }
+                }
+                else -> {
+                    // Text message
+                    binding.tvMessageSent.visibility = View.VISIBLE
+                    binding.tvMessageSent.text = message.plaintext
+                    binding.fileRowSent.visibility = View.GONE
+                    binding.bubbleSent.setOnClickListener(null)
+                }
             }
 
             // Ephemeral indicator
@@ -195,15 +341,99 @@ class MessagesAdapter(
     class ReceivedViewHolder(
         private val binding: ItemMessageReceivedBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: MessageLocal) {
-            binding.tvMessageReceived.text = message.plaintext
+        fun bind(message: MessageLocal, onRetryDownload: ((String) -> Unit)?, onOneShotOpen: ((String) -> Unit)?) {
             binding.tvTimeReceived.text = timeFormat.format(Date(message.timestamp))
+            binding.ivImagePreviewReceived.visibility = View.GONE
 
-            // File attachment — click to open
-            if (message.localFilePath != null) {
-                binding.root.setOnClickListener { openFile(it, message.localFilePath) }
-            } else {
-                binding.root.setOnClickListener(null)
+            // Determine state: downloading, error+retry, file ready, or text
+            val isDownloading = message.fileName != null && message.localFilePath == null
+                    && !message.plaintext.startsWith("⚠️")
+            val isError = message.fileName != null && message.localFilePath == null
+                    && message.plaintext.startsWith("⚠️")
+            val isFileReady = message.localFilePath != null && message.fileName != null
+            val isOneShotExpired = message.isOneShot && message.oneShotOpened
+
+            when {
+                isOneShotExpired -> {
+                    // One-shot already viewed: show expired message
+                    binding.tvMessageReceived.visibility = View.GONE
+                    binding.fileRowReceived.visibility = View.VISIBLE
+                    binding.statusRowReceived.visibility = View.GONE
+                    binding.ivFileIconReceived.setImageResource(R.drawable.ic_oneshot)
+                    binding.tvFileNameReceived.text = "Photo éphémère"
+                    binding.tvFileSizeReceived.text = "Déjà vue"
+                    binding.btnOpenFileReceived.text = "Expirée"
+                    binding.btnOpenFileReceived.alpha = 0.5f
+                    binding.btnOpenFileReceived.setOnClickListener(null)
+                    binding.bubbleReceived.setOnClickListener(null)
+                }
+                isDownloading -> {
+                    binding.tvMessageReceived.visibility = View.GONE
+                    binding.fileRowReceived.visibility = View.GONE
+                    binding.statusRowReceived.visibility = View.VISIBLE
+                    binding.progressReceived.visibility = View.VISIBLE
+                    binding.tvStatusReceived.text = "Téléchargement…"
+                    binding.btnRetryReceived.visibility = View.GONE
+                    binding.bubbleReceived.setOnClickListener(null)
+                }
+                isError -> {
+                    val fileName = message.fileName ?: "fichier"
+                    binding.tvMessageReceived.visibility = View.GONE
+                    binding.fileRowReceived.visibility = View.GONE
+                    binding.statusRowReceived.visibility = View.VISIBLE
+                    binding.progressReceived.visibility = View.GONE
+                    binding.tvStatusReceived.text = "⚠️ Échec : $fileName"
+                    binding.btnRetryReceived.visibility = View.VISIBLE
+                    binding.btnRetryReceived.setOnClickListener {
+                        onRetryDownload?.invoke(message.localId)
+                    }
+                    binding.bubbleReceived.setOnClickListener(null)
+                }
+                isFileReady && message.isOneShot -> {
+                    // One-shot ready: show fire icon + "Voir" button
+                    binding.tvMessageReceived.visibility = View.GONE
+                    binding.fileRowReceived.visibility = View.VISIBLE
+                    binding.statusRowReceived.visibility = View.GONE
+                    binding.ivFileIconReceived.setImageResource(R.drawable.ic_oneshot)
+                    binding.tvFileNameReceived.text = "Photo éphémère"
+                    binding.tvFileSizeReceived.text = "Visible une seule fois"
+                    binding.btnOpenFileReceived.text = "Voir"
+                    binding.btnOpenFileReceived.alpha = 1.0f
+                    val clickListener = View.OnClickListener { v ->
+                        // Disable immediately to prevent multiple opens
+                        binding.btnOpenFileReceived.setOnClickListener(null)
+                        binding.bubbleReceived.setOnClickListener(null)
+                        binding.btnOpenFileReceived.text = "Expirée"
+                        binding.btnOpenFileReceived.alpha = 0.5f
+                        binding.tvFileSizeReceived.text = "Déjà vue"
+                        openFile(v, message.localFilePath!!)
+                        // Flag as opened immediately in DB (file deletion is delayed in repository)
+                        onOneShotOpen?.invoke(message.localId)
+                    }
+                    binding.btnOpenFileReceived.setOnClickListener(clickListener)
+                    binding.bubbleReceived.setOnClickListener(clickListener)
+                }
+                isFileReady -> {
+                    // Normal file ready
+                    binding.tvMessageReceived.visibility = View.GONE
+                    binding.fileRowReceived.visibility = View.VISIBLE
+                    binding.statusRowReceived.visibility = View.GONE
+                    binding.ivFileIconReceived.setImageResource(R.drawable.ic_file)
+                    binding.tvFileNameReceived.text = message.fileName
+                    binding.tvFileSizeReceived.text = formatFileSize(message.fileSize)
+                    binding.btnOpenFileReceived.text = "Ouvrir"
+                    binding.btnOpenFileReceived.alpha = 1.0f
+                    binding.btnOpenFileReceived.setOnClickListener { openFile(it, message.localFilePath!!) }
+                    binding.bubbleReceived.setOnClickListener { openFile(it, message.localFilePath!!) }
+                }
+                else -> {
+                    // Text message
+                    binding.tvMessageReceived.visibility = View.VISIBLE
+                    binding.tvMessageReceived.text = message.plaintext
+                    binding.fileRowReceived.visibility = View.GONE
+                    binding.statusRowReceived.visibility = View.GONE
+                    binding.bubbleReceived.setOnClickListener(null)
+                }
             }
 
             // Ephemeral indicator

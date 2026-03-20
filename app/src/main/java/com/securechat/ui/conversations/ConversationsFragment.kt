@@ -22,6 +22,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -46,6 +47,7 @@ class ConversationsFragment : Fragment() {
     private val viewModel: ConversationsViewModel by viewModels()
     private lateinit var adapter: ConversationsAdapter
     private lateinit var requestsAdapter: ContactRequestsAdapter
+    private var allConversations: List<com.securechat.data.model.Conversation> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -78,8 +80,27 @@ class ConversationsFragment : Fragment() {
 
         // Observe conversations
         viewModel.conversations.observe(viewLifecycleOwner) { conversations ->
-            adapter.submitList(conversations)
-            updateEmptyState(conversations.isEmpty())
+            allConversations = conversations
+            // Re-filter with current search query if active
+            val searchItem = binding.toolbar.menu.findItem(R.id.action_search)
+            val searchView = searchItem?.actionView as? SearchView
+            filterConversations(searchView?.query?.toString().orEmpty())
+        }
+
+        // Search icon in toolbar — expands to SearchView on click
+        val searchItem = binding.toolbar.menu.findItem(R.id.action_search)
+        val searchView = searchItem?.actionView as? SearchView
+        searchView?.queryHint = "Rechercher…"
+        searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?) = false
+            override fun onQueryTextChange(newText: String?): Boolean {
+                filterConversations(newText.orEmpty())
+                return true
+            }
+        })
+        searchView?.setOnCloseListener {
+            filterConversations("")
+            false
         }
 
         // Observe pending contact requests
@@ -139,6 +160,17 @@ class ConversationsFragment : Fragment() {
         val showEmpty = noConversations && !hasRequests
         binding.tvEmpty.visibility = if (showEmpty) View.VISIBLE else View.GONE
         binding.rvConversations.visibility = if (noConversations) View.GONE else View.VISIBLE
+    }
+
+    private fun filterConversations(query: String) {
+        val filtered = if (query.isBlank()) {
+            allConversations
+        } else {
+            val q = query.trim().lowercase()
+            allConversations.filter { it.contactDisplayName.lowercase().contains(q) }
+        }
+        adapter.submitList(filtered)
+        updateEmptyState(filtered.isEmpty())
     }
 
     private fun showResetAccountDialog() {

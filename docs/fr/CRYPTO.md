@@ -94,6 +94,22 @@ Les deux téléphones calculent la **même** empreinte. L'utilisateur compare vi
 - ✅ Messages système dans le chat lors de la vérification/retrait (avec lien cliquable "Voir l'empreinte")
 - ✅ Notification événementielle Firebase (`fingerprintEvent: "verified:<timestamp>"`) — notifie le pair, ne synchronise pas l'état
 
+### QR Code Fingerprint (V3.4.1)
+
+En plus de la comparaison visuelle des emojis, les utilisateurs peuvent vérifier l'empreinte via **QR code** :
+
+```
+sorted_keys = sort_lexicographic(pubKeyA, pubKeyB)
+hash = SHA-256(sorted_keys[0] + sorted_keys[1])
+qr_data = hex(hash)   // 64 caractères ASCII (a-f0-9)
+```
+
+- ✅ Le QR encode le **SHA-256 en hexadécimal** (pas les emojis) pour éviter les problèmes d'encodage Unicode
+- ✅ Méthode `getSharedFingerprintHex()` dans CryptoManager
+- ✅ Scanner utilise `CustomScannerActivity` (identique à l'invitation de contact)
+- ✅ Comparaison hex `ignoreCase = true` (case-insensitive)
+- ✅ Vérification automatique : scan → match → dialogue ✅ ; mismatch → dialogue ❌ MITM
+
 ---
 
 ## Double Ratchet (PFS + Healing)

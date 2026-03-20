@@ -29,6 +29,7 @@
 
             <!-- Explanation -->
             <TextView
+                android:id="@+id/tvExplanation"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Vérifiez que les emojis ci-dessous sont identiques sur les deux téléphones pour confirmer que la conversation est sécurisée."
@@ -50,12 +51,24 @@
                     android:orientation="vertical"
                     android:padding="24dp">
 
+                    <!-- Toggle icon (tap to switch emoji/QR) -->
                     <TextView
+                        android:id="@+id/tvToggleIcon"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🔐"
                         android:textSize="32sp" />
 
+                    <TextView
+                        android:id="@+id/tvToggleHint"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="Appuyez pour voir le QR code"
+                        android:textColor="?android:attr/textColorSecondary"
+                        android:textSize="11sp" />
+
+                    <!-- Emoji fingerprint -->
                     <TextView
                         android:id="@+id/tvFingerprint"
                         android:layout_width="wrap_content"
@@ -63,6 +76,16 @@
                         android:layout_marginTop="12dp"
                         android:letterSpacing="0.05"
                         android:textSize="28sp" />
+
+                    <!-- QR code (hidden by default) -->
+                    <ImageView
+                        android:id="@+id/ivQrCode"
+                        android:layout_width="200dp"
+                        android:layout_height="200dp"
+                        android:layout_marginTop="12dp"
+                        android:contentDescription="QR Code de l'empreinte"
+                        android:scaleType="fitCenter"
+                        android:visibility="gone" />
 
                     <TextView
                         android:id="@+id/tvContactLabel"
@@ -90,13 +113,27 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Verify button -->
+            <!-- Scan QR button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScanQr"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="📷 Scanner le QR code du contact"
+                android:textAllCaps="false"
+                app:cornerRadius="8dp"
+                app:strokeColor="@color/primary"
+                app:strokeWidth="1dp" />
+
+            <!-- Verify manually button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVerify"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="✅ J'ai vérifié, c'est identique"
+                android:layout_marginTop="8dp"
+                android:text="✅ J'ai vérifié manuellement"
+                android:textAllCaps="false"
                 app:backgroundTint="@color/primary"
                 app:cornerRadius="8dp" />
 
@@ -121,7 +158,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="Comparez ces emojis en personne ou via un appel vidéo/vocal. Si les emojis sont différents, la conversation pourrait être compromise (attaque MITM)."
+                    android:text="Deux méthodes :\n\n🔢 Emojis — Comparez visuellement les emojis en personne ou par appel vidéo.\n\n📷 QR Code — Scannez le QR code affiché sur le téléphone de votre contact. La vérification est automatique.\n\nSi les empreintes ne correspondent pas, la conversation pourrait être compromise (attaque MITM)."
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp" />
             </LinearLayout>

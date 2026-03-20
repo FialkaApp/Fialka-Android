@@ -94,6 +94,22 @@ Both phones calculate the **same** fingerprint. Users compare it visually (in pe
 - ✅ System messages in chat on verify/un-verify (with clickable "View fingerprint" link)
 - ✅ Event-based Firebase notification (`fingerprintEvent: "verified:<timestamp>"`) — notifies peer, does not sync state
 
+### QR Code Fingerprint (V3.4.1)
+
+In addition to visual emoji comparison, users can verify the fingerprint via **QR code**:
+
+```
+sorted_keys = sort_lexicographic(pubKeyA, pubKeyB)
+hash = SHA-256(sorted_keys[0] + sorted_keys[1])
+qr_data = hex(hash)   // 64 ASCII characters (a-f0-9)
+```
+
+- ✅ QR encodes the **SHA-256 as hexadecimal** (not emojis) to avoid Unicode encoding issues
+- ✅ `getSharedFingerprintHex()` method in CryptoManager
+- ✅ Scanner uses `CustomScannerActivity` (same as contact invitation)
+- ✅ Hex comparison with `ignoreCase = true` (case-insensitive)
+- ✅ Automatic verification: scan → match → ✅ dialog; mismatch → ❌ MITM warning dialog
+
 ---
 
 ## Double Ratchet (PFS + Healing)

@@ -56,6 +56,12 @@ interface MessageLocalDao {
     @Query("UPDATE messages SET expiresAt = :expiresAt WHERE localId = :messageId")
     suspend fun setExpiresAt(messageId: String, expiresAt: Long)
 
+    @Query("UPDATE messages SET oneShotOpened = 1, localFilePath = NULL WHERE localId = :messageId")
+    suspend fun markOneShotOpened(messageId: String)
+
+    @Query("UPDATE messages SET oneShotOpened = 1 WHERE localId = :messageId")
+    suspend fun flagOneShotOpened(messageId: String)
+
     @Query("SELECT * FROM messages WHERE localId = :messageId LIMIT 1")
     suspend fun getMessageById(messageId: String): MessageLocal?
 

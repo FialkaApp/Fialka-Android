@@ -219,7 +219,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
      * The file is encrypted locally, uploaded to Firebase Storage as ciphertext,
      * and the decryption key is sent via the Double Ratchet.
      */
-    fun sendFile(fileBytes: ByteArray, fileName: String) {
+    fun sendFile(fileBytes: ByteArray, fileName: String, isOneShot: Boolean = false) {
         if (conversationId.isEmpty()) return
 
         if (_isAccepted.value != true) {
@@ -229,12 +229,34 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                repository.sendFile(conversationId, fileBytes, fileName)
+                repository.sendFile(conversationId, fileBytes, fileName, isOneShot)
                 DummyTrafficManager.onRealMessageSent()
                 _sendError.value = null
             } catch (e: Exception) {
                 _sendError.value = "Échec de l'envoi du fichier: ${e.message}"
             }
+        }
+    }
+
+    /**
+     * Retry a failed file download.
+     */
+    fun retryFileDownload(messageId: String) {
+        viewModelScope.launch {
+            try {
+                repository.retryFileDownload(messageId)
+            } catch (_: Exception) { }
+        }
+    }
+
+    /**
+     * Mark a one-shot image as opened — deletes file, prevents re-viewing.
+     */
+    fun markOneShotOpened(messageId: String) {
+        viewModelScope.launch {
+            try {
+                repository.markOneShotOpened(messageId)
+            } catch (_: Exception) { }
         }
     }
 

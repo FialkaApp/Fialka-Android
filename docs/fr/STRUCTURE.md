@@ -7,7 +7,7 @@
 # 📂 Structure du projet
 
 <img src="https://img.shields.io/badge/Fragments-16-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Layouts-23-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Layouts-29-9C4DCC?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Animations-12-6A1B9A?style=for-the-badge" />
 
 </div>
@@ -125,7 +125,7 @@ SecureChat/
 │       └── res/
 │           ├── anim/                         # 10 animations (slide, fade, bubble, cascade)
 │           ├── drawable/                     # Bulles, badges, icônes, backgrounds, ic_attach, ic_add
-│           ├── layout/                       # 23 layouts XML (fragments + items)
+│           ├── layout/                       # 29 layouts XML (fragments + items)
 │           ├── menu/                         # Menu conversations
 │           ├── navigation/nav_graph.xml      # 16 destinations, transitions animées
 │           ├── raw/bip39_english.txt         # Wordlist BIP-39 (2048 mots)

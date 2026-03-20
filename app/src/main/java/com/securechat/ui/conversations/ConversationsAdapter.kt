@@ -28,12 +28,47 @@ import com.securechat.R
 import com.securechat.data.model.Conversation
 import com.securechat.databinding.ItemConversationBinding
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
 class ConversationsAdapter(
     private val onClick: (Conversation) -> Unit
 ) : ListAdapter<Conversation, ConversationsAdapter.ViewHolder>(DiffCallback) {
+
+    companion object {
+        private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        private val dayOfWeekFormat = SimpleDateFormat("EEE", Locale.getDefault())
+        private val dateFormat = SimpleDateFormat("dd/MM/yy", Locale.getDefault())
+
+        /** Format timestamp as relative: "HH:mm" today, "Hier", day name this week, or "dd/MM/yy" */
+        fun formatRelativeTimestamp(timestamp: Long): String {
+            val now = Calendar.getInstance()
+            val msg = Calendar.getInstance().apply { timeInMillis = timestamp }
+
+            // Same day → "14:32"
+            if (now.get(Calendar.YEAR) == msg.get(Calendar.YEAR) &&
+                now.get(Calendar.DAY_OF_YEAR) == msg.get(Calendar.DAY_OF_YEAR)) {
+                return timeFormat.format(Date(timestamp))
+            }
+
+            // Yesterday → "Hier"
+            val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+            if (yesterday.get(Calendar.YEAR) == msg.get(Calendar.YEAR) &&
+                yesterday.get(Calendar.DAY_OF_YEAR) == msg.get(Calendar.DAY_OF_YEAR)) {
+                return "Hier"
+            }
+
+            // Within last 7 days → "Lun", "Mar", etc.
+            val weekAgo = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -6) }
+            if (msg.after(weekAgo)) {
+                return dayOfWeekFormat.format(Date(timestamp)).replaceFirstChar { it.uppercase() }
+            }
+
+            // Older → "15/03/26"
+            return dateFormat.format(Date(timestamp))
+        }
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemConversationBinding.inflate(
@@ -66,7 +101,7 @@ class ConversationsAdapter(
             }
 
             val dateFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-            binding.tvTimestamp.text = dateFormat.format(Date(conversation.lastMessageTimestamp))
+            binding.tvTimestamp.text = formatRelativeTimestamp(conversation.lastMessageTimestamp)
 
             // Unread badge
             if (conversation.unreadCount > 0) {

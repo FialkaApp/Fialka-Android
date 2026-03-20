@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 3.4.x   | ✅ Current |
+| 3.4.1   | ✅ Current |
+| 3.4.x   | ⚠️ Outdated |
 | 3.3.x   | ⚠️ Outdated |
 | 3.2.x   | ⚠️ Outdated |
 | 3.1.x   | ⚠️ Outdated |
@@ -38,6 +39,7 @@ SecureChat uses the following cryptographic primitives:
 | Message padding | 256 / 1024 / 4096 / 16384 bytes | 2-byte big-endian length header + random fill |
 | Conversation ID | SHA-256 | Hash of sorted public keys |
 | Fingerprint emojis | SHA-256 → 64-palette × 16 | 96-bit entropy, anti-MITM, independent verification per user |
+| Fingerprint QR code | SHA-256 hex (64 ASCII chars) | Hex encoding for QR scanner compatibility; `getSharedFingerprintHex()` |
 | Fingerprint events | Firebase notification (`verified:<ts>`) | Event-based notification only; verification state is strictly local per device |
 | senderUid hashing | HMAC-SHA256 | Keyed by conversationId, truncated to 128 bits |
 | PIN hashing | PBKDF2-HMAC-SHA256 | 600,000 iterations, 16-byte random salt |
@@ -181,3 +183,16 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **Independent fingerprint verification**: each user's verified/unverified state is strictly local; Firebase event is a notification only (`fingerprintEvent: "verified:<timestamp>"`), never modifies the other user's state
 - ✅ **Fingerprint un-verify**: users can toggle verification status; button switches between "Marquer comme vérifié" / "Retirer la vérification"
 - ✅ **DB version 16**: added `lastDeliveredAt` column to Conversation entity (fallbackToDestructiveMigration)
+
+### V3.4.1 One-Shot Photos, Restore Redesign & QR Fingerprint
+
+- ✅ **One-shot ephemeral photos**: view-once images for both sender and receiver; 2-phase secure deletion (immediate DB flag + delayed file deletion)
+- ✅ **Anti-navigation bypass**: `flagOneShotOpened()` DAO flags DB immediately on click; physical file deleted after 5s coroutine delay; no `Handler.postDelayed` vulnerability
+- ✅ **One-shot file metadata**: `FILE|url|key|iv|fileName|fileSize|1` format; `oneShotOpened` column in Room DB
+- ✅ **QR code fingerprint**: fingerprint encoded as SHA-256 hex (64 ASCII chars) for QR; avoids Unicode emoji encoding mismatches
+- ✅ **QR fingerprint scanner**: uses `CustomScannerActivity` (same as contact invitation); hex comparison with `ignoreCase`; auto-verify on match
+- ✅ **`getSharedFingerprintHex()` method**: raw SHA-256 hex of sorted concatenated public keys (deterministic, encoding-safe)
+- ✅ **Restore screen BIP-39 grid**: 24 `AutoCompleteTextView` cells with BIP-39 autocomplete (2048 words); replaces single text field
+- ✅ **PIN recovery**: forgot PIN flow via mnemonic phrase verification
+- ✅ **Send confirmation dialog**: user confirms before sending files
+- ✅ **DB version 17**: added `oneShotOpened` column to MessageLocal entity (fallbackToDestructiveMigration)

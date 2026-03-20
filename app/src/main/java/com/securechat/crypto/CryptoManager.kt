@@ -518,6 +518,14 @@ object CryptoManager {
         return emojis.chunked(4).joinToString(" ") { it.joinToString("") }
     }
 
+    /** Returns the raw SHA-256 hex of the shared fingerprint (deterministic, safe for QR). */
+    fun getSharedFingerprintHex(myPubKeyBase64: String, contactPubKeyBase64: String): String {
+        val sorted = listOf(myPubKeyBase64, contactPubKeyBase64).sorted()
+        val combined = (sorted[0] + sorted[1]).toByteArray(Charsets.UTF_8)
+        val hash = MessageDigest.getInstance("SHA-256").digest(combined)
+        return hash.joinToString("") { "%02x".format(it) }
+    }
+
     fun hmacSha256(key: ByteArray, data: ByteArray): ByteArray {
         val mac = javax.crypto.Mac.getInstance("HmacSHA256")
         mac.init(SecretKeySpec(key, "HmacSHA256"))
