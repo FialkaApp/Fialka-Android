@@ -85,6 +85,7 @@ SecureChat/
 │       │   │
 │       │   ├── util/
 │       │   │   ├── QrCodeGenerator.kt        # Génération QR codes (ZXing)
+│       │   │   ├── SecureFileManager.kt      # Suppression sécurisée de fichiers (écrasement 2 passes : aléatoire + zéros)
 │       │   │   ├── ThemeManager.kt           # 5 thèmes (Midnight/Hacker/Phantom/Aurora/Daylight)
 │       │   │   ├── AppLockManager.kt         # PIN, biométrie, auto-lock timeout
 │       │   │   ├── EphemeralManager.kt       # Durées éphémères (30s → 1 mois)

@@ -13,7 +13,9 @@
 
 ---
 
-## ✅ V1 — Core
+<details>
+<summary><h2>✅ V1 — Core</h2></summary>
+
 
 > Fondations : chiffrement E2E, contacts via QR, conversations persistantes.
 
@@ -52,9 +54,13 @@
 - [x] 5 thèmes UI — Midnight, Hacker, Phantom (défaut), Aurora, Daylight + sélecteur visuel
 - [x] Animations complètes — Transitions navigation, bulles animées, liste en cascade, toolbar scrollable
 
+</details>
+
 ---
 
-## ✅ V2 — Crypto Upgrade
+<details>
+<summary><h2>✅ V2 — Crypto Upgrade</h2></summary>
+
 
 > Full Double Ratchet X25519, remplacement de P-256 par Curve25519.
 
@@ -63,9 +69,13 @@
 - [x] **Initial chains** — Les deux côtés peuvent envoyer immédiatement après acceptation
 - [x] **Échange d'éphémères naturel** — Via les vrais messages, pas de message bootstrap
 
+</details>
+
 ---
 
-## ✅ V2.1 — Account Lifecycle
+<details>
+<summary><h2>✅ V2.1 — Account Lifecycle</h2></summary>
+
 
 > Backup BIP-39, restauration, suppression complète, détection de comptes morts.
 
@@ -79,9 +89,13 @@
 - [x] **Auto-détection à la réception** — Inbox listener vérifie conversations stale → nettoyage auto
 - [x] **Firebase rules conversation** — `.read` et `.write` restreints au niveau `$conversationId`
 
+</details>
+
 ---
 
-## ✅ V2.2 — UI Modernization
+<details>
+<summary><h2>✅ V2.2 — UI Modernization</h2></summary>
+
 
 > 5 thèmes, animations complètes, CoordinatorLayout, zéro couleur hardcodée.
 
@@ -98,9 +112,13 @@
 - [x] **FAB auto-hide** — `HideBottomViewOnScrollBehavior` masque le FAB au scroll
 - [x] **Zéro couleur hardcodée** — Toutes les couleurs UI → `?attr/` (theme-aware)
 
+</details>
+
 ---
 
-## ✅ V3.0 — Security Hardening
+<details>
+<summary><h2>✅ V3.0 — Security Hardening</h2></summary>
+
 
 > Durcissement sécuritaire complet : chiffrement renforcé, anti-analyse de trafic, partage de fichiers E2E.
 
@@ -130,9 +148,13 @@
 - [x] **Index Room** — Index composites : messages(conversationId, timestamp), messages(expiresAt), conversations(accepted), contacts(publicKey)
 - [x] **Double-listener guard** — `processedFirebaseKeys` empêche la désynchronisation ratchet quand 2 listeners traitent le même message
 
+</details>
+
 ---
 
-## ✅ V3.1 — Settings Redesign & PIN Upgrade
+<details>
+<summary><h2>✅ V3.1 — Settings Redesign & PIN Upgrade</h2></summary>
+
 
 > Paramètres repensés Signal/Telegram, PIN 6 chiffres, sous-écran Confidentialité, performance PIN.
 
@@ -149,9 +171,13 @@
 - [x] **Cache EncryptedSharedPreferences** — Double-checked locking, plus d’init Keystore répétée
 - [x] **Vérification unique** — Check uniquement au 6ème chiffre (plus de check intermédiaire)
 
+</details>
+
 ---
 
-## ✅ V3.2 — Ed25519 Message Signing
+<details>
+<summary><h2>✅ V3.2 — Ed25519 Message Signing</h2></summary>
+
 
 > Signature par message Ed25519, badge ✅/⚠️, durcissement Firebase rules, nettoyage clés de signature.
 
@@ -167,9 +193,13 @@
 - [x] **Participants scopés** — `/conversations/$id/participants` lisible uniquement par les membres (plus par tous les authentifiés)
 - [x] **Nettoyage clés de signature** — `/signing_keys/{hash}` supprimé à la suppression de compte
 
+</details>
+
 ---
 
-## ✅ V3.3 — Material 3, Tor Integration, Attachment UX & Log Hardening
+<details>
+<summary><h2>✅ V3.3 — Material 3, Tor Integration, Attachment UX & Log Hardening</h2></summary>
+
 
 > Migration complète Material Design 3, intégration Tor (SOCKS5 + VPN TUN), icônes d'attachement inline style Session, permissions Android 13+, durcissement Firebase et logs.
 
@@ -215,9 +245,13 @@
 - [x] **Statut temps réel** — "Connecté via Tor" / "Reconnexion..." / "Déconnecté"
 - [x] **Dummy traffic par conversation** — Trafic factice individuel par conversation active
 
+</details>
+
 ---
 
-## ✅ V3.4 — Post-Quantum & Device Security
+<details>
+<summary><h2>✅ V3.4 — Post-Quantum & Device Security</h2></summary>
+
 
 > PQXDH hybride (ML-KEM-768 + X25519), DeviceSecurityManager StrongBox, QR deep link v2, vérification d'empreinte indépendante, corrections de désynchronisation ratchet.
 
@@ -254,9 +288,13 @@
 - [x] **Room v16** — Migration v15→v16 : ajout colonne `lastDeliveredAt` sur Conversation
 - [x] **Version 3.4.0** — `versionCode 5`, `versionName "3.4.0"`
 
+</details>
+
 ---
 
-## ✅ V3.4.1 — One-Shot Photos, Restore Redesign & QR Fingerprint
+<details open>
+<summary><h2>✅ V3.4.1 — One-Shot Photos, Restore Redesign & QR Fingerprint</h2></summary>
+
 
 > Photos éphémères one-shot, écran de restauration repensé avec grille BIP-39, vérification d'empreinte par QR code, améliorations UI.
 
@@ -298,9 +336,41 @@
 - [x] **`flagOneShotOpened()`** — Nouvelle requête DAO : `UPDATE messages SET oneShotOpened = 1 WHERE localId = :messageId`
 - [x] **Version 3.4.1** — `versionCode 6`, `versionName "3.4.1"`
 
+### 🛡️ Audit de sécurité (42+ vulnérabilités corrigées)
+- [x] **Firebase rules write-once** — `/signing_keys/{hash}`, `/mlkem_keys/{hash}`, `/inbox/{hash}/{convId}` imposent `!data.exists()` — empêche l'écrasement de clés et le replay de demandes
+- [x] **Firebase rules validation** — `senderUid.length === 32`, ciphertext non-vide + max 65536, iv non-vide + max 100, `createdAt <= now + 60000`
+- [x] **Zeroing mémoire HKDF** — `hkdfExtractExpand()` efface IKM, `hkdfExpand()` efface PRK + expandInput après usage
+- [x] **Zeroing mémoire Mnemonic** — `privateKeyToMnemonic()` et `mnemonicToPrivateKey()` effacent tous les tableaux d'octets intermédiaires et nettoient le StringBuilder
+- [x] **Validation entrée PQXDH** — `deriveRootKeyPQXDH()` exige les deux entrées de 32 octets exactement
+- [x] **Séparateur ConversationId** — `deriveConversationId()` utilise `"|"` pour éviter les collisions de concaténation de clés
+- [x] **FLAG_SECURE** — Appliqué sur `MainActivity`, `LockScreenActivity`, `RestoreFragment` et le dialog mnemonic — bloque screenshots, enregistrement d'écran, aperçu tâches
+- [x] **Masquage mnemonic** — Le champ mnemonic du PIN oublié utilise `TYPE_TEXT_VARIATION_PASSWORD`
+- [x] **Seuil autocomplete** — Seuil autocomplete BIP-39 augmenté de 1 → 3 caractères
+- [x] **Nettoyage RestoreFragment** — Les 24 champs de mots sont effacés dans `onDestroyView()`
+- [x] **Durcissement deep links** — Réécriture complète de `parseInvite()` : whitelist paramètres, limites de taille, rejet doublons, rejet caractères de contrôle, validation Base64, max 4000 chars
+- [x] **Validation ML-KEM** — Validation côté client de la clé publique ML-KEM (longueur < 2000, décodage Base64, taille décodée 1150–1250 octets)
+- [x] **Sécurité presse-papiers** — Flag `EXTRA_IS_SENSITIVE` + auto-effacement 30 secondes via `Handler.postDelayed`
+- [x] **SecureFileManager** — Nouvel utilitaire : écrasement 2 passes (données aléatoires + zéros, `fd.sync()`) avant `File.delete()`
+- [x] **Zeroing fileBytes** — `saveFileLocally()` appelle `fileBytes.fill(0)` après écriture
+- [x] **Suppression sécurisée one-shot** — Les fichiers one-shot utilisent `SecureFileManager.secureDelete()`
+- [x] **Nettoyage conversations mortes** — `deleteStaleConversation()` écrase le répertoire de fichiers de la conversation
+- [x] **Nettoyage messages expirés** — `deleteExpiredMessages()` supprime les fichiers associés en premier
+- [x] **Guards FirebaseRelay** — `sendMessage()` avec `require()` sur tous les champs (conversationId, ciphertext, iv, taille senderUid, createdAt)
+- [x] **Validation Cloud Function** — Validation regex pour senderUid (`/^[0-9a-f]{32}$/`) et format conversationId
+- [x] **Payload FCM opaque** — Données push réduites à `{type: "new_message", sync: "1"}` — zéro fuite de metadata
+- [x] **Notification générique** — `MyFirebaseMessagingService` affiche « Nouveau message reçu » (pas de nom, pas d'ID conversation)
+- [x] **usesCleartextTraffic=false** — Imposé sur `<application>` — bloque tout trafic HTTP non chiffré
+- [x] **filterTouchesWhenObscured** — Activé sur `MainActivity` et `LockScreenActivity` — protection tapjacking
+- [x] **Storage rules suppression par propriétaire** — `resource.metadata['uploaderUid'] == request.auth.uid` requis pour supprimer
+- [x] **Metadata upload** — `uploadEncryptedFile()` attache `uploaderUid` dans les StorageMetadata
+
+</details>
+
 ---
 
-## 🔜 V3.5 — Planned
+<details open>
+<summary><h2>🔜 V3.5 — Planned</h2></summary>
+
 
 > Camouflage avancé, plausible deniability, messages vocaux E2E, sealed sender, améliorations messagerie.
 
@@ -316,7 +386,7 @@
 ### 🔐 Plausible Deniability & Protection
 - [ ] **Dual PIN** — PIN normal ouvre le chat ; PIN de contrainte ouvre un profil vide ou déclenche un wipe silencieux (plausible deniability, niveau journaliste/activiste)
 - [ ] **Panic button** — Secouer le téléphone (shake) → suppression instantanée de toutes les conversations + clés + déconnexion (wipe complet)
-- [ ] **Screenshot protection** — `FLAG_SECURE` sur toutes les fenêtres — empêche screenshots, screen recording et aperçu dans les apps récentes
+- [ ] **Screenshot protection** — ~~`FLAG_SECURE` sur toutes les fenêtres~~ ✔️ **Fait dans l'audit de sécurité V3.4.1**
 - [ ] **Keyboard incognito** — `flagNoPersonalizedLearning` sur tous les champs de saisie — le clavier ne mémorise/apprend rien
 
 ### 🔐 Crypto avancée
@@ -331,6 +401,8 @@
 
 ### 🛡️ Infrastructure
 - [ ] **Relay privé** — Serveur relay dédié pour réduire la dépendance Firebase
+
+</details>
 
 ---
 

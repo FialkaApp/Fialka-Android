@@ -77,8 +77,8 @@ Phone A → sendMessage() → Firebase RTDB
                    /users/{uid}/fcm_token ?
                               ↓ (if token exists)
                    FCM → Phone B notification
-                   "New message from Alice"
-                   (ZERO message content)
+                   "Nouveau message reçu"
+                   (ZERO content, ZERO metadata)
 ```
 
 ---

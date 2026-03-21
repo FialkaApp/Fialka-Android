@@ -274,6 +274,22 @@ cd SecureChat
 | Delete-after-failure (nettoyage messages en échec Firebase) | ✅ |
 | Déduplication atomique dual-listener (ConcurrentHashMap) | ✅ |
 | Nettoyage clés de signature à la suppression de compte | ✅ |
+| **Audit sécurité V3.4.1 — 42+ vulnérabilités corrigées** | ✅ |
+| Firebase rules : write-once (signing_keys, mlkem_keys, inbox) | ✅ |
+| Validation senderUid/ciphertext/iv/createdAt dans Firebase rules | ✅ |
+| Zeroing mémoire HKDF (IKM, PRK, expandInput) | ✅ |
+| Zeroing mémoire MnemonicManager (encode + decode) | ✅ |
+| FLAG_SECURE (MainActivity, LockScreen, RestoreFragment, dialogs) | ✅ |
+| Protection anti-tapjacking (filterTouchesWhenObscured) | ✅ |
+| usesCleartextTraffic=false (zéro trafic HTTP) | ✅ |
+| Deep link hardening (whitelist, limites, anti-injection) | ✅ |
+| Clipboard EXTRA_IS_SENSITIVE + auto-clear 30s | ✅ |
+| SecureFileManager (suppression 2 passes : aléatoire + zéros) | ✅ |
+| FCM payload opaque (zéro metadata dans les notifications push) | ✅ |
+| Firebase Storage : delete restreint au uploadeur uniquement | ✅ |
+| Validation ML-KEM taille + Base64 côté client | ✅ |
+| Input validation FirebaseRelay.sendMessage (require guards) | ✅ |
+| Cloud Function : regex validation senderUid + conversationId | ✅ |
 
 > 📖 **Analyse complète** — [`SECURITY.md`](SECURITY.md) · [Protocole crypto](docs/fr/CRYPTO.md)
 
@@ -296,8 +312,8 @@ cd SecureChat
 | **V3.2** | Ed25519 Signing — Signature par message, badge ✅/⚠️, durcissement Firebase rules, nettoyage clés | ✅ Done |
 | **V3.3** | Material 3 + Tor + Attachment UX — Migration M3, intégration Tor complète, icônes inline Session, permissions Android 13+, durcissement logs | ✅ Done |
 | **V3.4** | PQXDH + Security — ML-KEM-768 post-quantique, deep link v2, QR auto-fill nom, displayName masqué Firebase, DeviceSecurityManager StrongBox, vérification empreinte indépendante, messages système, fix désync PQXDH, fix dual-listener, lastDeliveredAt | ✅ Done |
-| **V3.4.1** | One-Shot + UX — Photos éphémères one-shot, grille BIP-39 autocomplete, QR fingerprint scanner, confirmation d'envoi, barre de progression, retry, audit 29 layouts, PIN oublié | ✅ Done |
-| **V3.5** | Planned — Camouflage app + faux écran, Dual PIN, panic button, FLAG_SECURE, messages vocaux E2E, sealed sender, reply/quote | 🔜 |
+| **V3.4.1** | One-Shot + UX + Security Audit — Photos éphémères, grille BIP-39, QR fingerprint, audit 29 layouts, PIN oublié, **audit sécurité complet (42+ fixes)** : Firebase rules write-once, zeroing mémoire HKDF/mnemonic, FLAG_SECURE, deep link hardening, SecureFileManager, FCM opaque, Storage owner-only delete, input validation | ✅ Done |
+| **V3.5** | Planned — Camouflage app + faux écran, Dual PIN, panic button, messages vocaux E2E, sealed sender, reply/quote | 🔜 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
 

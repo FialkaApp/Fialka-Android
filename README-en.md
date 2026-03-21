@@ -278,6 +278,22 @@ cd SecureChat
 | QR code fingerprint scanner (SHA-256 hex, CustomScannerActivity) | ✅ |
 | BIP-39 autocomplete 24-word grid (restore redesign) | ✅ |
 | Forgot PIN (recovery via mnemonic phrase) | ✅ |
+| **V3.4.1 Security Audit — 42+ vulnerabilities fixed** | ✅ |
+| Firebase rules: write-once (signing_keys, mlkem_keys, inbox) | ✅ |
+| senderUid/ciphertext/iv/createdAt validation in Firebase rules | ✅ |
+| HKDF memory zeroing (IKM, PRK, expandInput) | ✅ |
+| MnemonicManager memory zeroing (encode + decode) | ✅ |
+| FLAG_SECURE (MainActivity, LockScreen, RestoreFragment, dialogs) | ✅ |
+| Tapjacking protection (filterTouchesWhenObscured) | ✅ |
+| usesCleartextTraffic=false (zero HTTP traffic) | ✅ |
+| Deep link hardening (whitelist, limits, anti-injection) | ✅ |
+| Clipboard EXTRA_IS_SENSITIVE + 30s auto-clear | ✅ |
+| SecureFileManager (2-pass wipe: random + zeros) | ✅ |
+| Opaque FCM payload (zero metadata in push notifications) | ✅ |
+| Firebase Storage: delete restricted to uploader only | ✅ |
+| ML-KEM size + Base64 client-side validation | ✅ |
+| FirebaseRelay.sendMessage input validation (require guards) | ✅ |
+| Cloud Function: regex validation senderUid + conversationId | ✅ |
 
 > 📖 **Full Analysis** — [`SECURITY.md`](SECURITY.md) · [Crypto Protocol](docs/en/CRYPTO.md)
 
@@ -300,8 +316,8 @@ cd SecureChat
 | **V3.2** | Ed25519 Signing — Per-message signatures, ✅/⚠️ badge, Firebase rules hardening, signing key cleanup | ✅ Done |
 | **V3.3** | Material 3 + Tor + Attachment UX — M3 migration, full Tor integration, Session-style inline icons, Android 13+ permissions, log hardening | ✅ Done |
 | **V3.4** | PQXDH + Security — Post-quantum ML-KEM-768, deep link v2, QR name auto-fill, displayName hidden from Firebase, DeviceSecurityManager StrongBox, independent fingerprint verification, system messages, PQXDH desync fix, dual-listener fix, lastDeliveredAt | ✅ Done |
-| **V3.4.1** | One-Shot + UX — One-shot ephemeral photos, BIP-39 autocomplete grid, QR fingerprint scanner, send confirmation, progress bar, retry, 29 layout audit, forgot PIN | ✅ Done |
-| **V3.5** | Planned — App disguise + cover screen, Dual PIN, panic button, FLAG_SECURE, E2E voice messages, sealed sender, reply/quote | 🔜 |
+| **V3.4.1** | One-Shot + UX + Security Audit — Ephemeral photos, BIP-39 grid, QR fingerprint, 29 layout audit, forgot PIN, **comprehensive security audit (42+ fixes)**: Firebase rules write-once, HKDF/mnemonic memory zeroing, FLAG_SECURE, deep link hardening, SecureFileManager, opaque FCM, Storage owner-only delete, input validation | ✅ Done |
+| **V3.5** | Planned — App disguise + cover screen, Dual PIN, panic button, E2E voice messages, sealed sender, reply/quote | 🔜 |
 
 > 📖 **Details** — [Full Changelog](docs/en/CHANGELOG.md)
 

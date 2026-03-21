@@ -28,7 +28,7 @@ SecureChat uses the following cryptographic primitives:
 | Component | Algorithm | Notes |
 |-----------|-----------|-------|
 | Identity keys | X25519 (Curve25519) | Software JCA, private in EncryptedSharedPreferences (Keystore-backed, StrongBox when available) |
-| Post-quantum keys | ML-KEM-768 (CRYSTALS-Kyber) | BouncyCastle 1.78.1 lightweight API; encaps/decaps for hybrid secret |
+| Post-quantum keys | ML-KEM-768 (CRYSTALS-Kyber) | BouncyCastle 1.80 lightweight API; encaps/decaps for hybrid secret |
 | Identity backup | BIP-39 mnemonic (24 words) | 256 bits entropy + 8-bit SHA-256 checksum = 264 bits = 24 × 11-bit words |
 | Key restore | X25519 DH with base point u=9 | Private key → DH(priv, basepoint) → public key derivation |
 | Key exchange | PQXDH: X25519 + ML-KEM-768 | Hybrid classic + post-quantum; both sides start classic-only, rootKey upgraded after first KEM exchange (deferred upgrade, zero desync) |
@@ -46,7 +46,7 @@ SecureChat uses the following cryptographic primitives:
 | File encryption | AES-256-GCM (per-file random key) | Encrypted at rest in Firebase Storage |
 | Local DB encryption | SQLCipher (AES-256-CBC) | 256-bit passphrase via EncryptedSharedPreferences |
 | Hardware key storage | Android StrongBox (if available) | MasterKey.Builder.setRequestStrongBoxBacked(); runtime probe via DeviceSecurityManager |
-| Message signing | Ed25519 (BouncyCastle 1.78.1) | Dedicated signing key pair, signature = sign(ciphertext \|\| conversationId \|\| createdAt) |
+| Message signing | Ed25519 (BouncyCastle 1.80) | Dedicated signing key pair, signature = sign(ciphertext \|\| conversationId \|\| createdAt) |
 | Signing key storage | Firebase RTDB `/signing_keys/{hash}` | SHA-256 truncated to 32 hex chars as key, Base64 Ed25519 public key as value |
 | Build hardening | R8/ProGuard | Code obfuscation + resource shrinking + complete log stripping (d/v/i/w/e/wtf) |
 
@@ -82,7 +82,7 @@ SecureChat uses the following cryptographic primitives:
 - ✅ Trial decryption: constant-time-ish — common case (in-order) = 1 attempt, worst case = 100 attempts
 - ✅ `android:allowBackup="false"` in AndroidManifest
 - ✅ Push notifications opt-in (disabled by default — no FCM token stored)
-- ✅ Zero message content in push notifications (only sender display name)
+- ✅ Zero message content in push notifications (opaque sync signal only — no conversationId, no sender name)
 - ✅ FCM token deleted immediately when user disables push
 - ✅ Invalid/expired FCM tokens auto-cleaned by Cloud Function
 - ✅ Emoji fingerprint: shared 96-bit (16 emojis from 64-palette, power-of-2 = zero modulo bias)
@@ -135,7 +135,7 @@ SecureChat uses the following cryptographic primitives:
 ### V3.2 Ed25519 Message Signing
 
 - ✅ **Ed25519 signatures**: every message is signed with a dedicated Ed25519 key pair (separate from X25519 identity key)
-- ✅ **BouncyCastle 1.78.1**: `bcprov-jdk18on` registered as JCA provider at position 1 (`Security.removeProvider("BC")` + `Security.insertProviderAt()`)
+- ✅ **BouncyCastle 1.80**: `bcprov-jdk18on` registered as JCA provider at position 1 (`Security.removeProvider("BC")` + `Security.insertProviderAt()`)
 - ✅ **Signed data**: `signature = Ed25519.sign(ciphertext_UTF8 || conversationId_UTF8 || createdAt_bigEndian8bytes)` — anti-forgery + anti-replay
 - ✅ **Signing key storage**: Ed25519 public key stored at `/signing_keys/{SHA256_hash}` and `/users/{uid}/signingPublicKey` on Firebase; private key in EncryptedSharedPreferences
 - ✅ **Verification on receive**: receiver fetches sender's Ed25519 public key by identity key hash, verifies signature, displays ✅ (valid) or ⚠️ (invalid/missing)
@@ -163,7 +163,7 @@ SecureChat uses the following cryptographic primitives:
 
 ### V3.4 PQXDH, DeviceSecurity & Fingerprint Verification
 
-- ✅ **PQXDH hybrid key exchange**: X25519 + ML-KEM-768 post-quantum key agreement via BouncyCastle 1.78.1 lightweight API (no JCA provider registration)
+- ✅ **PQXDH hybrid key exchange**: X25519 + ML-KEM-768 post-quantum key agreement via BouncyCastle 1.80 lightweight API (no JCA provider registration)
 - ✅ **ML-KEM-768 identity key pair**: `generateMLKEMIdentityKeyPair()`, `mlkemEncaps()`, `mlkemDecaps()`, `deriveRootKeyPQXDH(ssClassic, ssPQ)` for hybrid root key derivation
 - ✅ **Deferred PQXDH upgrade**: both sides start with classic-only chains; `rootKey` upgraded to combined (classic+PQ) secret only after first KEM ciphertext exchange; current chains stay intact to avoid desync
 - ✅ **ML-KEM keys on Firebase**: `/mlkem_keys/{hash}` node for public key distribution; included in QR deep links (`securechat://invite?v=2&x25519=<key>&mlkem=<key>`)
@@ -196,3 +196,64 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **PIN recovery**: forgot PIN flow via mnemonic phrase verification
 - ✅ **Send confirmation dialog**: user confirms before sending files
 - ✅ **DB version 17**: added `oneShotOpened` column to MessageLocal entity (fallbackToDestructiveMigration)
+
+### V3.4.1 Security Audit & Hardening (42+ vulnerabilities fixed)
+
+#### Firebase Rules Hardening
+- ✅ **Write-once signing keys**: `/signing_keys/{hash}` now enforced `!data.exists()` — prevents key overwrite attacks
+- ✅ **Write-once ML-KEM keys**: `/mlkem_keys/{hash}` now enforced `!data.exists()` — prevents post-quantum key replacement
+- ✅ **Write-once inbox**: `/inbox/{hash}/{convId}` now enforced `!data.exists()` — prevents contact request replay/overwrite
+- ✅ **senderUid validation**: `senderUid.length === 32` enforced in Firebase rules (HMAC-SHA256 truncated to 128 bits = 32 hex chars)
+- ✅ **ciphertext validation**: non-empty, max 65536 characters enforced in rules
+- ✅ **IV validation**: non-empty, max 100 characters enforced in rules
+- ✅ **createdAt validation**: `<= now + 60000` (1 minute clock skew tolerance) — prevents timestamp spoofing
+
+#### Crypto Memory Zeroing
+- ✅ **HKDF IKM zeroing**: `CryptoManager.hkdfExtractExpand()` now calls `ikm.fill(0)` after use
+- ✅ **HKDF PRK zeroing**: `DoubleRatchet.hkdfExpand()` now zeros both `prk` and `expandInput` after use
+- ✅ **Mnemonic encode zeroing**: `MnemonicManager.privateKeyToMnemonic()` now zeros `data`, `checksum`, and clears `bits` StringBuilder
+- ✅ **Mnemonic decode zeroing**: `MnemonicManager.mnemonicToPrivateKey()` now zeros `allBytes` and clears `bits` StringBuilder
+- ✅ **PQXDH input validation**: `deriveRootKeyPQXDH()` now requires both inputs to be exactly 32 bytes
+- ✅ **ConversationId separator**: `deriveConversationId()` uses `"|"` separator between keys to prevent collision between `(AB, C)` and `(A, BC)`
+
+#### UI Security
+- ✅ **FLAG_SECURE**: `WindowManager.LayoutParams.FLAG_SECURE` on `MainActivity`, `LockScreenActivity`, and `RestoreFragment` — blocks screenshots, screen recording, and task switcher preview
+- ✅ **Mnemonic masking**: forgot-PIN mnemonic dialog input uses `TYPE_TEXT_VARIATION_PASSWORD` — prevents shoulder surfing
+- ✅ **Dialog FLAG_SECURE**: mnemonic dialog window also has `FLAG_SECURE` applied
+- ✅ **Autocomplete threshold**: BIP-39 autocomplete threshold raised from 1 → 3 characters — reduces information leakage during restore
+- ✅ **RestoreFragment memory wipe**: all 24 word inputs are wiped in `onDestroyView()` before clearing
+
+#### Deep Link Hardening
+- ✅ **parseInvite() rewrite**: complete rewrite with parameter whitelist (`v`, `x25519`, `mlkem`, `name`)
+- ✅ **Length limits**: x25519 key max 60 chars, mlkem key max 2000 chars, name max 200 raw / 100 decoded chars
+- ✅ **Duplicate parameter rejection**: prevents parameter pollution attacks
+- ✅ **Control character rejection**: rejects keys and names containing control characters
+- ✅ **Total link size limit**: 4000 character maximum
+- ✅ **Base64 validation**: x25519 and mlkem keys validated as proper Base64
+- ✅ **ML-KEM size validation**: decoded ML-KEM public key must be 1150–1250 bytes
+
+#### Clipboard Security
+- ✅ **EXTRA_IS_SENSITIVE flag**: clipboard data marked as sensitive (Android 13+ redacts from clipboard previews)
+- ✅ **30-second auto-clear**: clipboard automatically cleared after 30 seconds via `Handler.postDelayed`
+
+#### Storage Security
+- ✅ **SecureFileManager**: new utility class for secure file deletion (2-pass overwrite: random data + zeros, `fd.sync()` after each pass)
+- ✅ **File bytes zeroing**: `saveFileLocally()` calls `fileBytes.fill(0)` after writing to disk
+- ✅ **Secure one-shot deletion**: one-shot files use `SecureFileManager.secureDelete()` instead of simple `File.delete()`
+- ✅ **Stale conversation cleanup**: `deleteStaleConversation()` securely wipes the conversation files directory
+- ✅ **Expired message file wipe**: `deleteExpiredMessages()` securely deletes associated files before removing DB entries
+
+#### Firebase Input Validation
+- ✅ **FirebaseRelay guards**: `sendMessage()` has `require()` checks on conversationId (non-blank), ciphertext (non-blank), iv (non-blank), senderUid (exactly 32 chars), createdAt (> 0)
+- ✅ **Cloud Function validation**: `functions/index.js` validates senderUid against `/^[0-9a-f]{32}$/` regex and conversationId format (hex, max 128 chars)
+- ✅ **FCM payload minimized**: push notification data reduced to `{type: "new_message", sync: "1"}` — no conversationId or senderDisplayName leaked
+- ✅ **Generic notification**: `MyFirebaseMessagingService` shows "Nouveau message reçu" (no sender name, no conversation metadata)
+
+#### Manifest & Network Security
+- ✅ **usesCleartextTraffic=false**: enforced on `<application>` — blocks all unencrypted HTTP traffic
+- ✅ **filterTouchesWhenObscured**: enabled on `MainActivity` and `LockScreenActivity` — prevents tapjacking/overlay attacks
+
+#### Firebase Storage Rules
+- ✅ **Owner-only delete**: storage.rules now requires `resource.metadata['uploaderUid'] == request.auth.uid` for delete operations
+- ✅ **Upload metadata**: `uploaderUid` metadata tag required on write, must match `request.auth.uid`
+- ✅ **Upload with metadata**: `FirebaseRelay.uploadEncryptedFile()` now attaches `StorageMetadata` with `uploaderUid`

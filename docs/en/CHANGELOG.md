@@ -13,7 +13,9 @@
 
 ---
 
-## ✅ V1 — Core
+<details>
+<summary><h2>✅ V1 — Core</h2></summary>
+
 
 > Foundations: E2E encryption, contacts via QR, persistent conversations.
 
@@ -52,9 +54,13 @@
 - [x] 5 UI themes — Midnight, Hacker, Phantom (default), Aurora, Daylight + visual selector
 - [x] Full animations — Navigation transitions, animated bubbles, cascade list, scrollable toolbar
 
+</details>
+
 ---
 
-## ✅ V2 — Crypto Upgrade
+<details>
+<summary><h2>✅ V2 — Crypto Upgrade</h2></summary>
+
 
 > Full Double Ratchet X25519, replaced P-256 with Curve25519.
 
@@ -63,9 +69,13 @@
 - [x] **Initial chains** — Both sides can send immediately after acceptance
 - [x] **Natural ephemeral exchange** — Via real messages, no bootstrap message
 
+</details>
+
 ---
 
-## ✅ V2.1 — Account Lifecycle
+<details>
+<summary><h2>✅ V2.1 — Account Lifecycle</h2></summary>
+
 
 > BIP-39 backup, restore, full deletion, dead account detection.
 
@@ -79,9 +89,13 @@
 - [x] **Auto-detection on receipt** — Inbox listener checks stale conversations → auto cleanup
 - [x] **Conversation Firebase rules** — `.read` and `.write` restricted at `$conversationId` level
 
+</details>
+
 ---
 
-## ✅ V2.2 — UI Modernization
+<details>
+<summary><h2>✅ V2.2 — UI Modernization</h2></summary>
+
 
 > 5 themes, full animations, CoordinatorLayout, zero hardcoded colors.
 
@@ -98,9 +112,13 @@
 - [x] **Auto-hide FAB** — `HideBottomViewOnScrollBehavior` hides the FAB on scroll
 - [x] **Zero hardcoded colors** — All UI colors → `?attr/` (theme-aware)
 
+</details>
+
 ---
 
-## ✅ V3.0 — Security Hardening
+<details>
+<summary><h2>✅ V3.0 — Security Hardening</h2></summary>
+
 
 > Complete security hardening: reinforced encryption, traffic analysis countermeasures, E2E file sharing.
 
@@ -130,9 +148,13 @@
 - [x] **Room indexes** — Composite indexes: messages(conversationId, timestamp), messages(expiresAt), conversations(accepted), contacts(publicKey)
 - [x] **Double-listener guard** — `processedFirebaseKeys` prevents ratchet desync when 2 listeners process the same message
 
+</details>
+
 ---
 
-## ✅ V3.1 — Settings Redesign & PIN Upgrade
+<details>
+<summary><h2>✅ V3.1 — Settings Redesign & PIN Upgrade</h2></summary>
+
 
 > Signal/Telegram-style settings, 6-digit PIN, Privacy sub-screen, PIN performance.
 
@@ -149,9 +171,13 @@
 - [x] **Cached EncryptedSharedPreferences** — Double-checked locking, no repeated Keystore init
 - [x] **Single verification** — Check only at 6th digit (no intermediate checks)
 
+</details>
+
 ---
 
-## ✅ V3.2 — Ed25519 Message Signing
+<details>
+<summary><h2>✅ V3.2 — Ed25519 Message Signing</h2></summary>
+
 
 > Per-message Ed25519 signatures, ✅/⚠️ badge, Firebase rules hardening, signing key cleanup.
 
@@ -167,9 +193,13 @@
 - [x] **Scoped participants** — `/conversations/$id/participants` readable only by members (no longer by all authenticated users)
 - [x] **Signing key cleanup** — `/signing_keys/{hash}` deleted on account deletion
 
+</details>
+
 ---
 
-## ✅ V3.3 — Material 3, Tor Integration, Attachment UX & Log Hardening
+<details>
+<summary><h2>✅ V3.3 — Material 3, Tor Integration, Attachment UX & Log Hardening</h2></summary>
+
 
 > Full Material Design 3 migration, Tor integration (SOCKS5 + VPN TUN), Session-style inline attachment icons, Android 13+ permissions, Firebase & log hardening.
 
@@ -215,9 +245,13 @@
 - [x] **Real-time status** — "Connected via Tor" / "Reconnecting..." / "Disconnected"
 - [x] **Per-conversation dummy traffic** — Individual cover messages per active conversation
 
+</details>
+
 ---
 
-## ✅ V3.4 — Post-Quantum & Device Security
+<details>
+<summary><h2>✅ V3.4 — Post-Quantum & Device Security</h2></summary>
+
 
 > Hybrid PQXDH (ML-KEM-768 + X25519), StrongBox DeviceSecurityManager, QR deep link v2, independent fingerprint verification, ratchet desync fixes.
 
@@ -254,9 +288,13 @@
 - [x] **Room v16** — Migration v15→v16: added `lastDeliveredAt` column on Conversation
 - [x] **Version 3.4.0** — `versionCode 5`, `versionName "3.4.0"`
 
+</details>
+
 ---
 
-## ✅ V3.4.1 — One-Shot Photos, Restore Redesign & QR Fingerprint
+<details open>
+<summary><h2>✅ V3.4.1 — One-Shot Photos, Restore Redesign & QR Fingerprint</h2></summary>
+
 
 > One-shot ephemeral photos, redesigned restore screen with BIP-39 grid, QR code fingerprint verification, UI improvements.
 
@@ -298,9 +336,41 @@
 - [x] **`flagOneShotOpened()`** — New DAO query: `UPDATE messages SET oneShotOpened = 1 WHERE localId = :messageId`
 - [x] **Version 3.4.1** — `versionCode 6`, `versionName "3.4.1"`
 
+### 🛡️ Security Audit (42+ vulnerabilities fixed)
+- [x] **Firebase rules write-once** — `/signing_keys/{hash}`, `/mlkem_keys/{hash}`, `/inbox/{hash}/{convId}` now enforce `!data.exists()` — prevents key overwrite and contact request replay
+- [x] **Firebase rules validation** — `senderUid.length === 32`, ciphertext non-empty + max 65536, iv non-empty + max 100, `createdAt <= now + 60000`
+- [x] **HKDF memory zeroing** — `hkdfExtractExpand()` zeros IKM, `hkdfExpand()` zeros PRK + expandInput after use
+- [x] **Mnemonic memory zeroing** — `privateKeyToMnemonic()` and `mnemonicToPrivateKey()` zero all intermediate byte arrays and clear StringBuilder
+- [x] **PQXDH input validation** — `deriveRootKeyPQXDH()` requires both inputs exactly 32 bytes
+- [x] **ConversationId separator** — `deriveConversationId()` uses `"|"` separator to prevent key concatenation collisions
+- [x] **FLAG_SECURE** — Applied on `MainActivity`, `LockScreenActivity`, `RestoreFragment`, and mnemonic dialog — blocks screenshots, screen recording, task switcher
+- [x] **Mnemonic masking** — Forgot-PIN mnemonic input uses `TYPE_TEXT_VARIATION_PASSWORD`
+- [x] **Autocomplete threshold** — BIP-39 autocomplete threshold raised from 1 → 3 characters
+- [x] **RestoreFragment wipe** — All 24 word inputs wiped in `onDestroyView()`
+- [x] **Deep link hardening** — Complete rewrite of `parseInvite()`: parameter whitelist, length limits, duplicate rejection, control char rejection, Base64 validation, 4000-char max
+- [x] **ML-KEM validation** — Client-side ML-KEM public key validation (length < 2000, Base64 decode, decoded size 1150–1250 bytes)
+- [x] **Clipboard security** — `EXTRA_IS_SENSITIVE` flag + 30-second auto-clear via `Handler.postDelayed`
+- [x] **SecureFileManager** — New utility: 2-pass overwrite (random data + zeros, `fd.sync()`) before `File.delete()`
+- [x] **File bytes zeroing** — `saveFileLocally()` calls `fileBytes.fill(0)` after writing
+- [x] **Secure one-shot delete** — One-shot files use `SecureFileManager.secureDelete()`
+- [x] **Stale conversation wipe** — `deleteStaleConversation()` securely wipes conversation files directory
+- [x] **Expired message wipe** — `deleteExpiredMessages()` securely deletes associated files first
+- [x] **FirebaseRelay guards** — `sendMessage()` has `require()` on all fields (conversationId, ciphertext, iv, senderUid length, createdAt)
+- [x] **Cloud Function validation** — Regex validation for senderUid (`/^[0-9a-f]{32}$/`) and conversationId format
+- [x] **Opaque FCM payload** — Push data reduced to `{type: "new_message", sync: "1"}` — zero metadata leakage
+- [x] **Generic notification** — `MyFirebaseMessagingService` shows "Nouveau message reçu" (no sender name, no conversation ID)
+- [x] **usesCleartextTraffic=false** — Enforced on `<application>` — blocks all unencrypted HTTP
+- [x] **filterTouchesWhenObscured** — Enabled on `MainActivity` and `LockScreenActivity` — tapjacking protection
+- [x] **Storage rules owner-only delete** — `resource.metadata['uploaderUid'] == request.auth.uid` required for delete
+- [x] **Upload metadata** — `uploadEncryptedFile()` attaches `uploaderUid` StorageMetadata
+
+</details>
+
 ---
 
-## 🔜 V3.5 — Planned
+<details open>
+<summary><h2>🔜 V3.5 — Planned</h2></summary>
+
 
 > Advanced camouflage, plausible deniability, E2E voice messages, sealed sender, messaging improvements.
 
@@ -316,7 +386,7 @@
 ### 🔐 Plausible Deniability & Protection
 - [ ] **Dual PIN** — Normal PIN opens chat; duress PIN opens an empty profile or triggers a silent wipe (plausible deniability, journalist/activist level)
 - [ ] **Panic button** — Shake phone → instant deletion of all conversations + keys + sign-out (full wipe)
-- [ ] **Screenshot protection** — `FLAG_SECURE` on all windows — blocks screenshots, screen recording, and recent apps preview
+- [ ] **Screenshot protection** — ~~`FLAG_SECURE` on all windows~~ ✔️ **Done in V3.4.1 Security Audit**
 - [ ] **Keyboard incognito** — `flagNoPersonalizedLearning` on all input fields — keyboard does not learn or log anything
 
 ### 🔐 Advanced Crypto
@@ -331,6 +401,8 @@
 
 ### 🛡️ Infrastructure
 - [ ] **Private relay** — Dedicated relay server to reduce Firebase dependency
+
+</details>
 
 ---
 

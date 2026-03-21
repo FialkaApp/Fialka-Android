@@ -156,6 +156,8 @@ Before encryption, each message is padded to the next bucket:
 - ✅ **Healing**: chain key compromise → DH ratchet heals it on next exchange
 - ✅ Compromising the current key **does not reveal** past keys
 - ✅ Intermediate keys are **zeroed** from memory after use
+- ✅ HKDF IKM, PRK, and expandInput **zeroed** after each derivation
+- ✅ Mnemonic encode/decode **zeros** all intermediate byte arrays and clears StringBuilder
 - ✅ X25519 ephemeral keys renewed at each direction change
 
 ---
@@ -315,6 +317,14 @@ Receive:
 | Contact deletes account | ✅ | Auto-detect dead convo + cleanup + re-invite |
 | Quantum computer (future) | ✅ | Hybrid PQXDH ML-KEM-768 — root_key upgraded with post-quantum secret (V3.4) |
 | Ratchet desynchronization | ✅ | syncExistingMessages on acceptance, delete-after-failure, lastDeliveredAt lower-bound |
+| Screenshot / screen recording | ✅ | FLAG_SECURE on all sensitive windows + dialogs (V3.4.1 audit) |
+| Tapjacking / overlay attack | ✅ | filterTouchesWhenObscured on sensitive activities (V3.4.1 audit) |
+| Deep link injection | ✅ | Parameter whitelist, length limits, Base64 validation, control char rejection (V3.4.1 audit) |
+| Clipboard leakage | ✅ | EXTRA_IS_SENSITIVE + 30s auto-clear (V3.4.1 audit) |
+| File forensic recovery | ✅ | SecureFileManager 2-pass overwrite (random + zeros) before delete (V3.4.1 audit) |
+| FCM metadata leakage | ✅ | Opaque push payload — zero conversationId/senderName (V3.4.1 audit) |
+| Firebase key overwrite | ✅ | Write-once rules on signing_keys, mlkem_keys, inbox (V3.4.1 audit) |
+| Cleartext HTTP traffic | ✅ | usesCleartextTraffic=false enforced (V3.4.1 audit) |
 
 > See [`SECURITY.md`](../../SECURITY.md) for full security analysis.
 

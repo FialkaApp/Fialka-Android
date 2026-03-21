@@ -156,6 +156,8 @@ Avant chiffrement, chaque message est paddé vers le bucket supérieur :
 - ✅ **Healing** : compromission d'une chain key → DH ratchet guérit au prochain échange
 - ✅ Compromettre la clé actuelle **ne révèle pas** les clés passées
 - ✅ Les clés intermédiaires sont **zérorisées** de la mémoire après usage
+- ✅ HKDF IKM, PRK et expandInput **zérorisés** après chaque dérivation
+- ✅ Encodage/décodage mnemonic **zérorise** tous les tableaux d'octets intermédiaires et nettoie le StringBuilder
 - ✅ Clés éphémères X25519 renouvelées à chaque changement de direction
 
 ---
@@ -315,6 +317,14 @@ Réception :
 | Contact supprime son compte | ✅ | Détection automatique conversation morte + nettoyage + re-invitation |
 | Ordinateur quantique (futur) | ✅ | PQXDH hybride ML-KEM-768 — root_key upgradé avec secret post-quantique (V3.4) |
 | Désynchronisation ratchet | ✅ | syncExistingMessages à l'acceptation, delete-after-failure, lastDeliveredAt lower-bound |
+| Screenshot / enregistrement écran | ✅ | FLAG_SECURE sur toutes les fenêtres et dialogs sensibles (audit V3.4.1) |
+| Tapjacking / attaque overlay | ✅ | filterTouchesWhenObscured sur les activités sensibles (audit V3.4.1) |
+| Injection deep link | ✅ | Whitelist paramètres, limites de taille, validation Base64, rejet caractères de contrôle (audit V3.4.1) |
+| Fuite presse-papiers | ✅ | EXTRA_IS_SENSITIVE + auto-effacement 30s (audit V3.4.1) |
+| Récupération forensique de fichiers | ✅ | SecureFileManager écrasement 2 passes (aléatoire + zéros) avant suppression (audit V3.4.1) |
+| Fuite metadata FCM | ✅ | Payload push opaque — zéro conversationId/senderName (audit V3.4.1) |
+| Écrasement de clés Firebase | ✅ | Rules write-once sur signing_keys, mlkem_keys, inbox (audit V3.4.1) |
+| Trafic HTTP en clair | ✅ | usesCleartextTraffic=false imposé (audit V3.4.1) |
 
 > Voir aussi [`SECURITY.md`](../../SECURITY.md) pour l'analyse complète des mesures de sécurité.
 
