@@ -16,7 +16,7 @@
           ".write": "root.child('conversations').child($conversationId).child('participants').child(auth.uid).exists()",
           ".indexOn": ["createdAt"],
           "$messageId": {
-            ".validate": "newData.hasChildren(['ciphertext', 'iv', 'createdAt', 'senderUid']) && newData.child('ciphertext').isString() && newData.child('iv').isString() && newData.child('senderUid').isString() && (!newData.hasChild('ephemeralKey') || newData.child('ephemeralKey').isString()) && (!newData.hasChild('kemCiphertext') || newData.child('kemCiphertext').isString())"
+            ".validate": "newData.hasChildren(['ciphertext', 'iv', 'createdAt', 'senderUid']) && newData.child('ciphertext').isString() && newData.child('ciphertext').val().length > 0 && newData.child('ciphertext').val().length < 65536 && newData.child('iv').isString() && newData.child('iv').val().length > 0 && newData.child('iv').val().length < 100 && newData.child('senderUid').isString() && newData.child('senderUid').val().length === 32 && newData.child('createdAt').isNumber() && newData.child('createdAt').val() <= now + 60000 && (!newData.hasChild('ephemeralKey') || newData.child('ephemeralKey').isString()) && (!newData.hasChild('kemCiphertext') || newData.child('kemCiphertext').isString())"
           }
         },
         "settings": {
@@ -31,9 +31,9 @@
     "inbox": {
       "$recipientHash": {
         ".read": "auth != null",
-        ".write": "auth != null",
+        ".write": "auth != null && !data.exists()",
         "$requestId": {
-          ".validate": "newData.hasChildren(['e', 'createdAt']) && newData.child('e').isString() && newData.child('e').val().length < 8192 && newData.child('createdAt').isNumber()"
+          ".validate": "newData.hasChildren(['e', 'createdAt']) && newData.child('e').isString() && newData.child('e').val().length > 0 && newData.child('e').val().length < 8192 && newData.child('createdAt').isNumber() && newData.child('createdAt').val() <= now + 60000"
         }
       }
     },
@@ -62,15 +62,15 @@
     "signing_keys": {
       "$pubKeyHash": {
         ".read":     "auth != null",
-        ".write":    "auth != null",
-        ".validate": "newData.isString() && newData.val().length < 500"
+        ".write":    "auth != null && !data.exists()",
+        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 500"
       }
     },
     "mlkem_keys": {
       "$pubKeyHash": {
         ".read":     "auth != null",
-        ".write":    "auth != null",
-        ".validate": "newData.isString() && newData.val().length < 2500"
+        ".write":    "auth != null && !data.exists()",
+        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 2500"
       }
     }
   }

@@ -43,6 +43,19 @@ exports.onNewMessage = onValueCreated(
     }
 
     const senderHashedUid = message.senderUid;
+
+    // Input validation: senderUid must be exactly 32 hex characters
+    if (typeof senderHashedUid !== "string" || !/^[0-9a-f]{32}$/.test(senderHashedUid)) {
+      console.warn("Invalid senderUid format, dropping notification");
+      return null;
+    }
+
+    // Validate conversationId is a reasonable string (hex SHA-256 = 64 chars)
+    if (typeof conversationId !== "string" || conversationId.length > 128 || !/^[0-9a-f]+$/.test(conversationId)) {
+      console.warn("Invalid conversationId format, dropping notification");
+      return null;
+    }
+
     const db = getDatabase();
 
     // Get all participants of this conversation
@@ -92,12 +105,12 @@ exports.onNewMessage = onValueCreated(
       }
 
       // Send data-only message (no "notification" key — handled client-side)
+      // Note: conversationId is a SHA-256 hash (not PII) but we minimize metadata exposure
       const pushPayload = {
         token: token,
         data: {
-          conversationId: conversationId,
-          senderDisplayName: senderName,
           type: "new_message",
+          sync: "1",
         },
         android: {
           priority: "high",

@@ -414,7 +414,7 @@ object CryptoManager {
 
     fun deriveConversationId(pubKeyA: String, pubKeyB: String): String {
         val sorted = listOf(pubKeyA, pubKeyB).sorted()
-        val combined = (sorted[0] + sorted[1]).toByteArray(Charsets.UTF_8)
+        val combined = (sorted[0] + "|" + sorted[1]).toByteArray(Charsets.UTF_8)
         val digest = MessageDigest.getInstance("SHA-256").digest(combined)
         return digest.joinToString("") { "%02x".format(it) }
     }
@@ -483,9 +483,10 @@ object CryptoManager {
         return plaintext
     }
 
-    /** HKDF-SHA256 extract+expand → 32 output bytes. Does NOT zero ikm. */
+    /** HKDF-SHA256 extract+expand → 32 output bytes. Zeros ikm after use. */
     private fun hkdfExtractExpand(ikm: ByteArray, info: ByteArray): ByteArray {
         val prk = hmacSha256(ByteArray(32), ikm)
+        ikm.fill(0)
         val expandInput = ByteArray(info.size + 1)
         System.arraycopy(info, 0, expandInput, 0, info.size)
         expandInput[expandInput.size - 1] = 0x01
@@ -805,6 +806,8 @@ object CryptoManager {
      * HKDF-SHA256(ssClassic || ssPQ) — both secrets are zeroed after derivation.
      */
     fun deriveRootKeyPQXDH(ssClassic: ByteArray, ssPQ: ByteArray): SecretKey {
+        require(ssClassic.size == 32) { "X25519 shared secret must be 32 bytes" }
+        require(ssPQ.size == 32) { "ML-KEM shared secret must be 32 bytes" }
         val combined = ssClassic + ssPQ
         ssClassic.fill(0)
         ssPQ.fill(0)

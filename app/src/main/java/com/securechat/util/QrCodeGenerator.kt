@@ -89,25 +89,51 @@ object QrCodeGenerator {
      * @return InviteData with x25519 key populated; mlkemKey is null for v1 invites.
      */
     fun parseInvite(raw: String): InviteData? {
-        return when {
-            raw.startsWith("securechat://invite?") -> {
-                val params = raw.removePrefix("securechat://invite?")
-                    .split("&")
-                    .mapNotNull { part ->
-                        val idx = part.indexOf('=')
-                        if (idx > 0) part.substring(0, idx) to part.substring(idx + 1) else null
+        return try {
+            when {
+                raw.startsWith("securechat://invite?") -> {
+                    if (raw.length > 4000) return null  // reject oversized links
+                    val seen = mutableSetOf<String>()
+                    val params = raw.removePrefix("securechat://invite?")
+                        .split("&")
+                        .mapNotNull { part ->
+                            val idx = part.indexOf('=')
+                            if (idx > 0) {
+                                val key = part.substring(0, idx)
+                                // whitelist only known parameters, reject duplicates
+                                if (key !in listOf("v", "x25519", "mlkem", "name")) return@mapNotNull null
+                                if (key in seen) return null  // duplicate param → reject
+                                seen.add(key)
+                                key to part.substring(idx + 1)
+                            } else null
+                        }
+                        .toMap()
+                    val x25519 = params["x25519"]?.let { k ->
+                        if (k.length > 60) return null  // base64 of 32 bytes ≈ 44 chars
+                        runCatching { rawToX25519(k) }.getOrDefault(k)
+                    } ?: return null
+                    val mlkem = params["mlkem"]?.let { k ->
+                        if (k.length > 2000) return null  // ML-KEM-768 public key ≈ 1580 chars
+                        k
                     }
-                    .toMap()
-                val x25519 = params["x25519"]?.let { runCatching { rawToX25519(it) }.getOrDefault(it) } ?: return null
-                val mlkem  = params["mlkem"]
-                val name   = params["name"]?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrNull() }
-                InviteData(x25519, mlkem, name)
+                    val name = params["name"]?.let { n ->
+                        if (n.length > 200) return null
+                        val decoded = runCatching { URLDecoder.decode(n, "UTF-8") }.getOrNull() ?: return null
+                        if (decoded.length > 100) return null
+                        // reject control characters
+                        if (decoded.any { it.code < 32 }) return null
+                        decoded
+                    }
+                    InviteData(x25519, mlkem, name)
+                }
+                raw.isNotBlank() && raw.length < 200 -> {
+                    // Legacy v1: raw public key only
+                    InviteData(x25519PublicKey = raw, mlkemPublicKey = null, displayName = null)
+                }
+                else -> null
             }
-            raw.isNotBlank() -> {
-                // Legacy v1: raw public key only
-                InviteData(x25519PublicKey = raw, mlkemPublicKey = null, displayName = null)
-            }
-            else -> null
+        } catch (_: Exception) {
+            null
         }
     }
 

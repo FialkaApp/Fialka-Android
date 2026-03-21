@@ -23,6 +23,7 @@ import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageMetadata
 import com.securechat.data.model.FirebaseMessage
 import com.securechat.crypto.CryptoManager
 import com.securechat.tor.TorManager
@@ -141,6 +142,13 @@ object FirebaseRelay {
         conversationId: String,
         message: FirebaseMessage
     ): String {
+        // Validate message fields before sending
+        require(conversationId.isNotBlank()) { "conversationId must not be blank" }
+        require(message.ciphertext.isNotBlank()) { "ciphertext must not be blank" }
+        require(message.iv.isNotBlank()) { "iv must not be blank" }
+        require(message.senderUid.isNotBlank() && message.senderUid.length == 32) { "senderUid must be 32-char hex" }
+        require(message.createdAt > 0) { "createdAt must be positive" }
+
         // Wait for Tor connection before sending
         TorManager.awaitConnection()
 
@@ -647,7 +655,11 @@ object FirebaseRelay {
             .child(conversationId)
             .child("$fileId.$fileExtension.enc")
 
-        ref.putBytes(encryptedBytes).await()
+        val metadata = StorageMetadata.Builder()
+            .setCustomMetadata("uploaderUid", auth.currentUser!!.uid)
+            .build()
+
+        ref.putBytes(encryptedBytes, metadata).await()
         return ref.downloadUrl.await().toString()
     }
 

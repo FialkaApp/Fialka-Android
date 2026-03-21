@@ -62,6 +62,9 @@ object MnemonicManager {
             val index = bits.substring(i * 11, i * 11 + 11).toInt(2)
             words.add(wordList[index])
         }
+        data.fill(0)
+        checksum.fill(0)
+        bits.clear()
         return words
     }
 
@@ -89,6 +92,8 @@ object MnemonicManager {
         val checksumByte = allBytes[32]
 
         val expectedChecksum = MessageDigest.getInstance("SHA-256").digest(privateKeyBytes)[0]
+        allBytes.fill(0)
+        bits.clear()
         require(checksumByte == expectedChecksum) { "Invalid checksum" }
 
         return privateKeyBytes

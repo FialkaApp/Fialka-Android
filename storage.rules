@@ -1,20 +1,22 @@
 // Firebase Storage Security Rules for SecureChat
 // Files are E2E encrypted client-side before upload.
-// These rules enforce authentication and size limits.
+// These rules enforce authentication, size limits, and ownership.
 
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /encrypted_files/{conversationId}/{fileName} {
-      // Only authenticated users can read/write
+      // Only authenticated users can read
       allow read: if request.auth != null;
       
-      // Write: authenticated, max 50 MB, must be .enc extension
+      // Write: authenticated, max 50 MB, must tag uploaderUid with own UID
       allow write: if request.auth != null
-                   && request.resource.size < 50 * 1024 * 1024;
+                   && request.resource.size < 50 * 1024 * 1024
+                   && request.resource.metadata['uploaderUid'] == request.auth.uid;
       
-      // Delete: authenticated
-      allow delete: if request.auth != null;
+      // Delete: only the original uploader can delete
+      allow delete: if request.auth != null
+                    && resource.metadata['uploaderUid'] == request.auth.uid;
     }
     
     // Deny everything else

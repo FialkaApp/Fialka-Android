@@ -19,6 +19,7 @@ package com.securechat.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import android.widget.EditText
 import android.widget.ImageView
@@ -59,6 +60,7 @@ class LockScreenActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         ThemeManager.applyToActivity(this)
         super.onCreate(savedInstanceState)
+        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         setContentView(R.layout.activity_lock_screen)
 
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
@@ -102,10 +104,11 @@ class LockScreenActivity : AppCompatActivity() {
             minLines = 3
             setPadding(48, 32, 48, 32)
             inputType = android.text.InputType.TYPE_CLASS_TEXT or
-                    android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                    android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                    android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle("Récupération par phrase secrète")
             .setMessage("Entrez votre phrase de récupération (24 mots) pour réinitialiser votre code PIN.")
             .setView(input)
@@ -143,7 +146,10 @@ class LockScreenActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Annuler", null)
-            .show()
+            .create()
+        dialog.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        dialog.setOnDismissListener { input.text?.clear() }
+        dialog.show()
     }
 
     private fun onDigitPressed(digit: String) {

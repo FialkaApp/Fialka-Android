@@ -18,10 +18,14 @@
 package com.securechat.ui.profile
 
 import android.content.ClipData
+import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.PersistableBundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -124,8 +128,21 @@ class ProfileFragment : Fragment() {
             val link = binding.tvPublicKey.text.toString()
             if (link.isNotEmpty()) {
                 val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("Invite Link", link))
+                val clip = ClipData.newPlainText("Invite Link", link)
+                clip.description.extras = PersistableBundle().apply {
+                    putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+                }
+                clipboard.setPrimaryClip(clip)
                 Toast.makeText(requireContext(), R.string.key_copied, Toast.LENGTH_SHORT).show()
+                // Auto-clear clipboard after 30 seconds
+                Handler(Looper.getMainLooper()).postDelayed({
+                    try {
+                        val current = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
+                        if (current == link) {
+                            clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+                        }
+                    } catch (_: Exception) { }
+                }, 30_000)
             }
         }
 

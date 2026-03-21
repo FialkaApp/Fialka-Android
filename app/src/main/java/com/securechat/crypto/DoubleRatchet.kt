@@ -204,6 +204,9 @@ object DoubleRatchet {
         val expandInput = ByteArray(info.size + 1)
         System.arraycopy(info, 0, expandInput, 0, info.size)
         expandInput[expandInput.size - 1] = 0x01
-        return hmacSha256(prk, expandInput)
+        val result = hmacSha256(prk, expandInput)
+        prk.fill(0)
+        expandInput.fill(0)
+        return result
     }
 }
