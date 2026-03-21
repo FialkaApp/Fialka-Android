@@ -29,6 +29,7 @@ import com.securechat.data.model.Conversation
 import com.securechat.data.model.MessageLocal
 import com.securechat.data.model.RatchetState
 import com.securechat.data.model.UserLocal
+import net.sqlcipher.database.SQLiteDatabase
 import net.sqlcipher.database.SupportFactory
 import java.security.SecureRandom
 
@@ -72,7 +73,12 @@ abstract class SecureChatDatabase : RoomDatabase() {
         fun getInstance(context: Context): SecureChatDatabase {
             return INSTANCE ?: synchronized(this) {
                 val passphrase = getOrCreatePassphrase(context)
-                val factory = SupportFactory(passphrase)
+                val factory = SupportFactory(passphrase, object : net.sqlcipher.database.SQLiteDatabaseHook {
+                    override fun preKey(database: SQLiteDatabase?) {}
+                    override fun postKey(database: SQLiteDatabase?) {
+                        database?.rawExecSQL("PRAGMA cipher_memory_security = ON;")
+                    }
+                })
 
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
