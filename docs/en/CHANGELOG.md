@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V3.4.1-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3.5-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V3.5-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Next-V3.6-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -253,14 +253,14 @@
 <summary><h2>✅ V3.4 — Post-Quantum & Device Security</h2></summary>
 
 
-> Hybrid PQXDH (ML-KEM-768 + X25519), StrongBox DeviceSecurityManager, QR deep link v2, independent fingerprint verification, ratchet desync fixes.
+> Hybrid PQXDH (ML-KEM-1024 + X25519), StrongBox DeviceSecurityManager, QR deep link v2, independent fingerprint verification, ratchet desync fixes.
 
 ### 🔐 Post-Quantum Cryptography (PQXDH)
-- [x] **ML-KEM-768 (Kyber)** — Post-quantum encapsulation via BouncyCastle 1.80, dedicated encaps/decaps key pair
-- [x] **Hybrid PQXDH** — Classic X25519 key exchange + ML-KEM-768 encapsulation in parallel
+- [x] **ML-KEM-1024 (Kyber)** — Post-quantum encapsulation via BouncyCastle 1.80, dedicated encaps/decaps key pair
+- [x] **Hybrid PQXDH** — Classic X25519 key exchange + ML-KEM-1024 encapsulation in parallel
 - [x] **Deferred rootKey upgrade** — Initial conversation starts classic X25519-only; rootKey is upgraded with ML-KEM secret on the first message (no bootstrap message)
 - [x] **kemCiphertext in first message** — ML-KEM ciphertext sent once, in the first Firebase message of the conversation
-- [x] **QR deep link v2** — Format `securechat://contact?key=<X25519>&kem=<ML-KEM-768-pubKey>&name=<displayName>` — ML-KEM key encoded in QR
+- [x] **QR deep link v2** — Format `securechat://contact?key=<X25519>&kem=<ML-KEM-1024-pubKey>&name=<displayName>` — ML-KEM key encoded in QR
 - [x] **Auto-fill name from QR** — Contact nickname auto-populated from QR scan data
 
 ### 🛡️ Device Security
@@ -325,7 +325,7 @@
 - [x] **Send confirmation dialog** — Confirmation before sending files
 - [x] **Progress bar** — File upload/download indicator
 - [x] **Retry button** — Retry send on failure
-- [x] **Protocol display** — "PQXDH · X25519 + ML-KEM-768 · AES-256-GCM · Double Ratchet" shown in contact profile
+- [x] **Protocol display** — "PQXDH · X25519 + ML-KEM-1024 · AES-256-GCM · Double Ratchet" shown in contact profile
 - [x] **Timestamp fix** — Fixed timestamp display in message bubbles
 - [x] **maxWidth fix** — Corrected maximum bubble width
 - [x] **29 layout audit** — Complete review and fixes of all 29 layout files
@@ -348,7 +348,7 @@
 - [x] **Autocomplete threshold** — BIP-39 autocomplete threshold raised from 1 → 3 characters
 - [x] **RestoreFragment wipe** — All 24 word inputs wiped in `onDestroyView()`
 - [x] **Deep link hardening** — Complete rewrite of `parseInvite()`: parameter whitelist, length limits, duplicate rejection, control char rejection, Base64 validation, 4000-char max
-- [x] **ML-KEM validation** — Client-side ML-KEM public key validation (length < 2000, Base64 decode, decoded size 1150–1250 bytes)
+- [x] **ML-KEM validation** — Client-side ML-KEM public key validation (length < 2500, Base64 decode, decoded size 1500–1650 bytes)
 - [x] **Clipboard security** — `EXTRA_IS_SENSITIVE` flag + 30-second auto-clear via `Handler.postDelayed`
 - [x] **SecureFileManager** — New utility: 2-pass overwrite (random data + zeros, `fd.sync()`) before `File.delete()`
 - [x] **File bytes zeroing** — `saveFileLocally()` calls `fileBytes.fill(0)` after writing
@@ -369,7 +369,42 @@
 ---
 
 <details open>
-<summary><h2>🔜 V3.5 — Planned</h2></summary>
+<summary><h2>✅ V3.5 — SPQR, ChaCha20-Poly1305 & Threat Model</h2></summary>
+
+
+> Post-quantum Triple Ratchet (SPQR), alternative ChaCha20-Poly1305 cipher, documented threat model.
+
+### 🔐 SPQR — Periodic PQ Re-encapsulation (Triple Ratchet)
+- [x] **PQ Ratchet Step** — New `DoubleRatchet.pqRatchetStep()` function: mixes a fresh ML-KEM secret into rootKey via HKDF (info: `SecureChat-SPQR-pq-ratchet`)
+- [x] **Re-encapsulation interval** — `PQ_RATCHET_INTERVAL = 10` messages: every 10 messages, the sender performs ML-KEM encaps and upgrades rootKey
+- [x] **Sender-side** — In `sendMessage()`, when counter reaches 10 and PQXDH is initialized: `mlkemEncaps(remoteMlkemPublicKey)` → `pqRatchetStep(rootKey, ssPQ)` → new rootKey + `kemCiphertext` attached to message
+- [x] **Receiver-side** — In `receiveMessage()`, detects `kemCiphertext` on an already PQ-initialized session: `mlkemDecaps()` → `pqRatchetStep()` → rootKey upgraded, counter reset
+- [x] **Persistent counter** — New `pqRatchetCounter` field in `RatchetState` (Room entity), incremented on every sent message
+- [x] **Compatibility** — Transparent mechanism: no extra wire field (reuses `kemCiphertext`), distinguished from initial PQXDH by `pqxdhInitialized` flag
+
+### 🔒 ChaCha20-Poly1305 — Alternative Cipher
+- [x] **`encryptChaCha()` / `decryptChaCha()`** — Full implementation via BouncyCastle `ChaCha20Poly1305` AEAD (12-byte nonce, 16-byte tag)
+- [x] **Hardware AES detection** — `hasHardwareAes()` detects ARMv8 Crypto Extension; ChaCha20 is auto-selected on devices without hardware AES acceleration
+- [x] **Dynamic selection** — Each message uses AES-256-GCM (default) or ChaCha20-Poly1305 based on sender hardware
+- [x] **`cipherSuite` field** — New field in `FirebaseMessage` (0 = AES-GCM, 1 = ChaCha20); receiver decrypts with the correct algorithm automatically
+- [x] **Backward compatibility** — Old messages without `cipherSuite` (= 0) are decrypted with AES-GCM as before
+
+### 📋 Documented Threat Model
+- [x] **SECURITY.md** — Added comprehensive Threat Model section with 6 adversary tiers (T1 curious → T6 quantum)
+- [x] **Protection/residual matrix** — Detailed table of protections and residual risks per tier
+- [x] **Documented limitations** — Explicit section "What SecureChat does NOT protect against"
+- [x] **Design principles** — 7 principles: defense in depth, hybrid PQ, forward secrecy, post-compromise healing, zero trust transport, minimal metadata, fail-safe defaults
+
+### 🗄️ Database
+- [x] **Room v18** — Migration v17→v18: added `pqRatchetCounter` column to RatchetState
+- [x] **Version 3.5** — `versionCode 7`, `versionName "3.5"`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>🔜 V3.6 — Planned</h2></summary>
 
 
 > Advanced camouflage, plausible deniability, E2E voice messages, sealed sender, messaging improvements.

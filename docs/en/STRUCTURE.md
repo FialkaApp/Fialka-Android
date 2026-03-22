@@ -57,7 +57,7 @@ SecureChat/
 │       │   ├── MyFirebaseMessagingService.kt  # FCM push handler
 │       │   │
 │       │   ├── crypto/
-│       │   │   ├── CryptoManager.kt          # X25519, ECDH, AES-256-GCM, HKDF, ML-KEM-768 (PQXDH)
+│       │   │   ├── CryptoManager.kt          # X25519, ECDH, AES-256-GCM, HKDF, ML-KEM-1024 (PQXDH)
 │       │   │   ├── DoubleRatchet.kt          # Full Double Ratchet (DH + KDF chains) + PQXDH upgrade
 │       │   │   └── MnemonicManager.kt        # BIP-39 mnemonic encode/decode (24 words)
 │       │   │

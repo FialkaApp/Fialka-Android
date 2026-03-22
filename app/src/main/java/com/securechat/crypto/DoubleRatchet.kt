@@ -167,6 +167,34 @@ object DoubleRatchet {
     // 3. SYMMETRIC CHAIN STEP (same as before — KDF chain)
     // ========================================================================
 
+    /** Interval (in sent messages) between ML-KEM re-encapsulations (SPQR). */
+    const val PQ_RATCHET_INTERVAL = 10
+
+    /**
+     * SPQR — Mix a fresh ML-KEM shared secret into the root key.
+     * Called periodically (every PQ_RATCHET_INTERVAL messages) to provide
+     * continuous post-quantum healing: even if one ML-KEM encapsulation is
+     * broken, only ~PQ_RATCHET_INTERVAL messages are exposed.
+     *
+     * @param rootKeyBase64 Current root key (Base64)
+     * @param pqSharedSecret 32-byte ML-KEM shared secret from fresh encapsulation
+     * @return New root key (Base64) with PQ secret mixed in
+     */
+    fun pqRatchetStep(rootKeyBase64: String, pqSharedSecret: ByteArray): String {
+        require(pqSharedSecret.size == 32) { "ML-KEM shared secret must be 32 bytes" }
+        val rootKey = Base64.decode(rootKeyBase64, Base64.NO_WRAP)
+        val combined = ByteArray(rootKey.size + pqSharedSecret.size)
+        System.arraycopy(rootKey, 0, combined, 0, rootKey.size)
+        System.arraycopy(pqSharedSecret, 0, combined, rootKey.size, pqSharedSecret.size)
+        val newRootKey = hkdfExpand(combined, "SecureChat-SPQR-pq-ratchet".toByteArray())
+        rootKey.fill(0)
+        pqSharedSecret.fill(0)
+        combined.fill(0)
+        val result = Base64.encodeToString(newRootKey, Base64.NO_WRAP)
+        newRootKey.fill(0)
+        return result
+    }
+
     /**
      * Advance a chain key and derive a message key.
      *   message_key = HMAC(chain_key, 0x01)

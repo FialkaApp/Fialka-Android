@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SecureChat — Post-quantum encrypted messenger
  * Copyright (C) 2024-2026 DevBot667
  *
@@ -70,7 +70,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 
                     // Publish Ed25519 signing public key
                     repository.publishSigningPublicKey()
-                    // Publish ML-KEM-768 public key for PQXDH
+                    // Publish ML-KEM-1024 public key for PQXDH
                     repository.publishMLKEMPublicKey()
                     ConversationsViewModel.markSigningKeyPublished()
 

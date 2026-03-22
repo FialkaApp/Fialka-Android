@@ -106,7 +106,7 @@ Or open in Android Studio → **Run** on an emulator or physical device.
 | AndroidX Biometric | 1.1.0 | BiometricPrompt (fingerprint, face) |
 | Kotlinx Coroutines | 1.9.0 | Async + Flow |
 | ZXing Android Embedded | 4.3.0 | Generation and scanning of QR codes |
-| BouncyCastle | 1.80 | Ed25519 (signatures), ML-KEM-768 (post-quantum PQXDH) |
+| BouncyCastle | 1.80 | Ed25519 (signatures), ML-KEM-1024 (post-quantum PQXDH) |
 
 ---
 

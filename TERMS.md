@@ -14,7 +14,7 @@ SecureChat is **not intended for use by anyone under the age of 16** (or the min
 
 ## 2. Description of Service
 
-SecureChat is an end-to-end encrypted (E2E) messaging application using the PQXDH protocol (X25519 + ML-KEM-768) and Double Ratchet. The Application is provided free of charge and as-is.
+SecureChat is an end-to-end encrypted (E2E) messaging application using the PQXDH protocol (X25519 + ML-KEM-1024) and Double Ratchet. The Application is provided free of charge and as-is.
 
 ## 3. Disclaimer of Warranties
 

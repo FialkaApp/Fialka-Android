@@ -1,4 +1,4 @@
-﻿import java.io.FileInputStream
+import java.io.FileInputStream
 import java.util.Properties
 
 plugins {
@@ -22,8 +22,8 @@ android {
         applicationId = "com.securechat"
         minSdk = 33
         targetSdk = 35
-        versionCode = 6
-        versionName = "3.4.1"
+        versionCode = 7
+        versionName = "3.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -109,7 +109,7 @@ dependencies {
     // Security / Crypto
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("androidx.biometric:biometric:1.1.0")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.80")  // ML-KEM-768 (mlkem package) added in 1.80
+    implementation("org.bouncycastle:bcprov-jdk18on:1.80")  // ML-KEM-1024 (mlkem package) added in 1.80
 
     // Tor — native binaries (libtor.so + libtun2socks.so) must be placed
     // in app/src/main/jniLibs/{arm64-v8a,armeabi-v7a}/ manually.

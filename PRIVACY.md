@@ -18,7 +18,7 @@ SecureChat is developed by an independent developer based in France under the ps
 
 SecureChat is designed to **minimize data collection by design**:
 
-- **Message content** — All messages are end-to-end encrypted using PQXDH (X25519 + ML-KEM-768) and Double Ratchet. The developer and relay infrastructure **cannot read, access, or decrypt** any message content.
+- **Message content** — All messages are end-to-end encrypted using PQXDH (X25519 + ML-KEM-1024) and Double Ratchet. The developer and relay infrastructure **cannot read, access, or decrypt** any message content.
 - **Private keys** — Your cryptographic keys are generated and stored **exclusively on your device**. They never leave your device.
 - **Contacts or address book** — SecureChat does not access or upload your phone contacts.
 - **Location data** — Not collected.
@@ -115,7 +115,7 @@ SecureChat is **not intended for use by anyone under the age of 16** (or the min
 ## 10. Security
 
 SecureChat implements multiple layers of security:
-- **PQXDH** (X25519 + ML-KEM-768) for post-quantum key exchange
+- **PQXDH** (X25519 + ML-KEM-1024) for post-quantum key exchange
 - **Double Ratchet** for forward secrecy and self-healing
 - **AES-256-GCM** for message encryption
 - **Ed25519** for message authentication

@@ -50,13 +50,13 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
 
         // Validate ML-KEM key if present
         if (mlkemPublicKey != null && mlkemPublicKey.isNotEmpty()) {
-            if (mlkemPublicKey.length > 2000) {
+            if (mlkemPublicKey.length > 2500) {
                 _state.value = AddContactState.Error("Clé ML-KEM invalide (trop grande).")
                 return
             }
             try {
                 val decoded = android.util.Base64.decode(mlkemPublicKey, android.util.Base64.NO_WRAP)
-                if (decoded.size !in 1150..1250) {
+                if (decoded.size !in 1500..1650) {
                     _state.value = AddContactState.Error("Clé ML-KEM invalide.")
                     return
                 }

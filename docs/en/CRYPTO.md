@@ -7,8 +7,8 @@
 # 🔐 Cryptographic Protocol
 
 <img src="https://img.shields.io/badge/Key_Exchange-X25519_ECDH-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Post--Quantum-PQXDH_(ML--KEM--768)-4A148C?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Encryption-AES--256--GCM-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Post--Quantum-PQXDH_(ML--KEM--1024)-4A148C?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Encryption-AES--256--GCM_|_ChaCha20--Poly1305-9C4DCC?style=for-the-badge" />
 <img src="https://img.shields.io/badge/PFS-Double_Ratchet-6A1B9A?style=for-the-badge" />
 
 </div>
@@ -29,7 +29,7 @@ Alice                                         Bob
   │  recv_chain = HKDF(root, "init-recv")      │  send_chain = HKDF(root, "init-recv")
   │                                             │
   │  ┌─ PQXDH (first message) ──────────────┐  │
-  │  │ kem_ct = ML-KEM-768.Encaps(pk_kem_B)   │  │
+  │  │ kem_ct = ML-KEM-1024.Encaps(pk_kem_B)   │  │
   │  │ kem_ss = ML-KEM shared secret           │  │
   │  │ root_key' = HKDF(root_key || kem_ss)   │  │
   │  └──────────────────────────────────────┘  │
@@ -41,7 +41,7 @@ Alice                                         Bob
   │  ──── {ct, iv, ephKey, kemCiphertext} ────►│
   │           (Firebase relay)                  │
   │                                             │
-  │                                             │  kem_ss = ML-KEM-768.Decaps(sk_kem_B, kem_ct)
+  │                                             │  kem_ss = ML-KEM-1024.Decaps(sk_kem_B, kem_ct)
   │                                             │  root_key' = HKDF(root_key || kem_ss)
   │                                             │  msg_key = HMAC(recv_chain, 0x01)
   │                                             │  recv_chain = HMAC(recv_chain, 0x02)
@@ -66,9 +66,9 @@ Alice                                         Bob
 2. Bob scans QR → Alice's nickname is auto-populated → creates contact
 3. Both sides compute: `shared_secret = X25519(my_private_key, contact_public_key)`
 4. The role (initiator/responder) is determined by the **lexicographic order** of the public keys
-5. QR v2 also encodes the **ML-KEM-768** public key for PQXDH upgrade
+5. QR v2 also encodes the **ML-KEM-1024** public key for PQXDH upgrade
 
-> **QR v2 format:** `securechat://contact?key=<X25519_base64>&kem=<ML-KEM-768_base64>&name=<displayName>`
+> **QR v2 format:** `securechat://contact?key=<X25519_base64>&kem=<ML-KEM-1024_base64>&name=<displayName>`
 
 ---
 
@@ -192,23 +192,23 @@ Receive:
 
 ## PQXDH — Post-Quantum Upgrade (V3.4)
 
-SecureChat implements a **hybrid** key exchange combining X25519 (classic) and ML-KEM-768 (post-quantum) via the PQXDH protocol.
+SecureChat implements a **hybrid** key exchange combining X25519 (classic) and ML-KEM-1024 (post-quantum) via the PQXDH protocol.
 
 ### Principle
 
 ```
 On contact add (QR scan):
-  Both X25519 AND ML-KEM-768 public keys are exchanged via QR code v2.
+  Both X25519 AND ML-KEM-1024 public keys are exchanged via QR code v2.
   Conversation starts in classic X25519-only mode (classic root_key).
 
 First message (initiator):
-  kem_ct, kem_ss = ML-KEM-768.Encaps(contact_kem_publicKey)
+  kem_ct, kem_ss = ML-KEM-1024.Encaps(contact_kem_publicKey)
   root_key' = HKDF(root_key || kem_ss, "pqxdh-upgrade")
   → Firebase message includes { ..., "kemCiphertext": Base64(kem_ct) }
   → root_key upgraded locally (chains recalculated)
 
 First message reception (responder):
-  kem_ss = ML-KEM-768.Decaps(my_kem_privateKey, kemCiphertext)
+  kem_ss = ML-KEM-1024.Decaps(my_kem_privateKey, kemCiphertext)
   root_key' = HKDF(root_key || kem_ss, "pqxdh-upgrade")
   → root_key upgraded locally (chains recalculated)
 
@@ -219,11 +219,76 @@ Subsequent messages:
 
 ### Properties
 
-- ✅ **Post-quantum resistance**: even if X25519 is broken by a quantum computer, ML-KEM-768 protects the root_key
+- ✅ **Post-quantum resistance**: even if X25519 is broken by a quantum computer, ML-KEM-1024 protects the root_key
 - ✅ **Deferred upgrade**: no bootstrap message — upgrade happens on the first real message
 - ✅ **No regression**: if ML-KEM fails, the conversation remains protected by classic X25519
-- ✅ **BouncyCastle 1.80**: certified ML-KEM-768 implementation (`org.bouncycastle.pqc.crypto.mlkem` package)
+- ✅ **BouncyCastle 1.80**: certified ML-KEM-1024 implementation (`org.bouncycastle.pqc.crypto.mlkem` package)
 - ✅ **StrongBox probe**: `DeviceSecurityManager` detects hardware StrongBox support for key protection
+
+---
+
+## SPQR — Periodic PQ Re-encapsulation (V3.5)
+
+After the initial PQXDH upgrade, the classic Double Ratchet resumes with X25519-only exchanges. SPQR (Supplementary Post-Quantum Ratchet) adds **periodic ML-KEM-1024 re-encapsulation** to maintain post-quantum resistance over time.
+
+### How it works
+
+```
+Every PQ_RATCHET_INTERVAL = 10 sent messages:
+
+Sender (Alice):
+  kem_ct, kem_ss = ML-KEM-1024.Encaps(contact_kem_publicKey)
+  root_key' = HKDF(root_key, kem_ss, info="SecureChat-SPQR-pq-ratchet")
+  → Firebase message includes { ..., "kemCiphertext": Base64(kem_ct) }
+  → pqRatchetCounter reset to 0
+
+Receiver (Bob):
+  If pqxdhInitialized AND kemCiphertext present AND not an initial PQXDH:
+    kem_ss = ML-KEM-1024.Decaps(my_kem_privateKey, kemCiphertext)
+    root_key' = HKDF(root_key, kem_ss, info="SecureChat-SPQR-pq-ratchet")
+    → pqRatchetCounter reset to 0
+```
+
+### Properties
+
+- ✅ **Continuous PQ healing**: even if a PQ secret is compromised, it is renewed 10 messages later
+- ✅ **Backward compatible**: reuses the existing `kemCiphertext` field (distinguished from initial PQXDH by `pqxdhInitialized`)
+- ✅ **Zero network overhead**: ML-KEM ciphertext is sent only every 10 messages (not every message)
+- ✅ **Persistent counter**: `pqRatchetCounter` in `RatchetState` (Room), survives restarts
+
+---
+
+## ChaCha20-Poly1305 — Alternative Cipher (V3.5)
+
+SecureChat automatically selects the optimal symmetric cipher based on hardware:
+
+| Hardware | Cipher | Reason |
+|----------|--------|--------|
+| ARMv8 with Crypto Extension (API 33+) | AES-256-GCM | Hardware acceleration available |
+| Without AES acceleration | ChaCha20-Poly1305 | Faster in pure software |
+
+### Detection
+
+```
+hasHardwareAes():
+  → Initialize AES-GCM with a test key
+  → If init takes < 1ms → hardware AES present → AES-256-GCM
+  → Otherwise → ChaCha20-Poly1305 (BouncyCastle)
+```
+
+### Wire format
+
+The `cipherSuite` field in `FirebaseMessage` indicates which algorithm was used:
+- `0` (or absent) = AES-256-GCM (default, backward compatible)
+- `1` = ChaCha20-Poly1305
+
+The receiver decrypts automatically with the correct algorithm.
+
+### Properties
+
+- ✅ **Transparent selection**: the user doesn't choose — hardware dictates
+- ✅ **Backward compatible**: old messages (without `cipherSuite`) are decrypted with AES-GCM
+- ✅ **Same security level**: AES-256-GCM and ChaCha20-Poly1305 both provide 256-bit AEAD security
 
 ---
 
@@ -315,8 +380,9 @@ Receive:
 | Phone lost | ✅ | 24-word mnemonic (BIP-39) to restore identity |
 | App Lock brute-force | ✅ | PBKDF2 600,000 iterations + biometric lock |
 | Contact deletes account | ✅ | Auto-detect dead convo + cleanup + re-invite |
-| Quantum computer (future) | ✅ | Hybrid PQXDH ML-KEM-768 — root_key upgraded with post-quantum secret (V3.4) |
+| Quantum computer (future) | ✅ | Hybrid PQXDH ML-KEM-1024 + SPQR periodic re-encapsulation — root_key refreshed post-quantumly every 10 messages (V3.5) |
 | Ratchet desynchronization | ✅ | syncExistingMessages on acceptance, delete-after-failure, lastDeliveredAt lower-bound |
+| Perf without AES acceleration | ✅ | ChaCha20-Poly1305 auto-selected on devices without ARMv8 Crypto Extension (V3.5) |
 | Screenshot / screen recording | ✅ | FLAG_SECURE on all sensitive windows + dialogs (V3.4.1 audit) |
 | Tapjacking / overlay attack | ✅ | filterTouchesWhenObscured on sensitive activities (V3.4.1 audit) |
 | Deep link injection | ✅ | Parameter whitelist, length limits, Base64 validation, control char rejection (V3.4.1 audit) |

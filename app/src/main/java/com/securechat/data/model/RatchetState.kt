@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SecureChat — Post-quantum encrypted messenger
  * Copyright (C) 2024-2026 DevBot667
  *
@@ -44,11 +44,13 @@ data class RatchetState(
     val localDhPublic: String = "",   // Base64 — our current ephemeral DH public key
     val localDhPrivate: String = "",  // Base64 — our current ephemeral DH private key
     val remoteDhPublic: String = "",  // Base64 — their latest ephemeral DH public key
-    // --- PQXDH (ML-KEM-768) state ---
+    // --- PQXDH (ML-KEM-1024) state ---
     val remoteMlkemPublicKey: String = "",  // Base64 — recipient's ML-KEM public key (stored on init)
     val pqxdhInitialized: Boolean = false,  // true once the first PQXDH exchange is complete
     // Initiator: KEM ciphertext to attach to first outgoing message (cleared after send)
     val pendingKemCiphertext: String = "",
     // Responder: raw X25519 shared secret (Base64) held until first kemCiphertext arrives
-    val pendingClassicSecret: String = ""
+    val pendingClassicSecret: String = "",
+    // --- SPQR (continuous post-quantum ratchet) ---
+    val pqRatchetCounter: Int = 0   // Messages sent since last ML-KEM re-encapsulation
 )

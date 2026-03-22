@@ -14,7 +14,7 @@
 
 [![Android](https://img.shields.io/badge/Android-33%2B-a855f7?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7c3aed?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-[![E2E](https://img.shields.io/badge/PQXDH-X25519%20%2B%20ML--KEM--768-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/en/CRYPTO.md)
+[![E2E](https://img.shields.io/badge/PQXDH-X25519%20%2B%20ML--KEM--1024-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/en/CRYPTO.md)
 [![License](https://img.shields.io/badge/GPLv3-License-8b5cf6?style=for-the-badge)](LICENSE)
 [![Terms](https://img.shields.io/badge/Terms-Conditions-8b5cf6?style=for-the-badge)](TERMS.md)
 [![Privacy](https://img.shields.io/badge/Privacy-Policy-8b5cf6?style=for-the-badge)](PRIVACY.md)
@@ -55,8 +55,9 @@
 
 ### 🔐 Crypto
 
-- **PQXDH**: X25519 + **ML-KEM-768** (post-quantum)
-- **AES-256-GCM** + **Double Ratchet** with PFS + healing
+- **PQXDH**: X25519 + **ML-KEM-1024** (post-quantum)
+- **SPQR**: periodic PQ re-encapsulation (every 10 msgs)
+- **AES-256-GCM** / **ChaCha20-Poly1305** (auto) + **Double Ratchet** with PFS + healing
 - **Fingerprint emojis** 96-bit anti-MITM + **QR code scanner**
 - **Independent verification** per user + system messages
 - **BIP-39** backup (24 words) + autocomplete grid
@@ -107,7 +108,7 @@
 
 | | Feature | Details |
 |---|---------|---------|
-| 🔐 | **E2E Encryption** | PQXDH: X25519 + ML-KEM-768 + AES-256-GCM |
+| 🔐 | **E2E Encryption** | PQXDH: X25519 + ML-KEM-1024 + AES-256-GCM / ChaCha20-Poly1305 + SPQR |
 | 🔄 | **Perfect Forward Secrecy** | Double Ratchet (DH + KDF chains) |
 | 🔏 | **Fingerprint emojis + QR** | 96-bit, 16 emojis + QR code SHA-256, built-in scanner |
 | ✅ | **Independent verification** | Each user verifies separately, system message + clickable link |
@@ -234,7 +235,7 @@ cd SecureChat
 
 | Measure | Status |
 |---------|--------|
-| E2E Encryption (PQXDH: X25519 + ML-KEM-768 + AES-256-GCM) | ✅ |
+| E2E Encryption (PQXDH: X25519 + ML-KEM-1024 + AES-256-GCM / ChaCha20) | ✅ |
 | Double Ratchet with PFS + healing | ✅ |
 | Memory zeroing (intermediate keys) | ✅ |
 | Atomic sending (ratchet + Firebase) | ✅ |
@@ -262,7 +263,9 @@ cd SecureChat
 | Tor toggle in Security Settings + reconnect | ✅ |
 | Per-conversation dummy traffic | ✅ |
 | Ed25519 per-message signatures (anti-forgery) | ✅ |
-| PQXDH: X25519 + ML-KEM-768 (post-quantum resistance) | ✅ |
+| PQXDH: X25519 + ML-KEM-1024 (post-quantum resistance) | ✅ |
+| SPQR: ML-KEM re-encapsulation every 10 messages | ✅ |
+| ChaCha20-Poly1305 alternative (auto hardware AES detection) | ✅ |
 | Deferred PQXDH upgrade (rootKey-only, zero desync) | ✅ |
 | StrongBox hardware key storage (when available) | ✅ |
 | DeviceSecurityManager (StrongBox probe + user profile) | ✅ |
@@ -315,9 +318,10 @@ cd SecureChat
 | **V3.1** | Settings Redesign — Signal-like settings, 6-digit PIN, Privacy sub-screen, PIN coroutines | ✅ Done |
 | **V3.2** | Ed25519 Signing — Per-message signatures, ✅/⚠️ badge, Firebase rules hardening, signing key cleanup | ✅ Done |
 | **V3.3** | Material 3 + Tor + Attachment UX — M3 migration, full Tor integration, Session-style inline icons, Android 13+ permissions, log hardening | ✅ Done |
-| **V3.4** | PQXDH + Security — Post-quantum ML-KEM-768, deep link v2, QR name auto-fill, displayName hidden from Firebase, DeviceSecurityManager StrongBox, independent fingerprint verification, system messages, PQXDH desync fix, dual-listener fix, lastDeliveredAt | ✅ Done |
+| **V3.4** | PQXDH + Security — Post-quantum ML-KEM-1024, deep link v2, QR name auto-fill, displayName hidden from Firebase, DeviceSecurityManager StrongBox, independent fingerprint verification, system messages, PQXDH desync fix, dual-listener fix, lastDeliveredAt | ✅ Done |
 | **V3.4.1** | One-Shot + UX + Security Audit — Ephemeral photos, BIP-39 grid, QR fingerprint, 29 layout audit, forgot PIN, **comprehensive security audit (42+ fixes)**: Firebase rules write-once, HKDF/mnemonic memory zeroing, FLAG_SECURE, deep link hardening, SecureFileManager, opaque FCM, Storage owner-only delete, input validation | ✅ Done |
-| **V3.5** | Planned — App disguise + cover screen, Dual PIN, panic button, E2E voice messages, sealed sender, reply/quote | 🔜 |
+| **V3.5** | SPQR + ChaCha20 + Threat Model — PQ Triple Ratchet (ML-KEM re-encapsulation every 10 msgs), ChaCha20-Poly1305 alternative (auto hardware detection), documented threat model in SECURITY.md | ✅ Done |
+| **V3.6** | Planned — App disguise + cover screen, Dual PIN, panic button, E2E voice messages, sealed sender, reply/quote | 🔜 |
 
 > 📖 **Details** — [Full Changelog](docs/en/CHANGELOG.md)
 
@@ -349,7 +353,7 @@ cd SecureChat
 | [**Crypto Protocol**](docs/en/CRYPTO.md) | X25519, Double Ratchet, fingerprint, threat model |
 | [**Setup**](docs/en/SETUP.md) | Prerequisites, Firebase, build, dependencies |
 | [**Structure**](docs/en/STRUCTURE.md) | Full project tree |
-| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V3.4.1 history |
+| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V3.5 history |
 | [**Security**](SECURITY.md) | Full audit, known limitations |
 
 </div>
@@ -368,7 +372,7 @@ Provided for **educational** purposes. Use it as a definitive base to understand
 
 <br/>
 
-<img src="https://img.shields.io/badge/SecureChat-V3.4.1-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/SecureChat-V3.5-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

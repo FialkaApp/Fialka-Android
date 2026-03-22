@@ -69,7 +69,7 @@ object QrCodeGenerator {
     /**
      * Build a PQXDH v2 deep link from X25519 and ML-KEM public keys.
      * @param x25519PublicKeyBase64  X25519 identity public key (Base64, ~44 chars).
-     * @param mlkemPublicKeyBase64   ML-KEM-768 identity public key (Base64, ~1580 chars). Pass null for classic-only invite.
+     * @param mlkemPublicKeyBase64   ML-KEM-1024 identity public key (Base64, ~2092 chars). Pass null for classic-only invite.
      * @param displayName            Optional display name to embed so the recipient's form auto-fills.
      */
     fun buildDeepLink(x25519PublicKeyBase64: String, mlkemPublicKeyBase64: String?, displayName: String? = null): String {
@@ -113,7 +113,7 @@ object QrCodeGenerator {
                         runCatching { rawToX25519(k) }.getOrDefault(k)
                     } ?: return null
                     val mlkem = params["mlkem"]?.let { k ->
-                        if (k.length > 2000) return null  // ML-KEM-768 public key ≈ 1580 chars
+                        if (k.length > 2500) return null  // ML-KEM-1024 public key ≈ 2092 chars
                         k
                     }
                     val name = params["name"]?.let { n ->

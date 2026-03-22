@@ -1,10 +1,11 @@
-﻿# Security Policy — SecureChat
+# Security Policy — SecureChat
 
 ## Supported Versions
 
 | Version | Supported |
 |---------|-----------|
-| 3.4.1   | ✅ Current |
+| 3.5     | ✅ Current |
+| 3.4.1   | ⚠️ Outdated |
 | 3.4.x   | ⚠️ Outdated |
 | 3.3.x   | ⚠️ Outdated |
 | 3.2.x   | ⚠️ Outdated |
@@ -28,14 +29,15 @@ SecureChat uses the following cryptographic primitives:
 | Component | Algorithm | Notes |
 |-----------|-----------|-------|
 | Identity keys | X25519 (Curve25519) | Software JCA, private in EncryptedSharedPreferences (Keystore-backed, StrongBox when available) |
-| Post-quantum keys | ML-KEM-768 (CRYSTALS-Kyber) | BouncyCastle 1.80 lightweight API; encaps/decaps for hybrid secret |
+| Post-quantum keys | ML-KEM-1024 (CRYSTALS-Kyber) | BouncyCastle 1.80 lightweight API; encaps/decaps for hybrid secret |
 | Identity backup | BIP-39 mnemonic (24 words) | 256 bits entropy + 8-bit SHA-256 checksum = 264 bits = 24 × 11-bit words |
 | Key restore | X25519 DH with base point u=9 | Private key → DH(priv, basepoint) → public key derivation |
-| Key exchange | PQXDH: X25519 + ML-KEM-768 | Hybrid classic + post-quantum; both sides start classic-only, rootKey upgraded after first KEM exchange (deferred upgrade, zero desync) |
+| Key exchange | PQXDH: X25519 + ML-KEM-1024 | Hybrid classic + post-quantum; both sides start classic-only, rootKey upgraded after first KEM exchange (deferred upgrade, zero desync) |
 | Key derivation | HKDF-SHA256 | Root key → send/recv chain keys |
 | Message keys | HMAC-SHA256 KDF chain | Double Ratchet (DH ratchet + KDF chains, PFS + healing) |
 | DH Ratchet | X25519 ephemeral keys | New key pair per direction change → post-compromise healing |
-| Message encryption | AES-256-GCM | 12-byte random IV, 128-bit auth tag, padded to fixed-size buckets |
+| Message encryption | AES-256-GCM / ChaCha20-Poly1305 | AES-GCM default (hardware accelerated); ChaCha20 auto-selected on devices without ARMv8 Crypto Extension. `cipherSuite` field in wire format. |
+| PQ ratchet (SPQR) | ML-KEM-1024 re-encapsulation every 10 messages | HKDF mixes fresh PQ secret into rootKey; reuses `kemCiphertext` field; transparent to both sides |
 | Message padding | 256 / 1024 / 4096 / 16384 bytes | 2-byte big-endian length header + random fill |
 | Conversation ID | SHA-256 | Hash of sorted public keys |
 | Fingerprint emojis | SHA-256 → 64-palette × 16 | 96-bit entropy, anti-MITM, independent verification per user |
@@ -163,8 +165,8 @@ SecureChat uses the following cryptographic primitives:
 
 ### V3.4 PQXDH, DeviceSecurity & Fingerprint Verification
 
-- ✅ **PQXDH hybrid key exchange**: X25519 + ML-KEM-768 post-quantum key agreement via BouncyCastle 1.80 lightweight API (no JCA provider registration)
-- ✅ **ML-KEM-768 identity key pair**: `generateMLKEMIdentityKeyPair()`, `mlkemEncaps()`, `mlkemDecaps()`, `deriveRootKeyPQXDH(ssClassic, ssPQ)` for hybrid root key derivation
+- ✅ **PQXDH hybrid key exchange**: X25519 + ML-KEM-1024 post-quantum key agreement via BouncyCastle 1.80 lightweight API (no JCA provider registration)
+- ✅ **ML-KEM-1024 identity key pair**: `generateMLKEMIdentityKeyPair()`, `mlkemEncaps()`, `mlkemDecaps()`, `deriveRootKeyPQXDH(ssClassic, ssPQ)` for hybrid root key derivation
 - ✅ **Deferred PQXDH upgrade**: both sides start with classic-only chains; `rootKey` upgraded to combined (classic+PQ) secret only after first KEM ciphertext exchange; current chains stay intact to avoid desync
 - ✅ **ML-KEM keys on Firebase**: `/mlkem_keys/{hash}` node for public key distribution; included in QR deep links (`securechat://invite?v=2&x25519=<key>&mlkem=<key>`)
 - ✅ **QR code v2**: deep link format with X25519 + ML-KEM public keys + displayName; Version 40 + ErrorCorrectionLevel.L automatic for large content; fallback to text if too large
@@ -230,7 +232,7 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **Control character rejection**: rejects keys and names containing control characters
 - ✅ **Total link size limit**: 4000 character maximum
 - ✅ **Base64 validation**: x25519 and mlkem keys validated as proper Base64
-- ✅ **ML-KEM size validation**: decoded ML-KEM public key must be 1150–1250 bytes
+- ✅ **ML-KEM size validation**: decoded ML-KEM public key must be 1500–1650 bytes
 
 #### Clipboard Security
 - ✅ **EXTRA_IS_SENSITIVE flag**: clipboard data marked as sensitive (Android 13+ redacts from clipboard previews)
@@ -257,3 +259,52 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **Owner-only delete**: storage.rules now requires `resource.metadata['uploaderUid'] == request.auth.uid` for delete operations
 - ✅ **Upload metadata**: `uploaderUid` metadata tag required on write, must match `request.auth.uid`
 - ✅ **Upload with metadata**: `FirebaseRelay.uploadEncryptedFile()` now attaches `StorageMetadata` with `uploaderUid`
+
+---
+
+## Threat Model
+
+### Adversary tiers
+
+| Tier | Description | Examples |
+|------|-------------|----------|
+| **T1 — Curious individual** | Physical access to unlocked phone or cloud backup | Roommate, partner, lost device finder |
+| **T2 — Network observer** | Can intercept and record traffic (no modification) | ISP, café Wi-Fi operator, workplace proxy |
+| **T3 — Active network attacker** | Can intercept, modify, and inject traffic in real time | Rogue access point, compromised CDN, nation-state MITM |
+| **T4 — Service operator** | Full read/write access to Firebase RTDB, Storage, Auth | Firebase admin, Google employee, law enforcement with subpoena |
+| **T5 — Device compromise** | Root access or runtime exploit on the target device | Spyware (Pegasus-class), rooted device with Frida, physical forensic extraction |
+| **T6 — Quantum adversary** | Future large-scale fault-tolerant quantum computer | "Harvest now, decrypt later" strategy targeting X25519/ECDH |
+
+### What SecureChat protects against
+
+| Threat | Protection | Residual risk |
+|--------|-----------|---------------|
+| **T1 — Screen access** | FLAG_SECURE blocks screenshots/task preview; App Lock with PBKDF2 PIN (600K iter) + biometric; 5s auto-lock | Physical coercion; shoulder surfing during mnemonic backup |
+| **T1 — Backup extraction** | `android:allowBackup="false"`; Room DB encrypted with SQLCipher (AES-256-CBC, Keystore-backed passphrase) | Rooted device with Keystore extraction capability (→ T5) |
+| **T2 — Traffic sniffing** | TLS 1.3 to Firebase; optional Tor routing (SOCKS5 + TUN VPN); all message content is E2E encrypted (AES-256-GCM or ChaCha20-Poly1305) | Traffic analysis (timing, frequency, packet sizes) partially mitigated by dummy traffic + message padding |
+| **T3 — MITM** | E2E encryption with Double Ratchet (keys never transit the wire); emoji fingerprint verification (96-bit shared secret) + QR fingerprint scan for identity binding | Unverified contacts are vulnerable to initial MITM during key exchange (user must verify fingerprints in person) |
+| **T4 — Server compromise** | Firebase sees only: encrypted ciphertext, HMAC-hashed senderUid, timestamps, conversation IDs, ephemeral DH keys, KEM ciphertext (all opaque). Message content is never plaintext on server. Delete-after-delivery removes ciphertext post-decryption. | Metadata: Firebase knows who talks to whom (conversation participants) and when (timestamps). Full metadata privacy requires onion routing / mix network. |
+| **T4 — Key replacement** | Write-once Firebase rules on `/signing_keys/`, `/mlkem_keys/`, `/inbox/` prevent server-side key overwrite. Ed25519 signatures on every message detect forgery. | A compromised server could serve a wrong key to a NEW contact (TOFU model). Fingerprint verification mitigates this. |
+| **T5 — Device compromise** | Private keys in EncryptedSharedPreferences (Keystore-backed, StrongBox when available); intermediate key material zeroed after use; SecureFileManager for secure file deletion (2-pass overwrite) | If an attacker gains root + Keystore access, they can extract identity keys. Double Ratchet PFS limits exposure to future messages after the next DH ratchet step (post-compromise healing). |
+| **T5 — Memory forensics** | All key material zeroed explicitly (`fill(0)`) after use; message padding prevents plaintext length inference; `FLAG_SECURE` prevents screenshot/screen capture | JVM garbage collection may retain copies before zeroing; Frida-class runtime instrumentation can intercept keys before zeroing |
+| **T6 — Quantum attack** | PQXDH hybrid: X25519 + ML-KEM-1024 (NIST FIPS 203). SPQR re-encapsulation every 10 messages refreshes the PQ secret in the root key. Even if X25519 is broken, ML-KEM-1024 protects the session. | ML-KEM-1024 is a lattice-based scheme that has not yet been deployed at scale for decades; cryptanalytic advances remain possible. Hybrid design ensures we fall back to classical security if ML-KEM is broken. |
+
+### What SecureChat does NOT protect against
+
+| Threat | Reason |
+|--------|--------|
+| **Compromised sender/receiver device** (T5) | If the attacker has full root + Keystore on BOTH endpoints, they can read messages as the user does. E2E encryption protects the channel, not the endpoints. |
+| **Rubber hose cryptanalysis** | Physical coercion to reveal PIN, mnemonic, or unlock phone is outside the crypto threat model. |
+| **Metadata correlation by Firebase** (T4) | Firebase sees conversation participant UIDs, message timestamps, and connection patterns. senderUid is HMAC-hashed per conversation, but the server can still correlate via Firebase Auth UIDs. Full metadata privacy requires a decentralized transport. |
+| **Ephemeral bypass on modified client** | Ephemeral message deletion is client-enforced. A modified APK can skip deletion. Server-enforced TTL would require Cloud Functions. |
+| **Key revocation** | No formal key revocation mechanism exists yet. If an identity key is compromised, there is no automated way to notify contacts that the key is invalid. Planned for V3.6+. |
+
+### Design principles
+
+1. **Defense in depth** — Multiple independent layers (E2E encryption, DB encryption, app lock, FLAG_SECURE, Keystore/StrongBox) so a single failure does not compromise everything.
+2. **Hybrid post-quantum** — Classical + PQ in parallel. Both must be broken to compromise the session. If either is broken, the other still provides security.
+3. **Forward secrecy** — Double Ratchet with X25519 DH ratchet ensures that compromise of the current key does not expose past messages. Each direction change generates new keys.
+4. **Post-compromise healing** — DH ratchet + SPQR re-encapsulation ensure that after a temporary device compromise, security recovers automatically at the next ratchet step (no user action required).
+5. **Zero trust on transport** — All security guarantees hold even if Firebase is fully compromised. Firebase is treated as an untrusted message relay.
+6. **Minimal metadata** — `senderPublicKey` removed from wire format; `messageIndex` encrypted inside payload; `senderUid` HMAC-hashed per conversation; message padding hides content length.
+7. **Fail-safe defaults** — Push notifications off by default; FLAG_SECURE on all screens; auto-lock 5s; no `allowBackup`; `usesCleartextTraffic=false`.

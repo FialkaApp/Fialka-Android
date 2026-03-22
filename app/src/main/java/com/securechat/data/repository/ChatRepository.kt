@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SecureChat — Post-quantum encrypted messenger
  * Copyright (C) 2024-2026 DevBot667
  *
@@ -108,7 +108,7 @@ class ChatRepository(private val appContext: Context) {
 
     suspend fun createUser(displayName: String): UserLocal {
         val publicKey = CryptoManager.generateIdentityKeyPair()
-        // Generate ML-KEM-768 identity key pair for PQXDH (idempotent)
+        // Generate ML-KEM-1024 identity key pair for PQXDH (idempotent)
         CryptoManager.generateMLKEMIdentityKeyPair()
         val user = UserLocal(
             userId = UUID.randomUUID().toString(),
@@ -1014,7 +1014,7 @@ class ChatRepository(private val appContext: Context) {
     }
 
     /**
-     * Publish the ML-KEM-768 public key on Firebase.
+     * Publish the ML-KEM-1024 public key on Firebase.
      * Should be called once after account creation or BIP-39 restore.
      */
     suspend fun publishMLKEMPublicKey() {

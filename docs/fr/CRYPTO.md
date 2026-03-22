@@ -7,8 +7,8 @@
 # 🔐 Protocole Cryptographique
 
 <img src="https://img.shields.io/badge/Key_Exchange-X25519_ECDH-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Post--Quantum-PQXDH_(ML--KEM--768)-4A148C?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Encryption-AES--256--GCM-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Post--Quantum-PQXDH_(ML--KEM--1024)-4A148C?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Encryption-AES--256--GCM_|_ChaCha20--Poly1305-9C4DCC?style=for-the-badge" />
 <img src="https://img.shields.io/badge/PFS-Double_Ratchet-6A1B9A?style=for-the-badge" />
 
 </div>
@@ -29,7 +29,7 @@ Alice                                         Bob
   │  recv_chain = HKDF(root, "init-recv")      │  send_chain = HKDF(root, "init-recv")
   │                                             │
   │  ┌─ PQXDH (premier message) ────────────┐  │
-  │  │ kem_ct = ML-KEM-768.Encaps(pk_kem_B)   │  │
+  │  │ kem_ct = ML-KEM-1024.Encaps(pk_kem_B)   │  │
   │  │ kem_ss = shared secret ML-KEM          │  │
   │  │ root_key' = HKDF(root_key || kem_ss)   │  │
   │  └──────────────────────────────────────┘  │
@@ -41,7 +41,7 @@ Alice                                         Bob
   │  ──── {ct, iv, ephKey, kemCiphertext} ────►│
   │           (Firebase relay)                  │
   │                                             │
-  │                                             │  kem_ss = ML-KEM-768.Decaps(sk_kem_B, kem_ct)
+  │                                             │  kem_ss = ML-KEM-1024.Decaps(sk_kem_B, kem_ct)
   │                                             │  root_key' = HKDF(root_key || kem_ss)
   │                                             │  msg_key = HMAC(recv_chain, 0x01)
   │                                             │  recv_chain = HMAC(recv_chain, 0x02)
@@ -66,9 +66,9 @@ Alice                                         Bob
 2. Bob scanne le QR → le pseudo d'Alice est pré-rempli automatiquement → crée le contact
 3. Chaque côté calcule : `shared_secret = X25519(ma_clé_privée, clé_publique_contact)`
 4. Le rôle (initiator/responder) est déterminé par l'**ordre lexicographique** des clés publiques
-5. Le QR v2 encode aussi la clé publique **ML-KEM-768** pour l'upgrade PQXDH
+5. Le QR v2 encode aussi la clé publique **ML-KEM-1024** pour l'upgrade PQXDH
 
-> **Format QR v2 :** `securechat://contact?key=<X25519_base64>&kem=<ML-KEM-768_base64>&name=<displayName>`
+> **Format QR v2 :** `securechat://contact?key=<X25519_base64>&kem=<ML-KEM-1024_base64>&name=<displayName>`
 
 ---
 
@@ -192,23 +192,23 @@ Réception :
 
 ## PQXDH — Upgrade Post-Quantique (V3.4)
 
-SecureChat implémente un échange de clés **hybride** combinant X25519 (classique) et ML-KEM-768 (post-quantique) via le protocole PQXDH.
+SecureChat implémente un échange de clés **hybride** combinant X25519 (classique) et ML-KEM-1024 (post-quantique) via le protocole PQXDH.
 
 ### Principe
 
 ```
 À l'ajout du contact (QR scan) :
-  Les clés publiques X25519 ET ML-KEM-768 sont échangées via le QR code v2.
+  Les clés publiques X25519 ET ML-KEM-1024 sont échangées via le QR code v2.
   La conversation démarre en mode classique X25519 uniquement (root_key classique).
 
 Premier message (initiator) :
-  kem_ct, kem_ss = ML-KEM-768.Encaps(contact_kem_publicKey)
+  kem_ct, kem_ss = ML-KEM-1024.Encaps(contact_kem_publicKey)
   root_key' = HKDF(root_key || kem_ss, "pqxdh-upgrade")
   → message Firebase inclut { ..., "kemCiphertext": Base64(kem_ct) }
   → root_key upgradé localement (chains recalculées)
 
 Réception du premier message (responder) :
-  kem_ss = ML-KEM-768.Decaps(my_kem_privateKey, kemCiphertext)
+  kem_ss = ML-KEM-1024.Decaps(my_kem_privateKey, kemCiphertext)
   root_key' = HKDF(root_key || kem_ss, "pqxdh-upgrade")
   → root_key upgradé localement (chains recalculées)
 
@@ -219,11 +219,76 @@ Messages suivants :
 
 ### Propriétés
 
-- ✅ **Résistance post-quantique** : même si X25519 est cassé par un ordinateur quantique, ML-KEM-768 protège le root_key
+- ✅ **Résistance post-quantique** : même si X25519 est cassé par un ordinateur quantique, ML-KEM-1024 protège le root_key
 - ✅ **Upgrade différée** : pas de message bootstrap — l'upgrade se fait au premier vrai message
 - ✅ **Aucune régression** : si ML-KEM échoue, la conversation reste protégée par X25519 classique
-- ✅ **BouncyCastle 1.80** : implémentation ML-KEM-768 certifiée (package `org.bouncycastle.pqc.crypto.mlkem`)
+- ✅ **BouncyCastle 1.80** : implémentation ML-KEM-1024 certifiée (package `org.bouncycastle.pqc.crypto.mlkem`)
 - ✅ **StrongBox probe** : `DeviceSecurityManager` détecte le support matériel StrongBox pour la protection des clés
+
+---
+
+## SPQR — Ré-encapsulation PQ périodique (V3.5)
+
+Après l'upgrade PQXDH initiale, le Double Ratchet classique reprend avec des échanges X25519 uniquement. SPQR (Supplementary Post-Quantum Ratchet) ajoute une **ré-encapsulation ML-KEM-1024 périodique** pour maintenir la résistance post-quantique au fil du temps.
+
+### Principe
+
+```
+Toutes les PQ_RATCHET_INTERVAL = 10 messages envoyés :
+
+Sender (Alice) :
+  kem_ct, kem_ss = ML-KEM-1024.Encaps(contact_kem_publicKey)
+  root_key' = HKDF(root_key, kem_ss, info="SecureChat-SPQR-pq-ratchet")
+  → message Firebase inclut { ..., "kemCiphertext": Base64(kem_ct) }
+  → pqRatchetCounter remis à 0
+
+Receiver (Bob) :
+  Si pqxdhInitialized ET kemCiphertext présent ET pas un PQXDH initial :
+    kem_ss = ML-KEM-1024.Decaps(my_kem_privateKey, kemCiphertext)
+    root_key' = HKDF(root_key, kem_ss, info="SecureChat-SPQR-pq-ratchet")
+    → pqRatchetCounter remis à 0
+```
+
+### Propriétés
+
+- ✅ **Healing PQ continu** : même si un secret PQ est compromis, il est renouvelé 10 messages plus tard
+- ✅ **Rétrocompatibilité** : réutilise le champ `kemCiphertext` existant (distingué du PQXDH initial par `pqxdhInitialized`)
+- ✅ **Zéro overhead réseau** : le ciphertext ML-KEM n'est envoyé que toutes les 10 messages (pas à chaque message)
+- ✅ **Compteur persistant** : `pqRatchetCounter` dans `RatchetState` (Room), survit aux redémarrages
+
+---
+
+## ChaCha20-Poly1305 — Chiffrement alternatif (V3.5)
+
+SecureChat sélectionne automatiquement le chiffrement symétrique optimal selon le hardware :
+
+| Hardware | Chiffrement | Raison |
+|----------|-------------|--------|
+| ARMv8 avec Crypto Extension (API 33+) | AES-256-GCM | Accélération matérielle disponible |
+| Sans accélération AES | ChaCha20-Poly1305 | Plus rapide en logiciel pur |
+
+### Détection
+
+```
+hasHardwareAes() :
+  → Initialise AES-GCM avec une clé de test
+  → Si l'init prend < 1ms → hardware AES présent → AES-256-GCM
+  → Sinon → ChaCha20-Poly1305 (BouncyCastle)
+```
+
+### Format réseau
+
+Le champ `cipherSuite` dans `FirebaseMessage` indique l'algorithme utilisé :
+- `0` (ou absent) = AES-256-GCM (défaut, rétrocompatible)
+- `1` = ChaCha20-Poly1305
+
+Le receiver déchiffre automatiquement avec le bon algorithme.
+
+### Propriétés
+
+- ✅ **Sélection transparente** : l'utilisateur ne choisit pas — le hardware dicte
+- ✅ **Rétrocompatibilité** : les anciens messages (sans `cipherSuite`) sont déchiffrés en AES-GCM
+- ✅ **Même sécurité** : AES-256-GCM et ChaCha20-Poly1305 offrent tous deux une sécurité 256-bit AEAD
 
 ---
 
@@ -315,8 +380,9 @@ Réception :
 | Perte du téléphone | ✅ | Phrase mnémonique 24 mots (BIP-39) pour restaurer l'identité |
 | App Lock brute-force | ✅ | PBKDF2 600 000 itérations + verrouillage biométrique |
 | Contact supprime son compte | ✅ | Détection automatique conversation morte + nettoyage + re-invitation |
-| Ordinateur quantique (futur) | ✅ | PQXDH hybride ML-KEM-768 — root_key upgradé avec secret post-quantique (V3.4) |
+| Ordinateur quantique (futur) | ✅ | PQXDH hybride ML-KEM-1024 + SPQR ré-encapsulation périodique — root_key rafraîchi post-quantiquement toutes les 10 messages (V3.5) |
 | Désynchronisation ratchet | ✅ | syncExistingMessages à l'acceptation, delete-after-failure, lastDeliveredAt lower-bound |
+| Perf sans accélération AES | ✅ | ChaCha20-Poly1305 sélectionné automatiquement sur les appareils sans ARMv8 Crypto Extension (V3.5) |
 | Screenshot / enregistrement écran | ✅ | FLAG_SECURE sur toutes les fenêtres et dialogs sensibles (audit V3.4.1) |
 | Tapjacking / attaque overlay | ✅ | filterTouchesWhenObscured sur les activités sensibles (audit V3.4.1) |
 | Injection deep link | ✅ | Whitelist paramètres, limites de taille, validation Base64, rejet caractères de contrôle (audit V3.4.1) |

@@ -31,7 +31,7 @@
     "inbox": {
       "$recipientHash": {
         ".read": "auth != null",
-        ".write": "auth != null && !data.exists()",
+        ".write": "auth != null && (!data.exists() || !newData.exists())",
         "$requestId": {
           ".validate": "newData.hasChildren(['e', 'createdAt']) && newData.child('e').isString() && newData.child('e').val().length > 0 && newData.child('e').val().length < 8192 && newData.child('createdAt').isNumber() && newData.child('createdAt').val() <= now + 60000"
         }
@@ -56,21 +56,21 @@
           ".validate": "newData.isString() && newData.val().length < 500"
         },
         "signingPublicKey": { ".validate": "newData.isString() && newData.val().length < 500" },
-        "mlkemPublicKey":   { ".validate": "newData.isString() && newData.val().length < 2500" }
+        "mlkemPublicKey":   { ".validate": "newData.isString() && newData.val().length < 3000" }
       }
     },
     "signing_keys": {
       "$pubKeyHash": {
         ".read":     "auth != null",
-        ".write":    "auth != null && !data.exists()",
-        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 500"
+        ".write":    "auth != null && (!data.exists() || !newData.exists())",
+        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 3000"
       }
     },
     "mlkem_keys": {
       "$pubKeyHash": {
         ".read":     "auth != null",
-        ".write":    "auth != null && !data.exists()",
-        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 2500"
+        ".write":    "auth != null && (!data.exists() || !newData.exists())",
+        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 3000"
       }
     }
   }

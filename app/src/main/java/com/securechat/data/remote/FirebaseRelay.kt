@@ -962,7 +962,7 @@ object FirebaseRelay {
     // ========================================================================
 
     /**
-     * Store the user's ML-KEM-768 public key on Firebase so contacts can fetch it
+     * Store the user's ML-KEM-1024 public key on Firebase so contacts can fetch it
      * when initiating a PQXDH conversation.
      * Path: /users/{uid}/mlkemPublicKey
      */
@@ -991,7 +991,7 @@ object FirebaseRelay {
     }
 
     /**
-     * Fetch a contact's ML-KEM-768 public key from Firebase using their identity public key.
+     * Fetch a contact's ML-KEM-1024 public key from Firebase using their identity public key.
      * Path: /mlkem_keys/{pubKeyHash} → mlkemPublicKey
      * Returns null if not found (contact has not yet upgraded to PQXDH).
      */

@@ -1,4 +1,4 @@
-﻿/*
+/*
  * SecureChat — Post-quantum encrypted messenger
  * Copyright (C) 2024-2026 DevBot667
  *
@@ -30,6 +30,11 @@ import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
 import org.bouncycastle.crypto.signers.Ed25519Signer
 import org.bouncycastle.crypto.SecretWithEncapsulation
+import org.bouncycastle.crypto.engines.ChaCha7539Engine
+import org.bouncycastle.crypto.macs.Poly1305
+import org.bouncycastle.crypto.modes.ChaCha20Poly1305
+import org.bouncycastle.crypto.params.AEADParameters
+import org.bouncycastle.crypto.params.KeyParameter
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMExtractor
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMGenerator
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMKeyGenerationParameters
@@ -70,6 +75,8 @@ object CryptoManager {
     private const val GCM_TAG_LENGTH_BITS = 128
     private const val GCM_IV_LENGTH_BYTES = 12
     private const val AES_KEY_LENGTH_BYTES = 32
+    private const val CHACHA20_NONCE_BYTES = 12
+    private const val POLY1305_TAG_BYTES = 16
 
     private const val HKDF_INFO = "SecureChat-v2-message-key"
     private const val INBOX_HKDF_INFO = "SecureChat-Inbox-v1"
@@ -180,6 +187,8 @@ object CryptoManager {
         prefs.edit()
             .remove(KEY_PUBLIC)
             .remove(KEY_PRIVATE)
+            .remove(KEY_MLKEM_PUBLIC)
+            .remove(KEY_MLKEM_PRIVATE)
             .apply()
         clearSigningKeyCache()
     }
@@ -343,6 +352,89 @@ object CryptoManager {
         paddedBytes.fill(0)
         plaintextBytes.fill(0)
         return plaintext
+    }
+
+    // ========================================================================
+    // 5b. ChaCha20-Poly1305 ENCRYPTION (alternative cipher for devices without AES-NI)
+    // ========================================================================
+
+    /**
+     * Encrypt with ChaCha20-Poly1305 (BouncyCastle).
+     * Same padding as AES-GCM — transparent to the Double Ratchet.
+     */
+    fun encryptChaCha(plaintext: String, key: SecretKey): EncryptedData {
+        val nonce = ByteArray(CHACHA20_NONCE_BYTES)
+        secureRandom.nextBytes(nonce)
+
+        val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
+        val paddedBytes = padPlaintext(plaintextBytes)
+        plaintextBytes.fill(0)
+
+        val aead = ChaCha20Poly1305()
+        aead.init(true, AEADParameters(KeyParameter(key.encoded), POLY1305_TAG_BYTES * 8, nonce))
+
+        val output = ByteArray(aead.getOutputSize(paddedBytes.size))
+        var off = aead.processBytes(paddedBytes, 0, paddedBytes.size, output, 0)
+        off += aead.doFinal(output, off)
+        paddedBytes.fill(0)
+
+        val ciphertext = output.copyOf(off)
+        val result = EncryptedData(
+            ciphertext = Base64.encodeToString(ciphertext, Base64.NO_WRAP),
+            iv = Base64.encodeToString(nonce, Base64.NO_WRAP)
+        )
+        nonce.fill(0)
+        output.fill(0)
+        ciphertext.fill(0)
+        return result
+    }
+
+    /**
+     * Decrypt with ChaCha20-Poly1305 (BouncyCastle).
+     */
+    fun decryptChaCha(encryptedData: EncryptedData, key: SecretKey): String {
+        val nonce = Base64.decode(encryptedData.iv, Base64.NO_WRAP)
+        val ciphertextBytes = Base64.decode(encryptedData.ciphertext, Base64.NO_WRAP)
+
+        val aead = ChaCha20Poly1305()
+        aead.init(false, AEADParameters(KeyParameter(key.encoded), POLY1305_TAG_BYTES * 8, nonce))
+
+        val output = ByteArray(aead.getOutputSize(ciphertextBytes.size))
+        var off = aead.processBytes(ciphertextBytes, 0, ciphertextBytes.size, output, 0)
+        off += aead.doFinal(output, off)
+
+        val paddedBytes = output.copyOf(off)
+        val plaintextBytes = unpadPlaintext(paddedBytes)
+        val plaintext = String(plaintextBytes, Charsets.UTF_8)
+
+        nonce.fill(0)
+        ciphertextBytes.fill(0)
+        output.fill(0)
+        paddedBytes.fill(0)
+        plaintextBytes.fill(0)
+        return plaintext
+    }
+
+    /**
+     * Detect if the device has hardware AES acceleration.
+     * Returns true if AES-NI is available (newer ARM processors have ARMv8 AES extension).
+     * On devices without it, ChaCha20-Poly1305 is faster.
+     */
+    fun hasHardwareAes(): Boolean {
+        return try {
+            // ARMv8 Crypto Extension is standard on API 33+ (minSdk 33)
+            // Android's JCA AES-GCM uses hardware acceleration transparently
+            // If Cipher init takes < 1ms, hardware is present
+            val testKey = SecretKeySpec(ByteArray(32), "AES")
+            val start = System.nanoTime()
+            val c = Cipher.getInstance(AES_GCM_TRANSFORMATION)
+            c.init(Cipher.ENCRYPT_MODE, testKey, GCMParameterSpec(128, ByteArray(12)))
+            c.doFinal(ByteArray(64))
+            val elapsed = System.nanoTime() - start
+            elapsed < 5_000_000 // < 5ms → hardware AES available
+        } catch (_: Exception) {
+            false
+        }
     }
 
     // ========================================================================
@@ -732,23 +824,23 @@ object CryptoManager {
     )
 
     // ========================================================================
-    // 9. ML-KEM-768 IDENTITY KEY (PQXDH — post-quantum key encapsulation)
+    // 9. ML-KEM-1024 IDENTITY KEY (PQXDH — post-quantum key encapsulation)
     //
     // Uses BouncyCastle 1.78+ lightweight API directly (NOT via JCA provider).
     // Same pattern as Ed25519: raw bytes stored in EncryptedSharedPreferences.
     // ========================================================================
 
     /**
-     * Generate & persist an ML-KEM-768 identity key pair.
+     * Generate & persist an ML-KEM-1024 identity key pair.
      * Idempotent: returns existing public key if already generated.
-     * @return Base64 public key (~1580 chars).
+     * @return Base64 public key (~2092 chars).
      */
     fun generateMLKEMIdentityKeyPair(): String {
         val existing = prefs.getString(KEY_MLKEM_PUBLIC, null)
         if (existing != null) return existing
 
         val generator = MLKEMKeyPairGenerator()
-        generator.init(MLKEMKeyGenerationParameters(secureRandom, MLKEMParameters.ml_kem_768))
+        generator.init(MLKEMKeyGenerationParameters(secureRandom, MLKEMParameters.ml_kem_1024))
         val keyPair = generator.generateKeyPair()
         val pub = keyPair.public as MLKEMPublicKeyParameters
         val priv = keyPair.private as MLKEMPrivateKeyParameters
@@ -764,17 +856,17 @@ object CryptoManager {
         return pubBase64
     }
 
-    /** Returns the stored ML-KEM-768 public key as Base64, or null if not yet generated. */
+    /** Returns the stored ML-KEM-1024 public key as Base64, or null if not yet generated. */
     fun getMLKEMPublicKey(): String? = prefs.getString(KEY_MLKEM_PUBLIC, null)
 
     /**
-     * ML-KEM-768 encapsulation (initiator side).
+     * ML-KEM-1024 encapsulation (initiator side).
      * @param recipientPublicKeyBase64 Recipient's ML-KEM public key (Base64).
      * @return Pair of (ciphertextBase64, sharedSecretBytes). Zero-wipe secret after use.
      */
     fun mlkemEncaps(recipientPublicKeyBase64: String): Pair<String, ByteArray> {
         val pubBytes = Base64.decode(recipientPublicKeyBase64, Base64.NO_WRAP)
-        val recipientPub = MLKEMPublicKeyParameters(MLKEMParameters.ml_kem_768, pubBytes)
+        val recipientPub = MLKEMPublicKeyParameters(MLKEMParameters.ml_kem_1024, pubBytes)
 
         val genResult: SecretWithEncapsulation = MLKEMGenerator(secureRandom).generateEncapsulated(recipientPub)
         val ciphertextBase64 = Base64.encodeToString(genResult.encapsulation, Base64.NO_WRAP)
@@ -784,7 +876,7 @@ object CryptoManager {
     }
 
     /**
-     * ML-KEM-768 decapsulation (recipient side).
+     * ML-KEM-1024 decapsulation (recipient side).
      * @param ciphertextBase64 KEM ciphertext received in the first message (Base64).
      * @return sharedSecretBytes. Zero-wipe after use.
      */
@@ -793,7 +885,7 @@ object CryptoManager {
             ?: throw IllegalStateException("ML-KEM identity key not initialized")
 
         val privBytes = Base64.decode(privBase64, Base64.NO_WRAP)
-        val privateKey = MLKEMPrivateKeyParameters(MLKEMParameters.ml_kem_768, privBytes)
+        val privateKey = MLKEMPrivateKeyParameters(MLKEMParameters.ml_kem_1024, privBytes)
         privBytes.fill(0)
 
         val ciphertextBytes = Base64.decode(ciphertextBase64, Base64.NO_WRAP)
