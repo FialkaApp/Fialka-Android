@@ -25,12 +25,12 @@
 │               Repository Layer                    │
 │      ChatRepository — single source of truth      │
 ├────────────────┬────────────────┬────────────────┤
-│    Room DB     │     Crypto     │    Firebase     │
-│   (SQLCipher)  │  CryptoMgr +   │   Relay +       │
-│                │  Ratchet +     │    FCM          │
-│                │  PQXDH(ML-KEM) │                │
+│    Room DB     │     Crypto     │   Transport     │
+│   (SQLCipher)  │  CryptoMgr +   │  Tor Hidden     │
+│                │  Ratchet +     │  Services P2P   │
+│                │  PQXDH(ML-KEM) │  + Mailbox      │
+│                │  + ML-DSA-44   │  + UnifiedPush  │
 └────────────────┴────────────────┴────────────────┘
-                Cloud Function (push triggers)
 ```
 
 ---
@@ -40,17 +40,16 @@
 | Principle | Detail |
 |-----------|--------|
 | **Single Activity** | Navigation Component with 15 fragments |
-| **Repository Pattern** | `ChatRepository` coordinates Room, Crypto, and Firebase |
-| **No Firebase access from UI** | Everything goes through Repository → FirebaseRelay |
+| **Repository Pattern** | `ChatRepository` coordinates Room, Crypto, and Transport |
+| **No transport access from UI** | Everything goes through Repository → TorTransport |
 | **Mutex per conversation** | Ratchet operations are serialized (thread-safe) |
-| **Atomic sending** | Ratchet advances only if Firebase confirms the send |
-| **Delete-after-delivery** | Ciphertext removed from Firebase after decryption |
-| **Delete-after-failure** | Failed decryption messages cleaned from Firebase |
-| **Double-listener guard** | `ConcurrentHashMap.putIfAbsent()` + LRU eviction prevents duplicate processing |
-| **lastDeliveredAt** | Per-conversation lower bound to prevent Firebase message re-processing |
+| **Zero central server** | All communication is peer-to-peer via Tor Hidden Services |
+| **1 Seed → Everything** | Ed25519 master seed derives identity, .onion, X25519, ML-KEM, fingerprint |
+| **ML-DSA-44 handshake** | Post-quantum signature on session establishment |
+| **Fialka Mailbox** | Offline delivery via 4 modes (Direct, Personal, Private Node, Public Node) |
 | **Deferred PQXDH** | Post-quantum root_key upgrade on first message (no bootstrap) |
 | **Independent verification** | Each user verifies fingerprint on their own side (local Room state only) |
-| **Invitation system** | Invite → inbox notification → accept → active chat |
+| **Invitation system** | QR scan → Tor contact request → accept → active P2P chat |
 
 ---
 
@@ -62,7 +61,7 @@
 | **Repository** | Local/crypto/remote coordination | `data/repository/ChatRepository.kt` |
 | **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519, PQXDH (ML-KEM-1024) | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
 | **Local DB** | Room v17 — users, contacts, messages, ratchet (composite indexes) | `data/local/` — DAOs, Database (SQLCipher) |
-| **Remote** | Firebase Relay RTDB + Storage (ciphertext only) | `data/remote/FirebaseRelay.kt` |
+| **Remote** | Tor Hidden Services P2P (.onion transport, ciphertext only) | `data/remote/TorTransport.kt` |
 | **Util** | QR, 5 themes, app lock, ephemeral, dummy traffic, DeviceSecurityManager | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt`, `DeviceSecurityManager.kt` |
 
 ---
@@ -70,15 +69,16 @@
 ## Push Notifications (opt-in)
 
 ```
-Phone A → sendMessage() → Firebase RTDB
-                              ↓
-                   Cloud Function (onCreate)
-                              ↓
-                   /users/{uid}/fcm_token ?
-                              ↓ (if token exists)
-                   FCM → Phone B notification
-                   "Nouveau message reçu"
-                   (ZERO content, ZERO metadata)
+Phone A → sendMessage() → Tor Hidden Service → Phone B
+                                                  ↓ (if offline)
+                                          Fialka Mailbox stores ciphertext
+                                                  ↓
+                                          UnifiedPush + ntfy.sh
+                                                  ↓
+                                          Phone B wakes up → connects to Mailbox
+                                          → retrieves + decrypts messages
+                                          "New message received"
+                                          (ZERO content, ZERO metadata)
 ```
 
 ---
@@ -86,24 +86,23 @@ Phone A → sendMessage() → Firebase RTDB
 ## Contact Request Flow
 
 ```
-Alice                              Firebase                              Bob
+Alice                           Tor Network                           Bob
   │                                   │                                    │
   │  1. Scan QR / paste pub key       │                                    │
   │  2. createConversation(pending)   │                                    │
-  │  3. sendContactRequest ──────────►│ inbox/{bob_hash}/{convId}          │
-  │                                   │                                    │
-  │                                   │   listenForContactRequests() ◄─────│
+  │  3. sendContactRequest ──────────►│───► Bob's .onion service           │
+  │     (via Tor Hidden Service)      │    (or Mailbox if offline)         │
   │                                   │                                    │
   │                                   │         4. "New request from       │
   │                                   │             Alice" appears         │
   │                                   │                                    │
   │                                   │◄── 5. acceptContactRequest() ──────│
-  │                                   │    notifyRequestAccepted()         │
+  │                                   │    (ML-DSA-44 signed handshake)    │
   │                                   │                                    │
-  │   listenForAcceptances() ◄────────│ accepted/{convId}                  │
+  │   PQXDH session established ◄─────│                                    │
   │   6. markConversationAccepted()   │                                    │
   │                                   │                                    │
-  │◄══════════ E2E Chat active ══════►│◄══════════════════════════════════►│
+  │◄══════════ E2E P2P Chat active ══►│◄═════════════════════════════════►│
 ```
 
 ---
@@ -112,23 +111,22 @@ Alice                              Firebase                              Bob
 
 ```
 Creation:
-  Onboarding → generateIdentityKeyPair() → registerPublicKey() → BackupPhrase (24 words)
+  Onboarding → generateSeed(32 bytes) → derive Ed25519 keypair
+  → derive Account ID (SHA3-256 → Base58)
+  → derive .onion address (Tor v3)
+  → derive X25519 (birational map) + ML-KEM-1024 (HKDF)
+  → BackupPhrase (BIP-39, 24 words)
 
 Backup (BIP-39, 24 words):
-  privateKey (32 bytes) → SHA-256 → 1st byte = checksum → 33 bytes → 24 × 11 bits → 24 words
+  seed (32 bytes) → SHA-256 → 1st byte = checksum → 33 bytes → 24 × 11 bits → 24 words
 
 Restore:
-  24 words → mnemonicToPrivateKey() → restoreIdentityKey() → DH(privKey, basePoint u=9) → pubKey
-  → removeOldUserByPublicKey() → registerPublicKey() → ready
+  24 words → mnemonicToSeed() → re-derive all keys (Ed25519, X25519, ML-KEM, .onion)
+  → identity fully restored on new device
 
-Account Deletion (A deletes):
-  A: deleteUserProfile(/users/{uid}) + deleteInbox(/inbox/{hash}) + deleteSigningKey(/signing_keys/{hash}) + deleteConversation(all)
-  B: sends message → Permission Denied → isConversationAliveOnFirebase()=false → AlertDialog
-  B: re-invites A → dead convo detected → deleteStaleConversation() → new invitation
-
-Invitation Receipt (stale local convo):
-  Inbox listener → local convo exists? → isConversationAliveOnFirebase()
-  → if dead: deleteStaleConversation() → show as new request
+Account Deletion:
+  A: wipes local data + Mailbox content + publishes key revocation
+  B: detects revoked key → AlertDialog → re-invite if needed
 ```
 
 ---
@@ -143,7 +141,7 @@ DummyTrafficManager.start(context):
     → for each active conversation (Room)
       → generateDummyMessage(): opaque prefix + random bytes
       → encrypt with Double Ratchet (same pipeline)
-      → send to Firebase RTDB (/messages/{convId})
+      → send via Tor Hidden Service (same .onion route)
       → receiver detects prefix → silent drop (no Room insertion)
 
 Toggle: SecurityFragment → SharedPreferences("fialka_settings") → "dummy_traffic_enabled"
@@ -157,14 +155,14 @@ Toggle: SecurityFragment → SharedPreferences("fialka_settings") → "dummy_tra
 Send (ChatViewModel.sendFile):
   file → generateFileKey() (AES-256-GCM, random key)
   → encryptFile(fileKey, plainBytes) → cipherBytes
-  → uploadToFirebaseStorage(/chat_files/{convId}/{uuid}) → downloadUrl
-  → text message = "FILE|" + downloadUrl + "|" + Base64(fileKey) + "|" + fileName
-  → encrypt with Double Ratchet → send to Firebase RTDB
+  → send cipherBytes P2P via Tor Hidden Service
+  → text message = "FILE|" + fileId + "|" + Base64(fileKey) + "|" + fileName
+  → encrypt with Double Ratchet → send via Tor
 
 Receive (ChatRepository):
   → decrypt message → detect "FILE|" prefix
-  → parse: url, fileKey (Base64), fileName
-  → downloadFromFirebaseStorage(url) → cipherBytes
+  → parse: fileId, fileKey (Base64), fileName
+  → receive cipherBytes via Tor P2P
   → decryptFile(fileKey, cipherBytes) → plainBytes
   → save to app internal storage
   → display clickable link in chat
@@ -176,13 +174,13 @@ Receive (ChatRepository):
 
 ```
 Send:
-  photo file → AES-256-GCM encryption → upload Firebase Storage
-  → message = "FILE|url|key|iv|fileName|fileSize|1" (one-shot flag = "1")
-  → encrypt with Double Ratchet → send to Firebase RTDB
+  photo file → AES-256-GCM encryption → send via Tor P2P
+  → message = "FILE|fileId|key|iv|fileName|fileSize|1" (one-shot flag = "1")
+  → encrypt with Double Ratchet → send via Tor Hidden Service
 
 Receive:
   → decrypt message → detect one-shot flag (7th field = "1")
-  → download + decrypt file → local storage
+  → receive + decrypt file → local storage
   → display bubble with 🔥 icon "Open (1 time)"
 
 Open (2 phases):

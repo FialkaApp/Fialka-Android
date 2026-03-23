@@ -27,10 +27,10 @@
 
 ```
   Vos messages sont chiffrés AVANT d'être envoyés.
-  Firebase ne voit que du bruit.
+  Personne ne peut les lire. Pas de serveur central.
 
-  Pas de numéro. Pas d'email.
-  Juste un pseudo et une clé.
+  Pas de numéro. Pas d'email. Pas de Google.
+  Juste une clé et Tor.
 ```
 
 </td>
@@ -55,21 +55,21 @@
 
 ### 🔐 Crypto
 
-- **PQXDH** : X25519 + **ML-KEM-1024** (post-quantique)
+- **1 seed Ed25519 → tout** : identité, .onion, X25519, ML-KEM, fingerprint
+- **PQXDH** : X25519 + **ML-KEM-1024** (post-quantique hybride)
+- **ML-DSA-44** : signature PQ sur le handshake
 - **SPQR** : ré-encapsulation PQ périodique (toutes les 10 msgs)
 - **AES-256-GCM** / **ChaCha20-Poly1305** (auto) + **Double Ratchet** avec PFS + healing
 - **Fingerprint emojis** 96-bit anti-MITM + **QR code scanner**
-- **Vérification indépendante** par utilisateur + messages système
-- **BIP-39** backup (24 mots) + grille autocomplete
+- **BIP-39** backup (24 mots) → restaure toute l'identité
 - **Photos one-shot** — vue unique, suppression sécurisée 2 phases
-- Clé privée dans **Android Keystore** (StrongBox si dispo)
+- Seed dans **Android Keystore** (StrongBox si dispo)
 - Base locale chiffrée **SQLCipher**
 - **Message padding** taille fixe (256/1K/4K/16K)
-- **PBKDF2** PIN (600K itérations)
 - **Dummy traffic** (trafic factice par conversation)
-- **Fichiers E2E** chiffrés AES-256-GCM
+- **Fichiers E2E** chiffrés AES-256-GCM (transfert P2P via Tor)
 - **Signature Ed25519** anti-falsification par message
-- **Tor intégré** — SOCKS5, VPN TUN, IP masquée
+- **Zéro Google, zéro Firebase** — full P2P via **Tor Hidden Services**
 
 </td>
 <td width="50%">
@@ -109,20 +109,19 @@
 | | Feature | Détail |
 |---|---------|--------|
 | 🔐 | **Chiffrement E2E** | PQXDH : X25519 + ML-KEM-1024 + AES-256-GCM / ChaCha20-Poly1305 + SPQR |
+| 🆔 | **1 seed → tout** | Ed25519 seed → Account ID, .onion, X25519, ML-KEM, fingerprint |
 | 🔄 | **Perfect Forward Secrecy** | Double Ratchet (DH + KDF chains) |
 | 🔏 | **Fingerprint emojis + QR** | 96-bit, 16 emojis + QR code SHA-256, scanner intégré |
-| ✅ | **Vérification indépendante** | Chacun vérifie de son côté, message système + lien cliquable |
-| 🛡️ | **DeviceSecurityManager** | Détection StrongBox, niveau MAXIMUM/STANDARD |
-| 🕵️ | **Metadata hardening** | senderUid hashé HMAC + messageIndex chiffré |
-| 🛡️ | **Zero-knowledge relay** | Firebase ne voit que du ciphertext |
-| 🔑 | **Keystore-backed** | Clé privée dans EncryptedSharedPreferences |
+| 🛡️ | **ML-DSA-44** | Signature post-quantique hybride sur le handshake |
+| 🌐 | **Tor P2P** | Zéro serveur central — .onion directe, IP jamais visible |
+| 📬 | **Fialka Mailbox** | Livraison offline (4 modes : P2P, perso, privé, public) |
+| 🔑 | **Keystore-backed** | Seed dans Android Keystore (StrongBox si dispo) |
 | 🗄️ | **SQLCipher** | Base Room chiffrée AES-256 |
 | 🧹 | **Zeroing mémoire** | Clés intermédiaires remplies de zéros |
 | 📏 | **Message padding** | Taille fixe (256/1K/4K/16K) anti-analyse de trafic |
-| 🗑️ | **Delete-after-delivery** | Messages supprimés de Firebase après déchiffrement |
 | 👻 | **Dummy traffic** | Messages factices périodiques (configurable) |
-| 📎 | **Fichiers E2E** | Chiffrement AES-256-GCM par fichier via Firebase Storage |
-| 🔒 | **PBKDF2 PIN** | 600K itérations + salt (remplace SHA-256) |
+| 📎 | **Fichiers E2E** | Chiffrement AES-256-GCM, transfert P2P via Tor |
+| 🔒 | **PBKDF2 PIN** | 600K itérations + salt |
 | ✍️ | **Signature Ed25519** | Chaque message signé, badge ✅/⚠️ anti-falsification |
 | 📸 | **Photos one-shot** | Vue unique (sender + receiver), suppression sécurisée 2 phases |
 
@@ -134,16 +133,15 @@
 
 | | Feature | Détail |
 |---|---------|--------|
-| 📷 | **QR Code** | Scan → clé publique + pseudo auto-remplis (deep link v2) |
+| 📷 | **QR Code** | Scan → clé publique + pseudo auto-remplis |
 | 📨 | **Demandes de contact** | Invitation → notification → accepter/refuser |
 | 🔴 | **Messages non lus** | Badge compteur + séparateur dans le chat |
 | 🔄 | **Temps réel** | Messages reçus même app en arrière-plan |
-| 🔔 | **Push notifications** | Opt-in, zéro contenu message |
-| ⏱️ | **Messages éphémères** | 10 durées (30s → 1 mois), synchro Firebase |
-| � | **Partage de fichiers E2E** | Chiffrés AES-256-GCM, 25 Mo max |
+| 🔔 | **Push notifications** | UnifiedPush + ntfy.sh, zéro contenu (self-hostable) |
+| ⏱️ | **Messages éphémères** | 10 durées (30s → 1 mois) |
+| 📁 | **Partage de fichiers E2E** | Chiffrés AES-256-GCM, transfert P2P via Tor |
 | 👻 | **Trafic factice** | Messages indistinguables pour masquer l'activité |
-| 🗑️ | **Delete-after-delivery** | Ciphertext supprimé de Firebase après réception |
-| �💀 | **Détection convo morte** | Auto-détection + nettoyage + re-invitation |
+| 💀 | **Détection convo morte** | Auto-détection + nettoyage + re-invitation |
 
 </details>
 
@@ -173,8 +171,8 @@
 | ⏰ | **Auto-lock** | Timeout configurable (5s → 5min) |
 | 🔑 | **Backup BIP-39** | 24 mots pour sauvegarder la clé d'identité |
 | ♻️ | **Restauration** | Grille autocomplete 24 mots + restaurer sur nouvel appareil |
-| 🗑️ | **Suppression complète** | Nettoie Firebase (profil, inbox, convos, clés de signature) |
-| 📵 | **Anonyme** | Zéro numéro, zéro email, zéro tracking |
+| 🗑️ | **Suppression complète** | Supprime toutes les données locales |
+| 📵 | **Anonyme** | Zéro numéro, zéro email, zéro Google, zéro tracking |
 
 </details>
 
@@ -197,8 +195,9 @@
 │               Repository Layer                    │
 │      ChatRepository — source de vérité unique     │
 ├────────────────┬────────────────┬────────────────┤
-│    Room DB     │     Crypto     │    Firebase     │
-│   (SQLCipher)  │  PQXDH + DR    │  Relay + FCM    │
+│    Room DB     │     Crypto     │   Transport     │
+│   (SQLCipher)  │  PQXDH + DR    │  Tor P2P .onion │
+│                │  + ML-DSA-44   │  + Mailbox      │
 └────────────────┴────────────────┴────────────────┘
 ```
 
@@ -215,15 +214,13 @@
 ```bash
 # 1. Clone
 git clone https://github.com/FialkaApp/Fialka-Android.git
-cd Fialka
+cd Fialka-Android
 
-# 2. Ajouter google-services.json dans app/ (voir docs/SETUP.md)
-
-# 3. Build
+# 2. Build
 ./gradlew assembleDebug
 ```
 
-> 📖 **Guide complet** — [Installation & Configuration Firebase](docs/fr/SETUP.md)
+> 📖 **Guide complet** — [Installation & Configuration](docs/fr/SETUP.md)
 
 ---
 
@@ -235,64 +232,40 @@ cd Fialka
 
 | Mesure | Statut |
 |--------|--------|
+| **Identité : 1 seed Ed25519 → tout** (Account ID, .onion, X25519, ML-KEM, fingerprint) | ✅ |
+| **Zéro serveur central** — P2P intégral via Tor Hidden Services (.onion) | ✅ |
+| **Zéro Google, zéro Firebase** — aucune dépendance corporate | ✅ |
 | Chiffrement E2E (PQXDH : X25519 + ML-KEM-1024 + AES-256-GCM / ChaCha20) | ✅ |
 | Double Ratchet avec PFS + healing | ✅ |
-| Zeroing mémoire (clés intermédiaires) | ✅ |
-| Envoi atomique (ratchet + Firebase) | ✅ |
+| SPQR : ré-encapsulation ML-KEM-1024 toutes les 10 messages | ✅ |
+| ML-DSA-44 : signature PQ hybride sur le handshake | ✅ |
+| Ed25519 : signature classique par message (badge ✅/⚠️) | ✅ |
+| Fialka Mailbox : livraison offline (4 modes : P2P, perso, privé, public) | ✅ |
+| UnifiedPush + ntfy.sh (notifications sans Google, self-hostable) | ✅ |
+| Sealed Sender via Tor (supérieur à Signal — IP jamais visible) | ✅ |
+| Zeroing mémoire (clés intermédiaires, HKDF, MnemonicManager) | ✅ |
 | Mutex par conversation (thread-safe) | ✅ |
 | SQLCipher (base locale chiffrée AES-256) | ✅ |
-| Metadata hardening (trial decryption) | ✅ |
-| senderUid hashé HMAC-SHA256 par conversation | ✅ |
-| Message padding taille fixe (anti traffic analysis) | ✅ |
-| Delete-after-delivery (Firebase auto-cleanup) | ✅ |
-| Dummy traffic configurable (trafic factice) | ✅ |
-| Fichiers E2E (AES-256-GCM + Firebase Storage) | ✅ |
+| Message padding taille fixe (256/1K/4K/16K — anti traffic analysis) | ✅ |
+| Dummy traffic configurable (trafic factice par conversation) | ✅ |
+| Fichiers E2E (AES-256-GCM, transfert P2P via Tor) | ✅ |
 | PBKDF2 PIN (600K itérations + salt) | ✅ |
-| R8/ProGuard obfuscation + log stripping complet (d/v/i/w/e/wtf) | ✅ |
+| R8/ProGuard obfuscation + log stripping complet | ✅ |
 | Fingerprint emojis 96-bit anti-MITM + QR code SHA-256 scanner | ✅ |
 | App Lock (PIN + biométrie) | ✅ |
-| Firebase security rules restrictives | ✅ |
-| BIP-39 backup/restore (24 mots) | ✅ |
+| BIP-39 backup/restore (24 mots) → restaure toute l'identité | ✅ |
 | `allowBackup=false`, zéro logs sensibles | ✅ |
-| Material Design 3 — migration complète des 5 thèmes | ✅ |
-| Icônes d'attachement inline avec animation (style Session) | ✅ |
-| Permissions Android 13+ (READ_MEDIA_IMAGES/AUDIO) | ✅ |
-| Geste prédictif (enableOnBackInvokedCallback) | ✅ |
-| Routage Tor intégré (SOCKS5 + VPN TUN + libtor.so) | ✅ |
-| Écran bootstrap Tor (choix + progress + 5 thèmes) | ✅ |
-| Toggle Tor dans Paramètres Sécurité + reconnexion | ✅ |
-| Dummy traffic par conversation | ✅ |
-| Signature Ed25519 par message (anti-falsification) | ✅ |
-| PQXDH : X25519 + ML-KEM-1024 (résistance post-quantique) | ✅ |
-| SPQR : ré-encapsulation ML-KEM toutes les 10 messages | ✅ |
-| ChaCha20-Poly1305 alternatif (auto-détection hardware AES) | ✅ |
-| Upgrade PQXDH différé (rootKey-only, zéro désync) | ✅ |
 | StrongBox hardware key storage (si disponible) | ✅ |
-| DeviceSecurityManager (probe StrongBox + profil utilisateur) | ✅ |
-| QR deep link v2 (X25519 + ML-KEM + nom, auto-fill) | ✅ |
-| displayName masqué de Firebase (zéro PII serveur) | ✅ |
-| Vérification d'empreinte indépendante par utilisateur | ✅ |
-| Messages système de vérification + lien cliquable | ✅ |
-| lastDeliveredAt (skip messages déjà traités au redémarrage) | ✅ |
-| Delete-after-failure (nettoyage messages en échec Firebase) | ✅ |
-| Déduplication atomique dual-listener (ConcurrentHashMap) | ✅ |
-| Nettoyage clés de signature à la suppression de compte | ✅ |
-| **Audit sécurité V3.4.1 — 42+ vulnérabilités corrigées** | ✅ |
-| Firebase rules : write-once (signing_keys, mlkem_keys, inbox) | ✅ |
-| Validation senderUid/ciphertext/iv/createdAt dans Firebase rules | ✅ |
-| Zeroing mémoire HKDF (IKM, PRK, expandInput) | ✅ |
-| Zeroing mémoire MnemonicManager (encode + decode) | ✅ |
-| FLAG_SECURE (MainActivity, LockScreen, RestoreFragment, dialogs) | ✅ |
+| DeviceSecurityManager (probe StrongBox + profil sécurité) | ✅ |
+| FLAG_SECURE (toutes activités sensibles + dialogs) | ✅ |
 | Protection anti-tapjacking (filterTouchesWhenObscured) | ✅ |
 | usesCleartextTraffic=false (zéro trafic HTTP) | ✅ |
 | Deep link hardening (whitelist, limites, anti-injection) | ✅ |
 | Clipboard EXTRA_IS_SENSITIVE + auto-clear 30s | ✅ |
 | SecureFileManager (suppression 2 passes : aléatoire + zéros) | ✅ |
-| FCM payload opaque (zéro metadata dans les notifications push) | ✅ |
-| Firebase Storage : delete restreint au uploadeur uniquement | ✅ |
-| Validation ML-KEM taille + Base64 côté client | ✅ |
-| Input validation FirebaseRelay.sendMessage (require guards) | ✅ |
-| Cloud Function : regex validation senderUid + conversationId | ✅ |
+| Photos one-shot (vue unique, suppression sécurisée 2 phases) | ✅ |
+| Messages éphémères (30s → 1 mois) | ✅ |
+| **Audit sécurité V3.4.1 — 42+ vulnérabilités corrigées** | ✅ |
 
 > 📖 **Analyse complète** — [`SECURITY.md`](SECURITY.md) · [Protocole crypto](docs/fr/CRYPTO.md)
 
@@ -311,13 +284,17 @@ cd Fialka
 | **V2.1** | Account Lifecycle — BIP-39 backup, restauration, suppression, dead convo | ✅ Done |
 | **V2.2** | UI Modernization — 5 thèmes, animations, CoordinatorLayout, zero hardcoded colors | ✅ Done |
 | **V3** | Security Hardening — R8, delete-after-delivery, padding, HMAC UID, PBKDF2, dummy traffic, fichiers E2E | ✅ Done |
-| **V3.1** | Settings Redesign — Paramètres Signal-like, PIN 6 chiffres, sous-écran Confidentialité, coroutines PIN | ✅ Done |
-| **V3.2** | Ed25519 Signing — Signature par message, badge ✅/⚠️, durcissement Firebase rules, nettoyage clés | ✅ Done |
-| **V3.3** | Material 3 + Tor + Attachment UX — Migration M3, intégration Tor complète, icônes inline Session, permissions Android 13+, durcissement logs | ✅ Done |
-| **V3.4** | PQXDH + Security — ML-KEM-1024 post-quantique, deep link v2, QR auto-fill nom, displayName masqué Firebase, DeviceSecurityManager StrongBox, vérification empreinte indépendante, messages système, fix désync PQXDH, fix dual-listener, lastDeliveredAt | ✅ Done |
-| **V3.4.1** | One-Shot + UX + Security Audit — Photos éphémères, grille BIP-39, QR fingerprint, audit 29 layouts, PIN oublié, **audit sécurité complet (42+ fixes)** : Firebase rules write-once, zeroing mémoire HKDF/mnemonic, FLAG_SECURE, deep link hardening, SecureFileManager, FCM opaque, Storage owner-only delete, input validation | ✅ Done |
-| **V3.5** | SPQR + ChaCha20 + Threat Model — Triple Ratchet PQ (ré-encapsulation ML-KEM toutes les 10 msgs), ChaCha20-Poly1305 alternatif (auto-détection hardware), modèle de menace documenté dans SECURITY.md | ✅ Done |
-| **V3.6** | Planned — Camouflage app + faux écran, Dual PIN, panic button, messages vocaux E2E, sealed sender, reply/quote | 🔜 |
+| **V3.1** | Settings Redesign — Paramètres Signal-like, PIN 6 chiffres, sous-écran Confidentialité | ✅ Done |
+| **V3.2** | Ed25519 Signing — Signature par message, badge ✅/⚠️, nettoyage clés | ✅ Done |
+| **V3.3** | Material 3 + Tor + Attachment UX — Migration M3, intégration Tor complète, icônes inline | ✅ Done |
+| **V3.4** | PQXDH + Security — ML-KEM-1024 post-quantique, deep link v2, QR auto-fill, DeviceSecurityManager StrongBox | ✅ Done |
+| **V3.4.1** | One-Shot + Security Audit — Photos éphémères, grille BIP-39, QR fingerprint, **audit sécurité (42+ fixes)** | ✅ Done |
+| **V3.5** | SPQR + ChaCha20 — Triple Ratchet PQ (ML-KEM toutes les 10 msgs), ChaCha20-Poly1305 alternatif | ✅ Done |
+| **V3.6a** | UX — Reply/Quote, messages vocaux E2E (Opus), Dual PIN + Panic Button | 🔜 |
+| **V3.6b** | Crypto — **ML-DSA-44 handshake hybride**, app disguise + faux écran | 🔜 |
+| **V4.0** | **Zéro Google** — Account ID Ed25519, Tor Hidden Services P2P, **suppression totale de Firebase**, Fialka Mailbox, UnifiedPush + ntfy.sh | 🔜 |
+| **V4.1** | Polish — Sealed Sender réel (VXEdDSA), multi-device Sesame, **audit externe** (Cure53 / Trail of Bits) | 🔜 |
+| **V5.0** | Long terme — **FN-DSA Falcon-512** signatures PQ par message, réseau Mailbox décentralisé, Bluetooth/WiFi fallback | 🔮 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
 
@@ -347,7 +324,7 @@ cd Fialka
 |----------|---------|
 | [**Architecture**](docs/fr/ARCHITECTURE.md) | Patterns, layers, flux des demandes, cycle de vie |
 | [**Protocole Crypto**](docs/fr/CRYPTO.md) | X25519, Double Ratchet, fingerprint, modèle de menace |
-| [**Installation**](docs/fr/SETUP.md) | Prérequis, Firebase, build, dépendances |
+| [**Installation**](docs/fr/SETUP.md) | Prérequis, build, dépendances |
 | [**Structure**](docs/fr/STRUCTURE.md) | Arbre complet du projet |
 | [**Changelog**](docs/fr/CHANGELOG.md) | Historique V1 → V3.5 |
 | [**Sécurité**](SECURITY.md) | Audit complet, limites connues |
@@ -358,13 +335,15 @@ cd Fialka
 
 <div align="center">
 
-Ce projet est sous licence [GPLv3](LICENSE). Consultez les [Terms of Service](TERMS.md) avant toute utilisation.
-
-Fourni à des fins **éducatives**. Utilisez-le comme base pour comprendre le chiffrement E2E sur mobile.
+Ce projet est sous licence [GPLv3](LICENSE). Consultez les [Conditions d'utilisation](TERMS.md) et la [Politique de confidentialité](PRIVACY.md) avant toute utilisation.
 
 <br/>
 
-> **⚠️ Avertissement** : Ce logiciel est un projet personnel et éducatif. L'implémentation cryptographique **n'a pas été auditée** par un cabinet de sécurité tiers. Aucune garantie de sécurité absolue n'est fournie. Ne l'utilisez pas comme seul moyen de communication sécurisée dans des situations critiques. L'utilisation de ce logiciel est **à vos propres risques**. Voir [TERMS.md](TERMS.md).
+> **⚠️ Avertissement** : **Fialka est un outil.** Les développeurs n'opèrent aucune infrastructure, ne stockent aucune donnée utilisateur, et ne peuvent accéder à aucun message. L'implémentation cryptographique **n'a pas été auditée** par un cabinet de sécurité tiers. Aucune garantie de sécurité absolue n'est fournie. L'utilisation de ce logiciel est **à vos propres risques** et **sous votre entière responsabilité**. Voir [TERMS.md](TERMS.md).
+
+<br/>
+
+© 2024-2026 FialkaApp Contributors. Licensed under [GPLv3](LICENSE).
 
 <br/>
 

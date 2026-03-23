@@ -8,7 +8,7 @@
 
 <img src="https://img.shields.io/badge/IDE-Android_Studio-7B2D8E?style=for-the-badge&logo=android-studio" />
 <img src="https://img.shields.io/badge/JDK-17-9C4DCC?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Firebase-Blaze_(gratuit)-6A1B9A?style=for-the-badge&logo=firebase" />
+<img src="https://img.shields.io/badge/Transport-Tor_P2P-6A1B9A?style=for-the-badge" />
 
 </div>
 
@@ -18,8 +18,8 @@
 
 - **Android Studio** Hedgehog (2023.1.1) ou plus récent
 - **JDK 17**
-- Un projet **Firebase** (plan Blaze — gratuit jusqu'à 2M invocations/mois)
-- **Node.js 18+** (pour déployer la Cloud Function)
+
+> Fialka n'a **aucune dépendance à un service externe**. Pas de Firebase, pas de compte Google, pas de clé API.
 
 ---
 
@@ -32,59 +32,24 @@ cd Fialka-Android
 
 ---
 
-## 2. Configuration Firebase
-
-### Étape 1 — Créer le projet
-
-1. Aller sur [Firebase Console](https://console.firebase.google.com/)
-2. **Créer un projet** (désactiver Google Analytics si souhaité)
-3. **Ajouter une app Android** :
-   - Package : `com.fialkaapp.fialka`
-   - Télécharger `google-services.json`
-
-### Étape 2 — Configurer les services
-
-1. **Copier** `google-services.json` dans `app/`
-2. Firebase Console → **Authentication** → Méthode de connexion → **Anonyme** → Activer
-3. Firebase Console → **Realtime Database** → Créer (région la plus proche)
-4. Onglet **Règles** → coller le contenu de [`firebase-rules.json`](../firebase-rules.json)
-
-### Étape 2b — Firebase Storage (partage de fichiers E2E)
-
-1. Firebase Console → **Storage** → Activer
-2. Onglet **Rules** → coller le contenu de [`storage.rules`](../../storage.rules)
-3. Vérifier que le bucket est dans la bonne région
-
-### Étape 3 — Déployer la Cloud Function (push notifications)
-
-```bash
-# Installer Firebase CLI
-npm install -g firebase-tools
-
-# Se connecter
-firebase login
-
-# Depuis la racine du projet
-cd functions
-npm install
-cd ..
-firebase deploy --only functions
-```
-
-La Cloud Function se déclenche automatiquement à chaque nouveau message et envoie un push aux destinataires qui ont activé les notifications.
-
-> ⚠️ **`google-services.json` est dans le `.gitignore`** — il ne sera jamais poussé sur GitHub.
-> Le fichier `app/google-services.json.template` montre la structure attendue.
-
----
-
-## 3. Compiler
+## 2. Compiler
 
 ```bash
 ./gradlew assembleDebug
 ```
 
 Ou ouvrir dans Android Studio → **Run** sur un émulateur ou device physique.
+
+> Fialka embarque Tor (`libtor.so`) directement. Au premier lancement, l'app bootstrap une connexion Tor et génère l'identité de l'utilisateur à partir d'un unique seed Ed25519.
+
+---
+
+## Notes d'architecture
+
+- **Aucun serveur à configurer** — toute communication est P2P via Tor Hidden Services (.onion)
+- **Aucun serveur push** — les notifications sont délivrées via UnifiedPush + ntfy.sh (auto-hébergeable)
+- **Aucune création de compte** — l'identité est dérivée localement du seed Ed25519 (backup BIP-39, 24 mots)
+- **Fialka Mailbox** — gère la livraison hors-ligne (4 modes : Direct P2P, Personnel, Nœud privé, Nœud public)
 
 ---
 
@@ -98,15 +63,13 @@ Ou ouvrir dans Android Studio → **Run** sur un émulateur ou device physique.
 | AndroidX Lifecycle | 2.8.7 | ViewModels, LiveData, coroutines |
 | Room + KSP | 2.7.1 | Base de données locale SQLite |
 | SQLCipher | 4.5.4 | Chiffrement AES-256 de la base Room |
-| Firebase BOM | 34.10.0 | Auth anonyme + Realtime Database + Cloud Messaging + Storage |
-| Firebase Storage | (via BOM) | Stockage fichiers chiffrés E2E |
-| firebase-functions (Node.js) | 7.0.0 | Cloud Function trigger (push notifications) |
-| firebase-admin (Node.js) | 13.6.0 | Admin SDK pour RTDB + FCM côté serveur |
-| AndroidX Security Crypto | 1.1.0-alpha06 | Stockage sécurisé |
+| BouncyCastle | 1.80 | Ed25519, ML-KEM-1024, ML-DSA-44 |
+| Tor (libtor.so) | Embedded | Transport P2P Tor Hidden Services |
+| UnifiedPush | Latest | Notifications push (compatible ntfy.sh) |
+| AndroidX Security Crypto | 1.1.0-alpha06 | Stockage sécurisé (Android Keystore) |
 | AndroidX Biometric | 1.1.0 | BiometricPrompt (empreinte, visage) |
 | Kotlinx Coroutines | 1.9.0 | Async + Flow |
 | ZXing Android Embedded | 4.3.0 | Génération et scan QR codes |
-| BouncyCastle | 1.80 | Ed25519 (signatures), ML-KEM-1024 (PQXDH post-quantique) |
 
 ---
 

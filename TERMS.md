@@ -1,120 +1,127 @@
-# Terms of Service — Fialka
+# Terms of Use — Fialka
 
-*Last updated: March 20, 2026*
+*Last updated: March 23, 2026*
 
 ---
 
-## 1. Acceptance of Terms
+## ⚠️ Important Notice
 
-By installing, copying, or using Fialka (the "Application"), you agree to these Terms of Service (the "Terms"). If you do not agree, do not use the Application.
+**Fialka is a tool.** The developers do not operate any infrastructure, do not store any user data, and cannot access any messages. There is no central server — all communication is peer-to-peer via Tor. Users are solely responsible for their use of the software.
 
-## 1.1. Age Requirement
+---
 
-Fialka is **not intended for use by anyone under the age of 16** (or the minimum digital age of consent in your jurisdiction, as defined by GDPR Article 8 or equivalent local laws). By using the Application, you represent that you are at least 16 years old. If you are under the applicable age, you must not use this Application.
+## 1. Acceptance
 
-## 2. Description of Service
+By downloading, installing, or using Fialka, you agree to these Terms of Use. If you do not agree, do not use the software.
 
-Fialka is an end-to-end encrypted (E2E) messaging application using the PQXDH protocol (X25519 + ML-KEM-1024) and Double Ratchet. The Application is provided free of charge and as-is.
+## 2. Nature of the Software
 
-## 3. Disclaimer of Warranties
+Fialka is **free, open-source software** distributed under the [GNU General Public License v3.0](LICENSE) (GPLv3).
 
-**The Application is provided "as is", without warranty of any kind**, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, non-infringement, availability, or absolute security.
+- Fialka is a **tool**, not a service
+- The developers provide **source code and pre-built APKs** — nothing more
+- The developers **do not operate any servers, relays, databases, or infrastructure**
+- There is **no central server** — communication is fully peer-to-peer via Tor Hidden Services
+- The developers **cannot access, read, decrypt, moderate, or delete** any message
+- Your identity is your **cryptographic key** — there are no accounts, no registration, no database
 
-The developer does not warrant that the Application will be error-free, uninterrupted, or that defects will be corrected.
+## 3. Eligibility
 
-## 3.1. Security Disclaimer
+You must be at least **16 years old** (or the applicable minimum digital age of consent in your jurisdiction) to use Fialka. By using the app, you confirm that you meet this requirement.
 
-**The cryptographic implementation in this Application has NOT been independently audited by a third-party security firm.** While the developer has made every reasonable effort to implement industry-standard cryptographic protocols (PQXDH, Double Ratchet, AES-256-GCM, Ed25519), **no guarantee of absolute security is made or implied**.
+## 4. User Responsibilities
 
-This Application is developed as a **personal and educational project** by an independent developer. It is **not** a commercial product, **not** backed by a security team, and **should not be relied upon as your sole means of secure communication** in life-threatening or legally sensitive situations.
+Since Fialka is a fully decentralized tool with no central authority, **you are solely responsible for**:
 
-Users requiring certified security guarantees should use professionally audited and commercially supported solutions.
+- **Your cryptographic identity**: Your Ed25519 seed is your identity. If you lose your 24-word recovery phrase, your identity is irrecoverable. No one can reset it for you.
+- **Your Mailbox node** (if self-hosted): You deploy, configure, and secure your own Mailbox. The developers have no access to it.
+- **Your messages**: The developers cannot read, moderate, delete, or intercept any message. There is no reporting system and no content moderation — because there is no central server.
+- **Your compliance**: You are responsible for complying with all applicable laws when using Fialka, including export control regulations for cryptographic software.
+- **Your data**: All data is stored locally on your device. The developers store nothing.
+- **Your network security**: While Tor provides strong anonymity, you are responsible for your own operational security practices.
 
-## 4. Limitation of Liability
+## 5. Prohibited Uses
 
-**In no event shall the developer be liable** for any direct, indirect, incidental, special, consequential, or exemplary damages, including but not limited to:
+You agree **not** to use Fialka:
 
-- Loss of data or messages
-- Interception of communications despite encryption
-- Damages resulting from the use or inability to use the Application
-- Content exchanged between users through the Application
-- Actions of third parties accessing the Application
+- To violate any applicable law or regulation
+- To transmit illegal content (as defined by applicable law)
+- To harass, threaten, or harm others
+- To distribute malware or malicious payloads
+- To circumvent lawful court orders or legal obligations
 
-## 5. User Responsibility
+**Note:** The developers have **no technical ability** to enforce these restrictions. Fialka is fully peer-to-peer with no central point of control. This clause reflects ethical expectations, not operational control.
 
-You are **solely responsible** for:
+## 6. No Warranty
 
-- The content you send, receive, or share through the Application
-- Safeguarding your recovery phrase (BIP-39 / 24 words)
-- Compliance with applicable laws in your jurisdiction
-- The security of your device and credentials
+Fialka is provided **"AS IS"**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement.
 
-**Fialka does not store any private keys on its servers.** Loss of your recovery phrase results in permanent and irreversible loss of access to your account.
+Specifically:
 
-## 6. Prohibited Content
+- The cryptographic implementation has **not yet been independently audited** by a third-party security firm (audit planned — see [SECURITY.md](SECURITY.md))
+- The developers make **no guarantee** that the software is free of vulnerabilities
+- The developers are **not responsible** for any data loss, security breach, or damage resulting from the use of the software
 
-Use of the Application for illegal purposes is strictly prohibited, including but not limited to:
+## 7. Limitation of Liability
 
-- Distribution of child sexual abuse material (CSAM)
-- Terrorism or incitement to violence
-- Harassment or threats
-- Fraud or scams
-- Any activity violating applicable laws
+To the maximum extent permitted by applicable law, the developers and contributors shall **not be liable** for any direct, indirect, incidental, special, consequential, or punitive damages arising from:
 
-## 7. Infrastructure and Relay
+- Your use or inability to use Fialka
+- Any unauthorized access to your data
+- Any loss of cryptographic keys or recovery phrases
+- Any compromise of your Tor Hidden Service or Mailbox node
+- Any third-party actions or services (Tor, UnifiedPush, etc.)
 
-The developer reserves the right to:
+## 8. Decentralized Architecture — No Central Control
 
-- **Suspend, modify, or terminate the relay service at any time**, without prior notice or obligation to justify
-- Modify the technical infrastructure without prior notification
-- Limit or block access in case of abuse
+Fialka is designed with **zero central authority**:
 
-The relay is an optional transport component. The Application can operate with alternative relays.
+- **No central server**: Messages travel directly between devices via Tor
+- **No account database**: Your identity is your Ed25519 key, stored only on your device
+- **No content moderation**: The developers cannot see, read, or filter any message
+- **No kill switch**: The developers cannot disable, block, or restrict any user
+- **No telemetry**: The app sends zero data to the developers
 
-## 8. Data and Privacy
+This means the developers have **no ability to comply with takedown requests, content removal orders, or user data requests** — because no such data exists on any server they control.
 
-- **No message is readable by the developer** — E2E encryption ensures that only participants can read messages
-- **No personal data is collected** for commercial purposes
-- Transport metadata (IP addresses) is routed through Tor and is not logged
-- See the [Privacy Policy](PRIVACY.md) for more details
+## 9. Intellectual Property
 
-## 9. Open Source Software
+- Fialka source code is licensed under **GPLv3**
+- The Fialka name, logo, and branding are used by the FialkaApp organization; reuse should follow standard open-source community conventions
+- Third-party libraries used by Fialka retain their respective licenses (see `app/build.gradle.kts` for dependency list)
 
-Fialka is distributed under the **GNU General Public License v3.0 (GPL-3.0)**. The source code is available on [GitHub](https://github.com/FialkaApp/Fialka-Android). The full GPL-3.0 license can be found in the [LICENSE](LICENSE) file.
+## 10. Third-Party Software
 
-## 10. Cryptography Export Notice
+Fialka includes or interacts with the following third-party components:
 
-This Application contains cryptographic software. The export, re-export, or transfer of cryptographic software may be restricted by the laws of your country or jurisdiction, including but not limited to the **Wassenaar Arrangement**, **EU Dual-Use Regulation (EC 428/2009)**, and the **U.S. Export Administration Regulations (EAR)**.
+| Component | License | Developers' role |
+|-----------|---------|-----------------|
+| Tor (The Onion Router) | BSD | Bundled for anonymous transport |
+| BouncyCastle | MIT | Bundled for cryptography |
+| UnifiedPush / ntfy.sh | Open-source | Optional, user-configured |
+| SQLCipher | BSD | Bundled for local DB encryption |
 
-**You are solely responsible** for verifying that your download, use, and/or distribution of this Application complies with all applicable export control laws and regulations in your jurisdiction. The developer assumes no liability for violations of export or import laws by users.
+**The developers are not responsible for the availability, security, or privacy practices of any third-party software.**
 
-## 11. Indemnification
+## 11. Open-Source License
 
-You agree to **indemnify, defend, and hold harmless** the developer from and against any and all claims, damages, obligations, losses, liabilities, costs, and expenses (including attorney's fees) arising from:
+The full license text is available in the [LICENSE](LICENSE) file. In case of conflict between these Terms and the GPLv3 license, **the GPLv3 prevails** for matters related to source code distribution and modification.
 
-- Your use or misuse of the Application
-- Your violation of these Terms
-- Your violation of any applicable law or regulation
-- Any content you transmit through the Application
-- Any third-party claims related to your use of the Application
+## 12. Modifications to These Terms
 
-## 12. Changes to Terms
-
-The developer reserves the right to modify these Terms at any time. Changes will be published in this file and on the website. Continued use of the Application after modification constitutes acceptance of the new Terms.
+These Terms may be updated at any time. Changes will be published in this file, reflected in the "Last updated" date, and noted in the [Changelog](docs/en/CHANGELOG.md). Continued use of Fialka constitutes acceptance of updated Terms.
 
 ## 13. Governing Law
 
-These Terms are governed by **French law**. Any dispute shall be submitted to the competent courts in France.
+These Terms are governed by the laws of **France**, without regard to conflict of law provisions. Any dispute arising from these Terms shall be subject to the exclusive jurisdiction of the courts of France.
 
-## 14. Severability
+## 14. Contact
 
-If any provision of these Terms is found to be unenforceable or invalid, that provision shall be limited or eliminated to the minimum extent necessary so that the remaining Terms shall remain in full force and effect.
-
-## 15. Contact
-
-For any questions regarding these Terms:
 - GitHub: [github.com/FialkaApp/Fialka-Android](https://github.com/FialkaApp/Fialka-Android)
+- Security issues: See [SECURITY.md](SECURITY.md)
 
 ---
 
-© 2024-2026 DevBot667. All rights reserved.
+**Fialka is a tool. The developers do not operate any infrastructure, do not store any user data, and cannot access any messages. There is no central server — all communication is peer-to-peer via Tor. Users are solely responsible for their use of the software.**
+
+© 2024-2026 FialkaApp Contributors. Licensed under [GPLv3](LICENSE).

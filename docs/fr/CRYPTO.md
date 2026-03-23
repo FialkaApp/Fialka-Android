@@ -39,7 +39,7 @@ Alice                                         Bob
   │  ct = AES-GCM(msg_key, iv, plaintext)      │
   │                                             │
   │  ──── {ct, iv, ephKey, kemCiphertext} ────►│
-  │           (Firebase relay)                  │
+  │           (Tor P2P .onion)                  │
   │                                             │
   │                                             │  kem_ss = ML-KEM-1024.Decaps(sk_kem_B, kem_ct)
   │                                             │  root_key' = HKDF(root_key || kem_ss)
@@ -52,11 +52,18 @@ Alice                                         Bob
 
 ## Identité
 
-1. Génération d'une paire **X25519** au premier lancement
-2. Clé privée → **EncryptedSharedPreferences** (AES-256-GCM, Android Keystore-backed)
-3. Clé publique → Base64 + QR code pour partage
-4. Backup : clé privée → **24 mots BIP-39** (256 bits + 8-bit checksum SHA-256)
-5. Restauration : 24 mots → clé privée → dérivation clé publique (DH avec point de base X25519 u=9)
+1. **Seed Ed25519** (32 bytes) généré au premier lancement — secret maître unique
+2. Seed → **Android Keystore** (StrongBox si disponible)
+3. À partir du seed, dérivation de :
+   - **Ed25519** paire de clés (signature + identité maître)
+   - **Account ID** = SHA3-256(pubkey) → Base58 (ex : `Fa3x...9Z`)
+   - **Adresse .onion** (encodage Tor v3 depuis la pubkey Ed25519)
+   - **X25519** clé DH (birational map Edwards → Montgomery)
+   - **ML-KEM-1024** paire de clés (HKDF(seed, "fialka-ml-kem", 64 bytes) → KeyGen déterministe)
+   - **Empreinte** = SHA-256 → 16 emojis (96-bit)
+4. Clé publique → Base64 + QR code pour partage
+5. Backup : seed → **24 mots BIP-39** (256 bits + 8-bit checksum SHA-256)
+6. Restauration : 24 mots → seed → re-dérive toutes les clés (Ed25519, X25519, ML-KEM, .onion)
 
 ---
 
@@ -92,7 +99,7 @@ Les deux téléphones calculent la **même** empreinte. L'utilisateur compare vi
 - ✅ Badge dans le chat : ✅ Vérifié / ⚠️ Non vérifié
 - ✅ Vérification **indépendante** par utilisateur (état local Room uniquement)
 - ✅ Messages système dans le chat lors de la vérification/retrait (avec lien cliquable "Voir l'empreinte")
-- ✅ Notification événementielle Firebase (`fingerprintEvent: "verified:<timestamp>"`) — notifie le pair, ne synchronise pas l'état
+- ✅ Notification événementielle via Tor P2P — notifie le pair, ne synchronise pas l'état
 
 ### QR Code Fingerprint (V3.4.1)
 
@@ -171,7 +178,7 @@ Envoi :
   signingKeyPair = getOrDeriveSigningKeyPair()   (EncryptedSharedPreferences)
   dataToSign = ciphertext.UTF8 || conversationId.UTF8 || createdAt.bigEndian8bytes
   signature  = Ed25519.sign(signingKeyPair.private, dataToSign)
-  → envoyé dans le message Firebase : { ..., "signature": Base64(signature) }
+  → envoyé dans le message via Tor : { ..., "signature": Base64(signature) }
 
 Réception :
   signingPublicKey = fetchSigningPublicKeyByIdentity(contact.publicKey)
@@ -186,7 +193,7 @@ Réception :
 - ✅ **Anti-replay inter-conversation** : `conversationId` inclus dans les données signées
 - ✅ **Anti-manipulation temporelle** : `createdAt` (timestamp client) inclus dans les données signées
 - ✅ **Clé de signature séparée** de la clé d'identité X25519 (pas de mélange des usages)
-- ✅ **Nettoyage** : clé de signature supprimée de Firebase (`/signing_keys/{hash}`) à la suppression du compte
+- ✅ **Nettoyage** : clé de signature effacée localement à la suppression du compte
 
 ---
 
@@ -204,7 +211,7 @@ Fialka implémente un échange de clés **hybride** combinant X25519 (classique)
 Premier message (initiator) :
   kem_ct, kem_ss = ML-KEM-1024.Encaps(contact_kem_publicKey)
   root_key' = HKDF(root_key || kem_ss, "pqxdh-upgrade")
-  → message Firebase inclut { ..., "kemCiphertext": Base64(kem_ct) }
+  → message via Tor inclut { ..., "kemCiphertext": Base64(kem_ct) }
   → root_key upgradé localement (chains recalculées)
 
 Réception du premier message (responder) :
@@ -239,7 +246,7 @@ Toutes les PQ_RATCHET_INTERVAL = 10 messages envoyés :
 Sender (Alice) :
   kem_ct, kem_ss = ML-KEM-1024.Encaps(contact_kem_publicKey)
   root_key' = HKDF(root_key, kem_ss, info="Fialka-SPQR-pq-ratchet")
-  → message Firebase inclut { ..., "kemCiphertext": Base64(kem_ct) }
+  → message via Tor inclut { ..., "kemCiphertext": Base64(kem_ct) }
   → pqRatchetCounter remis à 0
 
 Receiver (Bob) :
@@ -278,7 +285,7 @@ hasHardwareAes() :
 
 ### Format réseau
 
-Le champ `cipherSuite` dans `FirebaseMessage` indique l'algorithme utilisé :
+Le champ `cipherSuite` dans le message indique l'algorithme utilisé :
 - `0` (ou absent) = AES-256-GCM (défaut, rétrocompatible)
 - `1` = ChaCha20-Poly1305
 
@@ -292,7 +299,7 @@ Le receiver déchiffre automatiquement avec le bon algorithme.
 
 ---
 
-## Ce qui transite sur Firebase
+## Ce qui transite sur le réseau (Tor P2P)
 
 ### Messages (chiffrés)
 
@@ -301,28 +308,22 @@ Le receiver déchiffre automatiquement avec le bon algorithme.
   "ciphertext": "a3F4bWx...",
   "iv": "dG9rZW4...",
   "createdAt": 1700000000000,
-  "senderUid": "HMAC-SHA256(uid, conversationId)",
+  "senderHash": "HMAC-SHA256(accountId, conversationId)",
   "signature": "Ed25519(ciphertext || conversationId || createdAt)"
 }
 ```
 
-- **V3.0** : `senderUid` = `HMAC-SHA256(firebaseUid, conversationId)` → l'UID brut n'est plus visible
-- **V3.0** : Les messages sont **supprimés de Firebase** dès réception (`deleteMessageFromFirebase()`)
-- **V3.0** : Le message paddé (cf. section Padding) est chiffré → taille uniforme sur le réseau
-- **V3.2** : `signature` = Ed25519 sur `ciphertext_UTF8 || conversationId_UTF8 || createdAt_bigEndian8bytes` → anti-falsification + anti-replay
-- **V3.2** : `createdAt` = `System.currentTimeMillis()` côté client (pas `ServerValue.TIMESTAMP`) pour cohérence signature
+- `senderHash` = `HMAC-SHA256(accountId, conversationId)` → l'ID brut n'est plus visible
+- Le message paddé (cf. section Padding) est chiffré → taille uniforme sur le réseau
+- `signature` = Ed25519 sur `ciphertext_UTF8 || conversationId_UTF8 || createdAt_bigEndian8bytes` → anti-falsification + anti-replay
+- `createdAt` = `System.currentTimeMillis()` côté client pour cohérence signature
+- Tous les messages transitent via **Tor Hidden Services** (.onion vers .onion) — zéro relais central
 
 ### Paramètres éphémères
 
-```
-/conversations/{id}/settings/ephemeralDuration = 3600000
-```
+La durée éphémère est synchronisée directement entre pairs via le canal Tor chiffré.
 
-### Événements fingerprint (V3.4)
-
-```
-/conversations/{id}/settings/fingerprintEvent = "verified:<timestamp>"
-```
+### Événements fingerprint
 
 - Notification événementielle uniquement — **ne synchronise pas** l'état de vérification
 - Chaque utilisateur gère son état `fingerprintVerified` localement en Room
@@ -334,31 +335,33 @@ Le receiver déchiffre automatiquement avec le bon algorithme.
 
 **Jamais envoyé :** texte en clair, clés privées, clés de chaîne, position du ratchet.
 
-### Chiffrement de fichiers (V3.0)
+### Chiffrement de fichiers
 
 ```
 Envoi :
   fichier → clé AES-256-GCM aléatoire (fileKey)
-  → chiffre fichier (encryptFile) → upload Firebase Storage (/chat_files/{convId}/{uuid})
-  → message = "FILE|" + downloadUrl + "|" + Base64(fileKey) + "|" + fileName
-  → chiffre message avec Double Ratchet → envoie sur RTDB
+  → chiffre fichier (encryptFile) → envoie cipherBytes P2P via Tor
+  → message = "FILE|" + fileId + "|" + Base64(fileKey) + "|" + fileName
+  → chiffre message avec Double Ratchet → envoie via Tor
 
 Réception :
   → déchiffre message → détecte préfixe "FILE|"
-  → télécharge fichier chiffré depuis Storage
+  → reçoit fichier chiffré via Tor P2P
   → déchiffre avec fileKey → sauvegarde stockage interne
 ```
 
-### Demande de contact (inbox Firebase)
+### Demande de contact (via Tor / Mailbox)
 
 ```json
 {
-  "senderPublicKey": "MFkwEwYHKoZ...",
+  "senderPublicKey": "Ed25519_base64...",
   "senderDisplayName": "Alice",
   "conversationId": "conv_abc123",
   "createdAt": 1700000000000
 }
 ```
+
+Les demandes de contact sont délivrées directement au service .onion du destinataire, ou stockées dans un Fialka Mailbox si le destinataire est hors-ligne.
 
 ---
 
@@ -366,31 +369,30 @@ Réception :
 
 | Menace | Protégé ? | Détail |
 |--------|-----------|--------|
-| Firebase lit les messages | ✅ | Chiffré E2E, Firebase ne voit que du ciphertext |
+| Serveur lit les messages | ✅ | Aucun serveur central — tout P2P via Tor Hidden Services, chiffré E2E |
+| Compromission serveur central | N/A | Aucun serveur central n'existe |
 | Compromission d'une clé message | ✅ | PFS — chaque message a sa propre clé |
-| Replay d'anciens messages | ✅ | sinceTimestamp + lastDeliveredAt + messageIndex (embedded dans ciphertext) |
-| Race conditions ratchet | ✅ | Mutex par conversation + ConcurrentHashMap.putIfAbsent() + éviction LRU |
-| Attaque MITM | ✅ | Fingerprint emojis 96-bit (vérification visuelle indépendante) |
+| Replay d'anciens messages | ✅ | messageIndex intégré dans le ciphertext, état par conversation |
+| Race conditions ratchet | ✅ | Mutex par conversation (thread-safe) |
+| Attaque MITM | ✅ | Fingerprint emojis 96-bit (vérification visuelle) + handshake ML-DSA-44 |
 | Vol du téléphone déverrouillé | ✅ | Keystore, SQLCipher, App Lock PIN + biométrie, auto-lock |
 | Messages sensibles oubliés | ✅ | Messages éphémères (timer sur envoi / lecture) |
-| Falsification de message | ✅ | Signature Ed25519 par message (V3.2) — badge ✅/⚠️ |
-| Métadonnées (qui/quand) | ✅ | senderUid → HMAC-SHA256, padding uniforme, dummy traffic, delete-after-delivery |
-| Analyse de trafic | ✅ | Dummy traffic (30-90 s, même pipeline), padding par buckets, suppression après réception |
-| Fichiers interceptés | ✅ | Chiffrement AES-256-GCM par fichier, clé transmise dans le canal E2E |
-| Perte du téléphone | ✅ | Phrase mnémonique 24 mots (BIP-39) pour restaurer l'identité |
-| App Lock brute-force | ✅ | PBKDF2 600 000 itérations + verrouillage biométrique |
+| Falsification de message | ✅ | Signature Ed25519 par message — badge ✅/⚠️ |
+| Métadonnées (qui/quand) | ✅ | Tor Hidden Services (sealed sender), padding uniforme, dummy traffic |
+| Analyse de trafic | ✅ | Dummy traffic (30-90 s, même pipeline), padding par buckets, couverture Tor |
+| Fichiers interceptés | ✅ | Chiffrement AES-256-GCM par fichier, clé dans canal E2E, P2P via Tor |
+| Perte du téléphone | ✅ | Phrase mnémonique 24 mots (BIP-39) pour restaurer l'identité entière |
 | Contact supprime son compte | ✅ | Détection automatique conversation morte + nettoyage + re-invitation |
-| Ordinateur quantique (futur) | ✅ | PQXDH hybride ML-KEM-1024 + SPQR ré-encapsulation périodique — root_key rafraîchi post-quantiquement toutes les 10 messages (V3.5) |
-| Désynchronisation ratchet | ✅ | syncExistingMessages à l'acceptation, delete-after-failure, lastDeliveredAt lower-bound |
-| Perf sans accélération AES | ✅ | ChaCha20-Poly1305 sélectionné automatiquement sur les appareils sans ARMv8 Crypto Extension (V3.5) |
-| Screenshot / enregistrement écran | ✅ | FLAG_SECURE sur toutes les fenêtres et dialogs sensibles (audit V3.4.1) |
-| Tapjacking / attaque overlay | ✅ | filterTouchesWhenObscured sur les activités sensibles (audit V3.4.1) |
-| Injection deep link | ✅ | Whitelist paramètres, limites de taille, validation Base64, rejet caractères de contrôle (audit V3.4.1) |
-| Fuite presse-papiers | ✅ | EXTRA_IS_SENSITIVE + auto-effacement 30s (audit V3.4.1) |
-| Récupération forensique de fichiers | ✅ | SecureFileManager écrasement 2 passes (aléatoire + zéros) avant suppression (audit V3.4.1) |
-| Fuite metadata FCM | ✅ | Payload push opaque — zéro conversationId/senderName (audit V3.4.1) |
-| Écrasement de clés Firebase | ✅ | Rules write-once sur signing_keys, mlkem_keys, inbox (audit V3.4.1) |
-| Trafic HTTP en clair | ✅ | usesCleartextTraffic=false imposé (audit V3.4.1) |
+| Ordinateur quantique (futur) | ✅ | PQXDH hybride ML-KEM-1024 + SPQR ré-encapsulation + handshake ML-DSA-44 |
+| Désynchronisation ratchet | ✅ | Sync à l'acceptation, mutex par conversation |
+| Perf sans accélération AES | ✅ | ChaCha20-Poly1305 sélectionné automatiquement sans ARMv8 Crypto Extension |
+| Screenshot / enregistrement écran | ✅ | FLAG_SECURE sur toutes les fenêtres et dialogs sensibles |
+| Tapjacking / attaque overlay | ✅ | filterTouchesWhenObscured sur les activités sensibles |
+| Injection deep link | ✅ | Whitelist paramètres, limites de taille, validation Base64, rejet caractères de contrôle |
+| Fuite presse-papiers | ✅ | EXTRA_IS_SENSITIVE + auto-effacement 30s |
+| Récupération forensique de fichiers | ✅ | SecureFileManager écrasement 2 passes (aléatoire + zéros) avant suppression |
+| Exposition adresse IP | ✅ | Tout le trafic via Tor — IP réelle jamais exposée aux pairs ou au réseau |
+| Métadonnées push notification | ✅ | UnifiedPush + ntfy.sh — zéro contenu de message, auto-hébergeable |
 
 > Voir aussi [`SECURITY.md`](../../SECURITY.md) pour l'analyse complète des mesures de sécurité.
 

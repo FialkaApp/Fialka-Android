@@ -19,9 +19,9 @@ Fialka/
 ├── .gitignore
 ├── LICENSE
 ├── README.md
+├── PRIVACY.md
+├── TERMS.md
 ├── SECURITY.md
-├── firebase-rules.json
-├── storage.rules                             # Règles Firebase Storage
 ├── build.gradle.kts                          # Config Gradle racine
 ├── settings.gradle.kts
 ├── gradle.properties
@@ -30,7 +30,7 @@ Fialka/
 │   ├── fr/                                   # Documentation française
 │   │   ├── ARCHITECTURE.md                   # Architecture, patterns, flux
 │   │   ├── CRYPTO.md                         # Protocole cryptographique complet
-│   │   ├── SETUP.md                          # Installation + config Firebase
+│   │   ├── SETUP.md                          # Installation + compilation
 │   │   ├── STRUCTURE.md                      # Ce fichier
 │   │   └── CHANGELOG.md                      # Historique des versions
 │   └── en/                                   # English documentation
@@ -43,17 +43,14 @@ Fialka/
 ├── app/
 │   ├── build.gradle.kts                      # Dépendances app
 │   ├── proguard-rules.pro
-│   ├── google-services.json                  # ← À AJOUTER (gitignored)
-│   ├── google-services.json.template         # Structure de référence
 │   │
 │   └── src/main/
 │       ├── AndroidManifest.xml
 │       │
-│       ├── java/com/fialka/
-│       │   ├── FialkaApplication.kt      # Init Firebase
+│       ├── java/com/fialkaapp/fialka/
+│       │   ├── FialkaApplication.kt      # Init App + bootstrap Tor
 │       │   ├── MainActivity.kt               # Single-activity (NavHost)
 │       │   ├── LockScreenActivity.kt         # Écran de verrouillage PIN + biométrie
-│       │   ├── MyFirebaseMessagingService.kt  # FCM push handler
 │       │   │
 │       │   ├── crypto/
 │       │   │   ├── CryptoManager.kt          # X25519, ECDH, AES-256-GCM, HKDF, ML-KEM-1024 (PQXDH)
@@ -74,11 +71,11 @@ Fialka/
 │       │   │   │   ├── Contact.kt            # Contact (pseudo + pubkey)
 │       │   │   ├── Conversation.kt       # Conversation (ephemeral, fingerprint, lastDeliveredAt)
 │       │   │   │   ├── MessageLocal.kt       # Message (plaintext, ephemeral)
-│       │   │   │   ├── FirebaseMessage.kt    # Message chiffré (Firebase)
-│       │   │   │   └── RatchetState.kt       # État du ratchet par conversation
+│       │   │   ├── EncryptedMessage.kt   # Message chiffré (format réseau)
+│       │   │   └── RatchetState.kt       # État du ratchet par conversation
 │       │   │   │
 │       │   │   ├── remote/
-│       │   │   └── FirebaseRelay.kt      # Auth anonyme + relay + ephemeral sync + fingerprint events
+│       │   │   └── TorTransport.kt       # Transport Tor Hidden Services P2P + Mailbox
 │       │   │   │
 │       │   │   └── repository/
 │       │   │       └── ChatRepository.kt     # Source de vérité unique (Mutex)
@@ -133,11 +130,6 @@ Fialka/
 │           ├── xml/file_paths.xml            # FileProvider paths (partage fichiers)
 │           ├── values/                       # Couleurs, strings, thèmes, 22 attrs custom
 │           └── values-night/                 # Couleurs dark mode
-│
-├── functions/                                # Firebase Cloud Function (push)
-│   ├── index.js
-│   ├── package.json
-│   └── .gitignore
 ```
 
 ---
