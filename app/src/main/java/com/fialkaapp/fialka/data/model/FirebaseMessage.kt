@@ -39,6 +39,7 @@ data class FirebaseMessage(
     val ephemeralKey: String = "",   // Base64 X25519 DH public key (Double Ratchet)
     val signature: String = "",     // Base64 Ed25519 signature (64 bytes)
     val kemCiphertext: String = "", // Base64 ML-KEM-1024 ciphertext (first message only, PQXDH)
+    val mldsaSignature: String = "", // Base64 ML-DSA-44 signature (first message only, PQ handshake auth)
     val cipherSuite: Int = 0,      // 0 = AES-256-GCM (default), 1 = ChaCha20-Poly1305
     @Transient val firebaseKey: String = ""  // Local-only: Firebase node key for delete-after-delivery
 ) {
@@ -57,6 +58,9 @@ data class FirebaseMessage(
         }
         if (kemCiphertext.isNotEmpty()) {
             map["kemCiphertext"] = kemCiphertext
+        }
+        if (mldsaSignature.isNotEmpty()) {
+            map["mldsaSignature"] = mldsaSignature
         }
         if (cipherSuite != 0) {
             map["cipherSuite"] = cipherSuite

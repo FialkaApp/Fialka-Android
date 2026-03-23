@@ -72,6 +72,8 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                     repository.publishSigningPublicKey()
                     // Publish ML-KEM-1024 public key for PQXDH
                     repository.publishMLKEMPublicKey()
+                    // Publish ML-DSA-44 public key for PQ handshake auth
+                    repository.publishMlDsaPublicKey()
                     ConversationsViewModel.markSigningKeyPublished()
 
                     _state.value = OnboardingState.Success(user)

@@ -107,9 +107,7 @@ class ChatRepository(private val appContext: Context) {
     fun getUserLive(): LiveData<UserLocal?> = userDao.getUserLive()
 
     suspend fun createUser(displayName: String): UserLocal {
-        val publicKey = CryptoManager.generateIdentityKeyPair()
-        // Generate ML-KEM-1024 identity key pair for PQXDH (idempotent)
-        CryptoManager.generateMLKEMIdentityKeyPair()
+        val publicKey = CryptoManager.generateIdentity()
         val user = UserLocal(
             userId = UUID.randomUUID().toString(),
             displayName = displayName,
@@ -157,6 +155,10 @@ class ChatRepository(private val appContext: Context) {
             if (existing.mlkemPublicKey == null && mlkemPublicKey != null) {
                 updated = updated.copy(mlkemPublicKey = mlkemPublicKey)
             }
+            if (existing.mldsaPublicKey == null) {
+                val mldsaKey = try { FirebaseRelay.fetchMlDsaPublicKeyByIdentity(publicKey) } catch (_: Exception) { null }
+                if (mldsaKey != null) updated = updated.copy(mldsaPublicKey = mldsaKey)
+            }
             if (updated !== existing) {
                 contactDao.insertContact(updated)
                 return updated
@@ -174,12 +176,18 @@ class ChatRepository(private val appContext: Context) {
             FirebaseRelay.fetchMLKEMPublicKeyByIdentity(publicKey)
         } catch (_: Exception) { null }
 
+        // Fetch ML-DSA-44 public key for PQ handshake authentication
+        val finalMldsaKey = try {
+            FirebaseRelay.fetchMlDsaPublicKeyByIdentity(publicKey)
+        } catch (_: Exception) { null }
+
         val contact = Contact(
             contactId = UUID.randomUUID().toString(),
             displayName = displayName,
             publicKey = publicKey,
             signingPublicKey = finalSigningKey,
-            mlkemPublicKey = finalMlkemKey
+            mlkemPublicKey = finalMlkemKey,
+            mldsaPublicKey = finalMldsaKey
         )
         contactDao.insertContact(contact)
         return contact
@@ -422,6 +430,15 @@ class ChatRepository(private val appContext: Context) {
 
             // 6. Send to Firebase — include ephemeral DH public key for Double Ratchet
             //    and KEM ciphertext on first message (PQXDH initiator)
+            //    ML-DSA-44 signature on handshake message for PQ authentication
+            val mldsaSignature = if (ratchetState.pendingKemCiphertext.isNotEmpty()) {
+                try {
+                    val handshakeData = (ratchetState.pendingKemCiphertext + ratchetState.localDhPublic)
+                        .toByteArray(Charsets.UTF_8)
+                    CryptoManager.signHandshakeMlDsa44(handshakeData)
+                } catch (_: Exception) { "" }
+            } else ""
+
             val firebaseMessage = FirebaseMessage(
                 ciphertext = encryptedData.ciphertext,
                 iv = encryptedData.iv,
@@ -429,7 +446,8 @@ class ChatRepository(private val appContext: Context) {
                 senderUid = CryptoManager.hashSenderUid(conversationId, FirebaseRelay.getCurrentUid() ?: ""),
                 ephemeralKey = ratchetState.localDhPublic,
                 signature = signature,
-                kemCiphertext = ratchetState.pendingKemCiphertext
+                kemCiphertext = ratchetState.pendingKemCiphertext,
+                mldsaSignature = mldsaSignature
             )
             FirebaseRelay.sendMessage(conversationId, firebaseMessage)
 
@@ -885,6 +903,26 @@ class ChatRepository(private val appContext: Context) {
                 FirebaseRelay.deleteMessage(conversationId, firebaseMessage.firebaseKey)
             }
 
+            // Verify ML-DSA-44 handshake signature (PQ authentication on first PQXDH message)
+            if (firebaseMessage.mldsaSignature.isNotEmpty() && firebaseMessage.kemCiphertext.isNotEmpty()) {
+                val contact0 = contactDao.getContactByPublicKey(conversation.participantPublicKey)
+                var mldsaKey = contact0?.mldsaPublicKey
+                if (mldsaKey == null) {
+                    mldsaKey = try { FirebaseRelay.fetchMlDsaPublicKeyByIdentity(conversation.participantPublicKey) } catch (_: Exception) { null }
+                    if (mldsaKey != null && contact0 != null) {
+                        contactDao.insertContact(contact0.copy(mldsaPublicKey = mldsaKey))
+                    }
+                }
+                if (mldsaKey != null) {
+                    val handshakeData = (firebaseMessage.kemCiphertext + firebaseMessage.ephemeralKey)
+                        .toByteArray(Charsets.UTF_8)
+                    val mldsaValid = CryptoManager.verifyHandshakeMlDsa44(mldsaKey, handshakeData, firebaseMessage.mldsaSignature)
+                    if (!mldsaValid) {
+                        Log.w("Fialka", "ML-DSA-44 handshake signature INVALID — possible MITM")
+                    }
+                }
+            }
+
             // Verify Ed25519 signature (after ratchet advance — ratchet must ALWAYS progress)
             val contact = contactDao.getContactByPublicKey(conversation.participantPublicKey)
 
@@ -1031,6 +1069,25 @@ class ChatRepository(private val appContext: Context) {
         Log.d("Fialka", "publishMLKEMPublicKey: publishing to Firebase")
         FirebaseRelay.registerMLKEMPublicKey(mlkemPubKey)
         FirebaseRelay.storeMLKEMPublicKeyByIdentity(publicKey, mlkemPubKey)
+    }
+
+    /**
+     * Publish the ML-DSA-44 public key on Firebase (by identity public key hash).
+     * Should be called once after account creation or BIP-39 restore.
+     */
+    suspend fun publishMlDsaPublicKey() {
+        val publicKey = CryptoManager.getPublicKey()
+        if (publicKey == null) {
+            Log.e("Fialka", "publishMlDsaPublicKey: identity key is null!")
+            return
+        }
+        val mldsaPubKey = CryptoManager.getMlDsaPublicKey()
+        if (mldsaPubKey == null) {
+            Log.e("Fialka", "publishMlDsaPublicKey: ML-DSA-44 key not yet generated")
+            return
+        }
+        Log.d("Fialka", "publishMlDsaPublicKey: publishing to Firebase")
+        FirebaseRelay.storeMlDsaPublicKeyByIdentity(publicKey, mldsaPubKey)
     }
 
     /**

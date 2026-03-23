@@ -271,9 +271,9 @@ class RestoreFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 withTimeout(15_000L) {
-                    val privateKeyBytes = MnemonicManager.mnemonicToPrivateKey(words)
-                    val publicKey = CryptoManager.restoreIdentityKey(privateKeyBytes)
-                    privateKeyBytes.fill(0)
+                    val seed = MnemonicManager.mnemonicToSeed(words)
+                    val publicKey = CryptoManager.restoreFromSeed(seed)
+                    seed.fill(0)
 
                     if (!FirebaseRelay.isAuthenticated()) {
                         FirebaseRelay.signInAnonymously()
@@ -290,6 +290,9 @@ class RestoreFragment : Fragment() {
 
                     // Publish Ed25519 signing public key (derived from restored identity)
                     repository.publishSigningPublicKey()
+                    // Publish ML-KEM-1024 + ML-DSA-44 public keys
+                    repository.publishMLKEMPublicKey()
+                    repository.publishMlDsaPublicKey()
                     ConversationsViewModel.markSigningKeyPublished()
 
                     findNavController().navigate(R.id.action_restore_to_conversations)

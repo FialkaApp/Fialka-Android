@@ -37,5 +37,6 @@ data class Contact(
     val verificationStatus: String = "unverified", // "unverified" or "verified"
     val addedAt: Long = System.currentTimeMillis(),
     val signingPublicKey: String? = null,  // Base64 Ed25519 public key for signature verification
-    val mlkemPublicKey: String? = null     // Base64 ML-KEM-1024 public key for PQXDH
+    val mlkemPublicKey: String? = null,    // Base64 ML-KEM-1024 public key for PQXDH
+    val mldsaPublicKey: String? = null     // Base64 ML-DSA-44 public key for PQ handshake auth
 )

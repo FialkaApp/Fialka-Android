@@ -52,9 +52,9 @@ class BackupPhraseFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val privateKeyBytes = CryptoManager.getIdentityPrivateKeyBytes()
-        val words = MnemonicManager.privateKeyToMnemonic(privateKeyBytes)
-        privateKeyBytes.fill(0)
+        val seed = CryptoManager.getIdentitySeed()
+        val words = MnemonicManager.seedToMnemonic(seed)
+        seed.fill(0)
 
         binding.rvWords.layoutManager = GridLayoutManager(requireContext(), 3)
         binding.rvWords.adapter = WordAdapter(words)

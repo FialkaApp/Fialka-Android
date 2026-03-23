@@ -127,18 +127,18 @@ class LockScreenActivity : AppCompatActivity() {
                 }
 
                 try {
-                    val mnemonicKey = MnemonicManager.mnemonicToPrivateKey(words)
-                    val storedKey = CryptoManager.getIdentityPrivateKeyBytes()
-                    if (mnemonicKey.contentEquals(storedKey)) {
+                    val mnemonicSeed = MnemonicManager.mnemonicToSeed(words)
+                    val storedSeed = CryptoManager.getIdentitySeed()
+                    if (mnemonicSeed.contentEquals(storedSeed)) {
                         // Identity verified — remove PIN and unlock
-                        mnemonicKey.fill(0)
-                        storedKey.fill(0)
+                        mnemonicSeed.fill(0)
+                        storedSeed.fill(0)
                         AppLockManager.removePin(this)
                         Toast.makeText(this, "PIN supprimé. Vous pouvez en configurer un nouveau dans les paramètres.", Toast.LENGTH_LONG).show()
                         unlock()
                     } else {
-                        mnemonicKey.fill(0)
-                        storedKey.fill(0)
+                        mnemonicSeed.fill(0)
+                        storedSeed.fill(0)
                         Toast.makeText(this, "La phrase ne correspond pas à ce compte", Toast.LENGTH_LONG).show()
                     }
                 } catch (_: Exception) {

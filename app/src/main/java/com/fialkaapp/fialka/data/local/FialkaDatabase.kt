@@ -52,7 +52,7 @@ import java.security.SecureRandom
         MessageLocal::class,
         RatchetState::class
     ],
-    version = 18,
+    version = 19,
     exportSchema = false
 )
 abstract class FialkaDatabase : RoomDatabase() {

@@ -24,11 +24,16 @@ import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.fialkaapp.fialka.util.DeviceSecurityManager
-import org.bouncycastle.crypto.generators.Ed25519KeyPairGenerator
-import org.bouncycastle.crypto.params.Ed25519KeyGenerationParameters
+import org.bouncycastle.crypto.digests.SHA3Digest
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
 import org.bouncycastle.crypto.signers.Ed25519Signer
+import org.bouncycastle.pqc.crypto.mldsa.MLDSAKeyGenerationParameters
+import org.bouncycastle.pqc.crypto.mldsa.MLDSAKeyPairGenerator
+import org.bouncycastle.pqc.crypto.mldsa.MLDSAParameters
+import org.bouncycastle.pqc.crypto.mldsa.MLDSAPrivateKeyParameters
+import org.bouncycastle.pqc.crypto.mldsa.MLDSAPublicKeyParameters
+import org.bouncycastle.pqc.crypto.mldsa.MLDSASigner
 import org.bouncycastle.crypto.SecretWithEncapsulation
 import org.bouncycastle.crypto.engines.ChaCha7539Engine
 import org.bouncycastle.crypto.macs.Poly1305
@@ -42,6 +47,7 @@ import org.bouncycastle.pqc.crypto.mlkem.MLKEMKeyPairGenerator
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMParameters
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMPrivateKeyParameters
 import org.bouncycastle.pqc.crypto.mlkem.MLKEMPublicKeyParameters
+import java.math.BigInteger
 import java.security.*
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
@@ -53,11 +59,17 @@ import javax.crypto.spec.SecretKeySpec
 
 
 /**
- * CryptoManager — X25519 + AES-256-GCM crypto module for Fialka.
+ * CryptoManager — "1 Seed → Everything" identity + E2E crypto module for Fialka.
  *
- * Identity key: X25519 generated in software JCA, private key stored encrypted
- * in EncryptedSharedPreferences (AES-256-GCM backed by Android Keystore).
- * This is the same model as Signal — hardware security is preserved indirectly.
+ * Identity: Ed25519 seed (32 bytes, BIP-39 24 words) is the master secret.
+ *   seed → Ed25519 keypair  (signing)
+ *   seed → X25519 keypair   (DH — birational, same scalar via SHA-512)
+ *   seed → ML-KEM-1024      (PQXDH — HKDF deterministic KeyGen)
+ *   seed → ML-DSA-44        (PQ handshake auth — HKDF deterministic KeyGen)
+ *   seed → Account ID        (SHA3-256 → Base58)
+ *
+ * All keys stored encrypted in EncryptedSharedPreferences (AES-256-GCM
+ * backed by Android Keystore). Same model as Signal.
  *
  * Ephemeral keys: X25519 in software (generated per DH ratchet step, then discarded).
  * Encryption: AES-256-GCM (AEAD) with 12-byte random IV per message.
@@ -66,10 +78,14 @@ import javax.crypto.spec.SecretKeySpec
 object CryptoManager {
 
     private const val PREFS_FILE = "fialka_identity_keys"
+    private const val KEY_ED25519_SEED = "identity_ed25519_seed"
+    private const val KEY_ACCOUNT_ID = "identity_account_id"
     private const val KEY_PUBLIC = "identity_public_key"
     private const val KEY_PRIVATE = "identity_private_key"
     private const val KEY_MLKEM_PUBLIC  = "identity_mlkem_public_key"
     private const val KEY_MLKEM_PRIVATE = "identity_mlkem_private_key"
+    private const val KEY_MLDSA_PUBLIC  = "identity_mldsa_public_key"
+    private const val KEY_MLDSA_PRIVATE = "identity_mldsa_private_key"
 
     private const val AES_GCM_TRANSFORMATION = "AES/GCM/NoPadding"
     private const val GCM_TAG_LENGTH_BITS = 128
@@ -105,90 +121,176 @@ object CryptoManager {
     }
 
     // ========================================================================
-    // 1. IDENTITY KEY (X25519 in software, encrypted at rest via Keystore)
+    // 1. IDENTITY — "1 Seed → Everything"
+    //
+    // Ed25519 seed (32 bytes) is the master secret from which all keys derive:
+    //   seed → Ed25519 keypair  (signing + identity)
+    //   seed → X25519 keypair   (DH — via SHA-512(seed)[0..31] = same scalar)
+    //   seed → ML-KEM-1024      (PQXDH — via HKDF deterministic KeyGen)
+    //   seed → Account ID        (SHA3-256(Ed25519 pub) → Base58)
+    //
+    // BIP-39 24 words encode this seed. Restoring = re-deriving everything.
     // ========================================================================
 
-    fun generateIdentityKeyPair(): String {
-        val existing = prefs.getString(KEY_PUBLIC, null)
-        if (existing != null) return existing
+    // PKCS8 prefix for X25519 raw 32-byte private key (RFC 8410)
+    private val X25519_PKCS8_PREFIX = byteArrayOf(
+        0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05,
+        0x06, 0x03, 0x2b, 0x65, 0x6e, 0x04, 0x22,
+        0x04, 0x20
+    )
+    // X509 prefix for X25519 raw 32-byte public key
+    private val X25519_X509_PREFIX = byteArrayOf(
+        0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b,
+        0x65, 0x6e, 0x03, 0x21, 0x00
+    )
 
-        val kpg = KeyPairGenerator.getInstance("X25519")
-        val keyPair = kpg.generateKeyPair()
+    /**
+     * Generate a brand-new identity from a fresh random Ed25519 seed.
+     * Derives: Ed25519, X25519, ML-KEM-1024, Account ID — all from 1 seed.
+     * @return X25519 public key (Base64) for backward compat with current protocol.
+     */
+    fun generateIdentity(): String {
+        val existingSeed = prefs.getString(KEY_ED25519_SEED, null)
+        if (existingSeed != null) return prefs.getString(KEY_PUBLIC, null)!!
 
-        val pubBase64 = Base64.encodeToString(keyPair.public.encoded, Base64.NO_WRAP)
-        val privBase64 = Base64.encodeToString(keyPair.private.encoded, Base64.NO_WRAP)
-
-        prefs.edit()
-            .putString(KEY_PUBLIC, pubBase64)
-            .putString(KEY_PRIVATE, privBase64)
-            .apply()
-
-        return pubBase64
+        val seed = ByteArray(32)
+        secureRandom.nextBytes(seed)
+        try {
+            return deriveAndStoreAllKeys(seed)
+        } finally {
+            seed.fill(0)
+        }
     }
 
-    fun hasIdentityKey(): Boolean = prefs.contains(KEY_PUBLIC)
+    /**
+     * Restore identity from a 32-byte Ed25519 seed (decoded from BIP-39 mnemonic).
+     * Deterministically re-derives all keys — Ed25519, X25519, ML-KEM, Account ID.
+     * @return X25519 public key (Base64).
+     */
+    fun restoreFromSeed(seed: ByteArray): String {
+        require(seed.size == 32) { "Ed25519 seed must be 32 bytes" }
+        return deriveAndStoreAllKeys(seed)
+    }
+
+    fun hasIdentity(): Boolean = prefs.getString(KEY_ED25519_SEED, null) != null
 
     fun getPublicKey(): String? = prefs.getString(KEY_PUBLIC, null)
 
     /**
-     * Returns the raw 32-byte X25519 private key for mnemonic backup.
+     * Returns the raw 32-byte Ed25519 seed for BIP-39 mnemonic backup.
+     * This is the MASTER SECRET from which all keys derive.
      */
-    fun getIdentityPrivateKeyBytes(): ByteArray {
-        val privBase64 = prefs.getString(KEY_PRIVATE, null)
-            ?: throw IllegalStateException("Identity key not initialized")
-        val pkcs8Bytes = Base64.decode(privBase64, Base64.NO_WRAP)
-        // PKCS8 X25519 = 16-byte prefix + 32-byte raw key
-        return pkcs8Bytes.copyOfRange(pkcs8Bytes.size - 32, pkcs8Bytes.size)
+    fun getIdentitySeed(): ByteArray {
+        val seedBase64 = prefs.getString(KEY_ED25519_SEED, null)
+            ?: throw IllegalStateException("Identity not initialized")
+        return Base64.decode(seedBase64, Base64.NO_WRAP)
     }
 
+    /** Account ID: SHA3-256(Ed25519 pubkey) → Base58. */
+    fun getAccountId(): String? = prefs.getString(KEY_ACCOUNT_ID, null)
+
     /**
-     * Restore identity from raw 32-byte private key (from mnemonic).
-     * Derives public key via DH with X25519 base point (u=9).
+     * Core derivation: 1 Ed25519 seed → all keys + Account ID.
+     * Called by both generateIdentity() and restoreFromSeed().
      */
-    fun restoreIdentityKey(privateBytes: ByteArray): String {
-        require(privateBytes.size == 32) { "Private key must be 32 bytes" }
+    private fun deriveAndStoreAllKeys(seed: ByteArray): String {
+        // ── 1. Ed25519 signing keypair ──
+        val ed25519Private = Ed25519PrivateKeyParameters(seed, 0)
+        val ed25519Public = ed25519Private.generatePublicKey()
 
-        // Build PKCS8 private key
-        val pkcs8Prefix = byteArrayOf(
-            0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05,
-            0x06, 0x03, 0x2b, 0x65, 0x6e, 0x04, 0x22,
-            0x04, 0x20
-        )
+        // ── 2. X25519 DH keypair (birational: same scalar as Ed25519) ──
+        //    Ed25519 internal scalar = SHA-512(seed)[0..31] (clamped)
+        //    X25519 uses the same scalar → same math point on Montgomery curve
+        val sha512 = MessageDigest.getInstance("SHA-512").digest(seed)
+        val x25519PrivateRaw = sha512.copyOf(32)
+        sha512.fill(0)
+
         val kf = KeyFactory.getInstance("X25519")
-        val privateKey = kf.generatePrivate(PKCS8EncodedKeySpec(pkcs8Prefix + privateBytes))
-
-        // Derive public key: DH with base point u=9
-        val basePoint = ByteArray(32).also { it[0] = 9 }
-        val x509Prefix = byteArrayOf(
-            0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b,
-            0x65, 0x6e, 0x03, 0x21, 0x00
+        val x25519Private = kf.generatePrivate(
+            PKCS8EncodedKeySpec(X25519_PKCS8_PREFIX + x25519PrivateRaw)
         )
-        val basePointPub = kf.generatePublic(X509EncodedKeySpec(x509Prefix + basePoint))
+        x25519PrivateRaw.fill(0)
 
+        // Derive X25519 public: DH(private, base_point u=9)
+        val basePoint = ByteArray(32).also { it[0] = 9 }
+        val basePointPub = kf.generatePublic(X509EncodedKeySpec(X25519_X509_PREFIX + basePoint))
         val ka = KeyAgreement.getInstance("X25519")
-        ka.init(privateKey)
+        ka.init(x25519Private)
         ka.doPhase(basePointPub, true)
-        val publicKeyRaw = ka.generateSecret()
+        val x25519PublicRaw = ka.generateSecret()
+        val x25519Public = kf.generatePublic(X509EncodedKeySpec(X25519_X509_PREFIX + x25519PublicRaw))
 
-        // Encode public key as X509
-        val publicKey = kf.generatePublic(X509EncodedKeySpec(x509Prefix + publicKeyRaw))
-        val pubBase64 = Base64.encodeToString(publicKey.encoded, Base64.NO_WRAP)
-        val privBase64 = Base64.encodeToString(privateKey.encoded, Base64.NO_WRAP)
+        val x25519PubBase64  = Base64.encodeToString(x25519Public.encoded, Base64.NO_WRAP)
+        val x25519PrivBase64 = Base64.encodeToString(x25519Private.encoded, Base64.NO_WRAP)
 
+        // ── 3. ML-KEM-1024 deterministic from HKDF(seed) ──
+        //    HKDF-SHA256(seed, salt="fialka-ml-kem", info="identity-keypair", 64 bytes)
+        //    → d(32) + z(32) fed to KeyGen via deterministic SecureRandom
+        val mlkemSeed = hkdfSha256(
+            ikm = seed,
+            salt = "fialka-ml-kem".toByteArray(Charsets.UTF_8),
+            info = "identity-keypair".toByteArray(Charsets.UTF_8),
+            length = 64
+        )
+        val mlkemRandom = FixedSecureRandom(mlkemSeed)
+        val mlkemGen = MLKEMKeyPairGenerator()
+        mlkemGen.init(MLKEMKeyGenerationParameters(mlkemRandom, MLKEMParameters.ml_kem_1024))
+        val mlkemKeyPair = mlkemGen.generateKeyPair()
+        val mlkemPub  = mlkemKeyPair.public  as MLKEMPublicKeyParameters
+        val mlkemPriv = mlkemKeyPair.private as MLKEMPrivateKeyParameters
+        mlkemSeed.fill(0)
+
+        // ── 4. ML-DSA-44 deterministic from HKDF(seed) — PQ handshake authentication ──
+        //    HKDF-SHA256(seed, salt="fialka-ml-dsa-44", info="identity-keypair", 32 bytes)
+        //    → ξ (32 bytes) fed to KeyGen via deterministic SecureRandom
+        val mldsaSeed = hkdfSha256(
+            ikm = seed,
+            salt = "fialka-ml-dsa-44".toByteArray(Charsets.UTF_8),
+            info = "identity-keypair".toByteArray(Charsets.UTF_8),
+            length = 32
+        )
+        val mldsaRandom = FixedSecureRandom(mldsaSeed)
+        val mldsaGen = MLDSAKeyPairGenerator()
+        mldsaGen.init(MLDSAKeyGenerationParameters(mldsaRandom, MLDSAParameters.ml_dsa_44))
+        val mldsaKeyPair = mldsaGen.generateKeyPair()
+        val mldsaPub  = mldsaKeyPair.public  as MLDSAPublicKeyParameters
+        val mldsaPriv = mldsaKeyPair.private as MLDSAPrivateKeyParameters
+        mldsaSeed.fill(0)
+
+        // ── 5. Account ID: SHA3-256(Ed25519 pubkey raw 32 bytes) → Base58 ──
+        val accountId = deriveAccountId(ed25519Public.encoded)
+
+        // ── 6. Store everything in EncryptedSharedPreferences ──
         prefs.edit()
-            .putString(KEY_PUBLIC, pubBase64)
-            .putString(KEY_PRIVATE, privBase64)
+            .putString(KEY_ED25519_SEED, Base64.encodeToString(seed, Base64.NO_WRAP))
+            .putString(KEY_PUBLIC, x25519PubBase64)
+            .putString(KEY_PRIVATE, x25519PrivBase64)
+            .putString(KEY_SIGNING_PUBLIC, Base64.encodeToString(ed25519Public.encoded, Base64.NO_WRAP))
+            .putString(KEY_SIGNING_PRIVATE, Base64.encodeToString(seed, Base64.NO_WRAP))
+            .putString(KEY_MLKEM_PUBLIC, Base64.encodeToString(mlkemPub.encoded, Base64.NO_WRAP))
+            .putString(KEY_MLKEM_PRIVATE, Base64.encodeToString(mlkemPriv.encoded, Base64.NO_WRAP))
+            .putString(KEY_MLDSA_PUBLIC, Base64.encodeToString(mldsaPub.encoded, Base64.NO_WRAP))
+            .putString(KEY_MLDSA_PRIVATE, Base64.encodeToString(mldsaPriv.encoded, Base64.NO_WRAP))
+            .putString(KEY_ACCOUNT_ID, accountId)
             .apply()
 
-        return pubBase64
+        // Update signing key cache
+        cachedSigningPrivate = ed25519Private
+        cachedSigningPublic = ed25519Public
+
+        return x25519PubBase64
     }
 
     fun deleteIdentityKey() {
         prefs.edit()
+            .remove(KEY_ED25519_SEED)
+            .remove(KEY_ACCOUNT_ID)
             .remove(KEY_PUBLIC)
             .remove(KEY_PRIVATE)
             .remove(KEY_MLKEM_PUBLIC)
             .remove(KEY_MLKEM_PRIVATE)
+            .remove(KEY_MLDSA_PUBLIC)
+            .remove(KEY_MLDSA_PRIVATE)
             .apply()
         clearSigningKeyCache()
     }
@@ -652,9 +754,9 @@ object CryptoManager {
     private var cachedSigningPublic: Ed25519PublicKeyParameters? = null
 
     /**
-     * Get or generate an Ed25519 signing key pair.
-     * Uses BouncyCastle lightweight API directly — bypasses JCA provider lookup
-     * which fails on Android because the platform's stripped BC takes priority.
+     * Get the Ed25519 signing key pair.
+     * In the seed-based identity system, signing keys are derived during
+     * generateIdentity() / restoreFromSeed(). This method loads them from prefs.
      */
     fun getOrDeriveSigningKeyPair(): KeyPair {
         // Return cached as JCA KeyPair for API compatibility
@@ -684,20 +786,19 @@ object CryptoManager {
                     cachedSigningPublic = publicKey
                     return toJcaKeyPair(privateKey, publicKey)
                 } catch (e: Exception) {
-                    Log.w("BC", "Stored Ed25519 keys invalid, regenerating", e)
+                    Log.w("BC", "Stored Ed25519 keys invalid, re-deriving from seed", e)
                     prefs.edit().remove(KEY_SIGNING_PUBLIC).remove(KEY_SIGNING_PRIVATE).apply()
                 }
             }
 
-            // 2. Generate new Ed25519 keypair via BC lightweight API
-            Log.d("BC", "Generating new Ed25519 keypair via BC lightweight API")
-            val generator = Ed25519KeyPairGenerator()
-            generator.init(Ed25519KeyGenerationParameters(SecureRandom()))
-            val keyPairBC = generator.generateKeyPair()
-            val privateKey = keyPairBC.private as Ed25519PrivateKeyParameters
-            val publicKey = keyPairBC.public as Ed25519PublicKeyParameters
+            // 2. Derive from Ed25519 seed (should always exist after identity setup)
+            val seedBase64 = prefs.getString(KEY_ED25519_SEED, null)
+                ?: throw IllegalStateException("Identity not initialized — call generateIdentity() first")
+            val seed = Base64.decode(seedBase64, Base64.NO_WRAP)
+            val privateKey = Ed25519PrivateKeyParameters(seed, 0)
+            val publicKey = privateKey.generatePublicKey()
+            seed.fill(0)
 
-            // 3. Persist raw key bytes in EncryptedSharedPreferences
             prefs.edit()
                 .putString(KEY_SIGNING_PUBLIC, Base64.encodeToString(publicKey.encoded, Base64.NO_WRAP))
                 .putString(KEY_SIGNING_PRIVATE, Base64.encodeToString(privateKey.encoded, Base64.NO_WRAP))
@@ -826,34 +927,17 @@ object CryptoManager {
     // ========================================================================
     // 9. ML-KEM-1024 IDENTITY KEY (PQXDH — post-quantum key encapsulation)
     //
-    // Uses BouncyCastle 1.78+ lightweight API directly (NOT via JCA provider).
-    // Same pattern as Ed25519: raw bytes stored in EncryptedSharedPreferences.
+    // ML-KEM keypair is derived deterministically from Ed25519 seed during
+    // generateIdentity() / restoreFromSeed(). No standalone generation needed.
     // ========================================================================
 
     /**
-     * Generate & persist an ML-KEM-1024 identity key pair.
-     * Idempotent: returns existing public key if already generated.
+     * Returns the stored ML-KEM-1024 public key (generated during identity setup).
      * @return Base64 public key (~2092 chars).
      */
     fun generateMLKEMIdentityKeyPair(): String {
-        val existing = prefs.getString(KEY_MLKEM_PUBLIC, null)
-        if (existing != null) return existing
-
-        val generator = MLKEMKeyPairGenerator()
-        generator.init(MLKEMKeyGenerationParameters(secureRandom, MLKEMParameters.ml_kem_1024))
-        val keyPair = generator.generateKeyPair()
-        val pub = keyPair.public as MLKEMPublicKeyParameters
-        val priv = keyPair.private as MLKEMPrivateKeyParameters
-
-        val pubBase64  = Base64.encodeToString(pub.encoded, Base64.NO_WRAP)
-        val privBase64 = Base64.encodeToString(priv.encoded, Base64.NO_WRAP)
-
-        prefs.edit()
-            .putString(KEY_MLKEM_PUBLIC, pubBase64)
-            .putString(KEY_MLKEM_PRIVATE, privBase64)
-            .apply()
-
-        return pubBase64
+        return prefs.getString(KEY_MLKEM_PUBLIC, null)
+            ?: throw IllegalStateException("Identity not initialized — call generateIdentity() first")
     }
 
     /** Returns the stored ML-KEM-1024 public key as Base64, or null if not yet generated. */
@@ -905,5 +989,136 @@ object CryptoManager {
         ssPQ.fill(0)
         val key = deriveSymmetricKey(combined)  // deriveSymmetricKey already zeros combined
         return key
+    }
+
+    // ========================================================================
+    // 10. ML-DSA-44 HANDSHAKE AUTHENTICATION (post-quantum signature)
+    //
+    // ML-DSA-44 keypair is derived deterministically from Ed25519 seed during
+    // generateIdentity() / restoreFromSeed(). Used ONLY during session
+    // establishment (handshake) — not per-message (2420-byte sig is too heavy).
+    // Ed25519 continues to sign every message; ML-DSA-44 adds PQ auth on the
+    // first PQXDH handshake message.
+    // ========================================================================
+
+    /** Returns the stored ML-DSA-44 public key as Base64, or null if not yet generated. */
+    fun getMlDsaPublicKey(): String? = prefs.getString(KEY_MLDSA_PUBLIC, null)
+
+    /**
+     * Sign handshake data with ML-DSA-44 (PQ authentication).
+     * Called by the PQXDH initiator on the first message (kemCiphertext + ephemeralKey).
+     * @param data Raw bytes to sign (e.g. kemCiphertext || ephemeralKey).
+     * @return Base64-encoded ML-DSA-44 signature (2420 bytes raw).
+     */
+    fun signHandshakeMlDsa44(data: ByteArray): String {
+        val privBase64 = prefs.getString(KEY_MLDSA_PRIVATE, null)
+            ?: throw IllegalStateException("ML-DSA-44 key not initialized — call generateIdentity() first")
+        val privBytes = Base64.decode(privBase64, Base64.NO_WRAP)
+        val privateKey = MLDSAPrivateKeyParameters(MLDSAParameters.ml_dsa_44, privBytes)
+        privBytes.fill(0)
+
+        val signer = MLDSASigner()
+        signer.init(true, privateKey)
+        signer.update(data, 0, data.size)
+        val signatureBytes = signer.generateSignature()
+        return Base64.encodeToString(signatureBytes, Base64.NO_WRAP)
+    }
+
+    /**
+     * Verify a ML-DSA-44 handshake signature from the remote peer.
+     * @param pubKeyBase64 Remote peer's ML-DSA-44 public key (Base64).
+     * @param data Raw bytes that were signed.
+     * @param signatureBase64 Base64-encoded ML-DSA-44 signature.
+     * @return true if valid, false otherwise.
+     */
+    fun verifyHandshakeMlDsa44(pubKeyBase64: String, data: ByteArray, signatureBase64: String): Boolean {
+        return try {
+            val pubBytes = Base64.decode(pubKeyBase64, Base64.NO_WRAP)
+            val publicKey = MLDSAPublicKeyParameters(MLDSAParameters.ml_dsa_44, pubBytes)
+            val signatureBytes = Base64.decode(signatureBase64, Base64.NO_WRAP)
+
+            val verifier = MLDSASigner()
+            verifier.init(false, publicKey)
+            verifier.update(data, 0, data.size)
+            verifier.verifySignature(signatureBytes)
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    // ========================================================================
+    // 11. IDENTITY HELPERS — HKDF multi-block, Account ID, Base58, FixedRandom
+    // ========================================================================
+
+    /**
+     * HKDF-SHA256 with configurable output length (RFC 5869).
+     * Used for ML-KEM deterministic seed derivation (64 bytes needed).
+     */
+    private fun hkdfSha256(ikm: ByteArray, salt: ByteArray, info: ByteArray, length: Int): ByteArray {
+        require(length in 1..255 * 32) { "HKDF output length must be 1..8160" }
+        // Extract: PRK = HMAC-SHA256(salt, IKM)
+        val prk = hmacSha256(salt, ikm)
+        // Expand: T(1) || T(2) || ... until we have enough bytes
+        val n = (length + 31) / 32
+        val okm = ByteArray(n * 32)
+        var prev = ByteArray(0)
+        for (i in 1..n) {
+            val input = prev + info + byteArrayOf(i.toByte())
+            prev = hmacSha256(prk, input)
+            System.arraycopy(prev, 0, okm, (i - 1) * 32, 32)
+        }
+        prk.fill(0)
+        return okm.copyOf(length)
+    }
+
+    /** SHA3-256(Ed25519 pubkey 32 bytes) → Base58 string. */
+    private fun deriveAccountId(ed25519PubBytes: ByteArray): String {
+        val sha3 = SHA3Digest(256)
+        sha3.update(ed25519PubBytes, 0, ed25519PubBytes.size)
+        val hash = ByteArray(32)
+        sha3.doFinal(hash, 0)
+        return base58Encode(hash)
+    }
+
+    private const val BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+    /** Standard Base58 encoding (no check). */
+    private fun base58Encode(data: ByteArray): String {
+        var num = BigInteger(1, data)
+        val sb = StringBuilder()
+        val base = BigInteger.valueOf(58)
+        while (num > BigInteger.ZERO) {
+            val (quotient, remainder) = num.divideAndRemainder(base)
+            sb.append(BASE58_ALPHABET[remainder.toInt()])
+            num = quotient
+        }
+        // Preserve leading zero bytes as '1'
+        for (b in data) {
+            if (b == 0.toByte()) sb.append('1') else break
+        }
+        return sb.reverse().toString()
+    }
+
+    /**
+     * Deterministic SecureRandom that returns pre-computed bytes.
+     * Used exclusively for ML-KEM-1024 deterministic KeyGen from seed.
+     * BouncyCastle's MLKEMKeyPairGenerator reads exactly 64 bytes (d=32 + z=32).
+     */
+    private class FixedSecureRandom(private val data: ByteArray) : SecureRandom() {
+        private var offset = 0
+
+        override fun nextBytes(bytes: ByteArray) {
+            if (offset + bytes.size > data.size) {
+                throw IllegalStateException("FixedSecureRandom exhausted")
+            }
+            System.arraycopy(data, offset, bytes, 0, bytes.size)
+            offset += bytes.size
+        }
+
+        override fun generateSeed(numBytes: Int): ByteArray {
+            val seed = ByteArray(numBytes)
+            nextBytes(seed)
+            return seed
+        }
     }
 }

@@ -21,8 +21,12 @@ import android.content.Context
 import java.security.MessageDigest
 
 /**
- * BIP-39 mnemonic encoding for X25519 private keys.
+ * BIP-39 mnemonic encoding for the Ed25519 identity seed.
  * 32 bytes (256 bits) → 24 words, with 8-bit SHA-256 checksum.
+ *
+ * In the "1 Seed → Everything" architecture, these 24 words encode the
+ * Ed25519 seed from which ALL keys derive (Ed25519, X25519, ML-KEM-1024,
+ * Account ID). Restoring from mnemonic = re-deriving everything.
  */
 object MnemonicManager {
 
@@ -40,16 +44,16 @@ object MnemonicManager {
     }
 
     /**
-     * Encode 32 private key bytes into 24 BIP-39 words.
+     * Encode 32-byte Ed25519 seed into 24 BIP-39 words.
      * 256 bits entropy + 8 bits SHA-256 checksum = 264 bits = 24 × 11 bits.
      */
-    fun privateKeyToMnemonic(privateKeyBytes: ByteArray): List<String> {
-        require(privateKeyBytes.size == 32) { "Private key must be 32 bytes" }
+    fun seedToMnemonic(seedBytes: ByteArray): List<String> {
+        require(seedBytes.size == 32) { "Seed must be 32 bytes" }
         require(wordList.isNotEmpty()) { "MnemonicManager not initialized" }
 
-        val checksum = MessageDigest.getInstance("SHA-256").digest(privateKeyBytes)
+        val checksum = MessageDigest.getInstance("SHA-256").digest(seedBytes)
         // 256 bits + 8 bits checksum = 264 bits
-        val data = privateKeyBytes + byteArrayOf(checksum[0])
+        val data = seedBytes + byteArrayOf(checksum[0])
 
         // Convert to bit string and split into 11-bit groups
         val bits = StringBuilder()
@@ -69,9 +73,9 @@ object MnemonicManager {
     }
 
     /**
-     * Decode 24 BIP-39 words back into 32 private key bytes.
+     * Decode 24 BIP-39 words back into the 32-byte Ed25519 seed.
      */
-    fun mnemonicToPrivateKey(words: List<String>): ByteArray {
+    fun mnemonicToSeed(words: List<String>): ByteArray {
         require(words.size == 24) { "Mnemonic must be 24 words" }
         require(wordList.isNotEmpty()) { "MnemonicManager not initialized" }
 
@@ -88,15 +92,15 @@ object MnemonicManager {
             allBytes[i] = bits.substring(i * 8, i * 8 + 8).toInt(2).toByte()
         }
 
-        val privateKeyBytes = allBytes.copyOfRange(0, 32)
+        val seedBytes = allBytes.copyOfRange(0, 32)
         val checksumByte = allBytes[32]
 
-        val expectedChecksum = MessageDigest.getInstance("SHA-256").digest(privateKeyBytes)[0]
+        val expectedChecksum = MessageDigest.getInstance("SHA-256").digest(seedBytes)[0]
         allBytes.fill(0)
         bits.clear()
         require(checksumByte == expectedChecksum) { "Invalid checksum" }
 
-        return privateKeyBytes
+        return seedBytes
     }
 
     /**
@@ -105,7 +109,7 @@ object MnemonicManager {
     fun validateMnemonic(words: List<String>): Boolean {
         if (words.size != 24 || wordList.isEmpty()) return false
         return try {
-            mnemonicToPrivateKey(words)
+            mnemonicToSeed(words)
             true
         } catch (_: Exception) {
             false

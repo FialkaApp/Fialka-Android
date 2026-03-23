@@ -1035,6 +1035,45 @@ object FirebaseRelay {
         }
     }
 
+    // ========================================================================
+    // ML-DSA-44 PUBLIC KEY STORAGE (PQ handshake authentication)
+    // ========================================================================
+
+    suspend fun storeMlDsaPublicKeyByIdentity(identityPublicKeyBase64: String, mldsaPublicKeyBase64: String) {
+        val pubKeyHash = hashPublicKey(identityPublicKeyBase64)
+        Log.d(TAG, "storeMlDsaPublicKeyByIdentity: writing to Firebase")
+        suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("mldsa_keys")
+                .child(pubKeyHash)
+                .setValue(mldsaPublicKeyBase64)
+                .addOnSuccessListener {
+                    Log.d(TAG, "storeMlDsaPublicKeyByIdentity: SUCCESS")
+                    cont.resume(Unit)
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "storeMlDsaPublicKeyByIdentity: FAILED", e)
+                    cont.resume(Unit)
+                }
+        }
+    }
+
+    suspend fun fetchMlDsaPublicKeyByIdentity(identityPublicKeyBase64: String): String? {
+        val pubKeyHash = hashPublicKey(identityPublicKeyBase64)
+        return suspendCancellableCoroutine { cont ->
+            database.reference
+                .child("mldsa_keys")
+                .child(pubKeyHash)
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    cont.resume(snapshot.getValue(String::class.java))
+                }
+                .addOnFailureListener {
+                    cont.resume(null)
+                }
+        }
+    }
+
     /**
      * Delete the ML-KEM key entry for a given identity public key (used on account deletion).
      */

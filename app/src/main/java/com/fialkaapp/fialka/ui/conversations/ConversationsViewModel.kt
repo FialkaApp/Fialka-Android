@@ -79,6 +79,7 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
                         FirebaseRelay.signInAnonymously()
                     }
                     repository.publishSigningPublicKey()
+                    repository.publishMlDsaPublicKey()
                     signingKeyPublished = true
                 } catch (_: Exception) { }
             }
