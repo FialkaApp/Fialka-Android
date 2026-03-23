@@ -214,7 +214,7 @@
 
 ```bash
 # 1. Clone
-git clone https://github.com/FialkaApp/Fialka.git
+git clone https://github.com/FialkaApp/Fialka-Android.git
 cd Fialka
 
 # 2. Add google-services.json to app/ (see docs/SETUP-en.md)

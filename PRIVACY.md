@@ -12,7 +12,7 @@ Fialka is a privacy-first, end-to-end encrypted messaging application. This Priv
 
 ## 2. Data Controller
 
-Fialka is developed by an independent developer based in France under the pseudonym **DevBot667**. For privacy inquiries, contact via [GitHub](https://github.com/FialkaApp/Fialka).
+Fialka is developed by an independent developer based in France under the pseudonym **DevBot667**. For privacy inquiries, contact via [GitHub](https://github.com/FialkaApp/Fialka-Android).
 
 ## 3. Data We Do NOT Collect
 
@@ -100,7 +100,7 @@ Under the General Data Protection Regulation (GDPR), you have the right to:
 - **Objection** — Object to data processing
 - **Restriction** — Restrict how your data is processed
 
-To exercise these rights, contact the developer via [GitHub](https://github.com/FialkaApp/Fialka).
+To exercise these rights, contact the developer via [GitHub](https://github.com/FialkaApp/Fialka-Android).
 
 **In practice**, since Fialka collects almost no personal data and uses anonymous authentication, most of these rights are satisfied by design.
 
@@ -132,7 +132,7 @@ This Privacy Policy may be updated from time to time. Changes will be published 
 ## 12. Contact
 
 For privacy-related questions or concerns:
-- GitHub: [github.com/FialkaApp/Fialka](https://github.com/FialkaApp/Fialka)
+- GitHub: [github.com/FialkaApp/Fialka-Android](https://github.com/FialkaApp/Fialka-Android)
 
 ---
 

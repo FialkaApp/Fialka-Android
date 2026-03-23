@@ -27,8 +27,10 @@ Thumbs.db
 app/google-services.json
 
 # --- V2 CDC & tracking (sensitive — never push) ---
+SecureChat_V2_CDC_Final.md
 Fialka_V2_CDC_Final.md
 Fialka_V2_CDC_Final.docx
+*_CDC_Final.*
 V2_PROGRESS.md
 fialka-relay/
 

@@ -26,8 +26,8 @@
 ## 1. Clone the repo
 
 ```bash
-git clone https://github.com/FialkaApp/Fialka.git
-cd Fialka
+git clone https://github.com/FialkaApp/Fialka-Android.git
+cd Fialka-Android
 ```
 
 ---

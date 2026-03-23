@@ -80,7 +80,7 @@ The relay is an optional transport component. The Application can operate with a
 
 ## 9. Open Source Software
 
-Fialka is distributed under the **GNU General Public License v3.0 (GPL-3.0)**. The source code is available on [GitHub](https://github.com/FialkaApp/Fialka). The full GPL-3.0 license can be found in the [LICENSE](LICENSE) file.
+Fialka is distributed under the **GNU General Public License v3.0 (GPL-3.0)**. The source code is available on [GitHub](https://github.com/FialkaApp/Fialka-Android). The full GPL-3.0 license can be found in the [LICENSE](LICENSE) file.
 
 ## 10. Cryptography Export Notice
 
@@ -113,7 +113,7 @@ If any provision of these Terms is found to be unenforceable or invalid, that pr
 ## 15. Contact
 
 For any questions regarding these Terms:
-- GitHub: [github.com/FialkaApp/Fialka](https://github.com/FialkaApp/Fialka)
+- GitHub: [github.com/FialkaApp/Fialka-Android](https://github.com/FialkaApp/Fialka-Android)
 
 ---
 
