@@ -15,11 +15,11 @@ if (localPropsFile.exists()) {
 }
 
 android {
-    namespace = "com.securechat"
+    namespace = "com.fialkaapp.fialka"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.securechat"
+        applicationId = "com.fialkaapp.fialka"
         minSdk = 33
         targetSdk = 35
         versionCode = 7
@@ -30,7 +30,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(localProps.getProperty("RELEASE_STORE_FILE", "../securechat-release.jks"))
+            storeFile = file(localProps.getProperty("RELEASE_STORE_FILE", "../fialka-release.jks"))
             storePassword = localProps.getProperty("RELEASE_STORE_PASSWORD", "")
             keyAlias = localProps.getProperty("RELEASE_KEY_ALIAS", "")
             keyPassword = localProps.getProperty("RELEASE_KEY_PASSWORD", "")
@@ -124,6 +124,9 @@ dependencies {
 
     // QR Code — generation + scanning
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // Splash Screen
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

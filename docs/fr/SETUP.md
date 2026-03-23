@@ -26,8 +26,8 @@
 ## 1. Cloner le repo
 
 ```bash
-git clone https://github.com/DevBot667/SecureChat.git
-cd SecureChat
+git clone https://github.com/FialkaApp/Fialka.git
+cd Fialka
 ```
 
 ---
@@ -39,7 +39,7 @@ cd SecureChat
 1. Aller sur [Firebase Console](https://console.firebase.google.com/)
 2. **Créer un projet** (désactiver Google Analytics si souhaité)
 3. **Ajouter une app Android** :
-   - Package : `com.securechat`
+   - Package : `com.fialkaapp.fialka`
    - Télécharger `google-services.json`
 
 ### Étape 2 — Configurer les services

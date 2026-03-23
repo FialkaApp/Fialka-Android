@@ -15,7 +15,7 @@
 ---
 
 ```
-SecureChat/
+Fialka/
 ├── .gitignore
 ├── LICENSE
 ├── README.md
@@ -49,8 +49,8 @@ SecureChat/
 │   └── src/main/
 │       ├── AndroidManifest.xml
 │       │
-│       ├── java/com/securechat/
-│       │   ├── SecureChatApplication.kt      # Init Firebase
+│       ├── java/com/fialka/
+│       │   ├── FialkaApplication.kt      # Init Firebase
 │       │   ├── MainActivity.kt               # Single-activity (NavHost)
 │       │   ├── LockScreenActivity.kt         # Écran de verrouillage PIN + biométrie
 │       │   ├── MyFirebaseMessagingService.kt  # FCM push handler
@@ -62,7 +62,7 @@ SecureChat/
 │       │   │
 │       │   ├── data/
 │       │   │   ├── local/
-│       │   │   │   ├── SecureChatDatabase.kt # Room DB v14 (SQLCipher)
+│       │   │   │   ├── FialkaDatabase.kt # Room DB v14 (SQLCipher)
 │       │   │   │   ├── UserLocalDao.kt
 │       │   │   │   ├── ContactDao.kt
 │       │   │   │   ├── ConversationDao.kt

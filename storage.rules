@@ -1,4 +1,4 @@
-// Firebase Storage Security Rules for SecureChat
+// Firebase Storage Security Rules for Fialka
 // Files are E2E encrypted client-side before upload.
 // These rules enforce authentication, size limits, and ownership.
 

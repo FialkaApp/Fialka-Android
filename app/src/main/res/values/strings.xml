@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SecureChat</string>
+    <string name="app_name">Fialka</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_title">SecureChat</string>
-    <string name="onboarding_subtitle">Chat chiffré de bout en bout\nSans numéro de téléphone\nRelay gratuit via Firebase</string>
+    <string name="onboarding_title">Fialka</string>
+    <string name="onboarding_subtitle">Messagerie post-quantique chiffrée\nSans numéro de téléphone · Zero métadonnée</string>
     <string name="create_identity">Créer mon identité</string>
     <string name="restore_identity">Restaurer mon compte</string>
     <string name="enter_display_name">Entrez votre pseudo</string>

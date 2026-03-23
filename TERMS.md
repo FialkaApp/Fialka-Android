@@ -1,4 +1,4 @@
-# Terms of Service — SecureChat
+# Terms of Service — Fialka
 
 *Last updated: March 20, 2026*
 
@@ -6,15 +6,15 @@
 
 ## 1. Acceptance of Terms
 
-By installing, copying, or using SecureChat (the "Application"), you agree to these Terms of Service (the "Terms"). If you do not agree, do not use the Application.
+By installing, copying, or using Fialka (the "Application"), you agree to these Terms of Service (the "Terms"). If you do not agree, do not use the Application.
 
 ## 1.1. Age Requirement
 
-SecureChat is **not intended for use by anyone under the age of 16** (or the minimum digital age of consent in your jurisdiction, as defined by GDPR Article 8 or equivalent local laws). By using the Application, you represent that you are at least 16 years old. If you are under the applicable age, you must not use this Application.
+Fialka is **not intended for use by anyone under the age of 16** (or the minimum digital age of consent in your jurisdiction, as defined by GDPR Article 8 or equivalent local laws). By using the Application, you represent that you are at least 16 years old. If you are under the applicable age, you must not use this Application.
 
 ## 2. Description of Service
 
-SecureChat is an end-to-end encrypted (E2E) messaging application using the PQXDH protocol (X25519 + ML-KEM-1024) and Double Ratchet. The Application is provided free of charge and as-is.
+Fialka is an end-to-end encrypted (E2E) messaging application using the PQXDH protocol (X25519 + ML-KEM-1024) and Double Ratchet. The Application is provided free of charge and as-is.
 
 ## 3. Disclaimer of Warranties
 
@@ -49,7 +49,7 @@ You are **solely responsible** for:
 - Compliance with applicable laws in your jurisdiction
 - The security of your device and credentials
 
-**SecureChat does not store any private keys on its servers.** Loss of your recovery phrase results in permanent and irreversible loss of access to your account.
+**Fialka does not store any private keys on its servers.** Loss of your recovery phrase results in permanent and irreversible loss of access to your account.
 
 ## 6. Prohibited Content
 
@@ -80,7 +80,7 @@ The relay is an optional transport component. The Application can operate with a
 
 ## 9. Open Source Software
 
-SecureChat is distributed under the **GNU General Public License v3.0 (GPL-3.0)**. The source code is available on [GitHub](https://github.com/DevBot667/SecureChat). The full GPL-3.0 license can be found in the [LICENSE](LICENSE) file.
+Fialka is distributed under the **GNU General Public License v3.0 (GPL-3.0)**. The source code is available on [GitHub](https://github.com/FialkaApp/Fialka). The full GPL-3.0 license can be found in the [LICENSE](LICENSE) file.
 
 ## 10. Cryptography Export Notice
 
@@ -113,7 +113,7 @@ If any provision of these Terms is found to be unenforceable or invalid, that pr
 ## 15. Contact
 
 For any questions regarding these Terms:
-- GitHub: [github.com/DevBot667/SecureChat](https://github.com/DevBot667/SecureChat)
+- GitHub: [github.com/FialkaApp/Fialka](https://github.com/FialkaApp/Fialka)
 
 ---
 

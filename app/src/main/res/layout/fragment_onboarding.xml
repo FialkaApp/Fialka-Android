@@ -4,62 +4,113 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/colorBackground"
-    android:padding="32dp">
+    android:background="@color/splash_background">
 
-    <TextView
-        android:id="@+id/ivLock"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:background="@drawable/bg_circle_large"
-        android:gravity="center"
-        android:text="🔐"
-        android:textSize="48sp"
+    <!-- Subtle gradient overlay -->
+    <View
+        android:id="@+id/gradientOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_onboarding_gradient"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- App logo (sans texte) -->
+    <ImageView
+        android:id="@+id/ivLogo"
+        android:layout_width="140dp"
+        android:layout_height="140dp"
+        android:src="@mipmap/ic_launcher"
+        android:contentDescription="@string/app_name"
         app:layout_constraintBottom_toTopOf="@id/tvTitle"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="packed" />
+        app:layout_constraintVertical_chainStyle="packed"
+        app:layout_constraintVertical_bias="0.28" />
 
+    <!-- Title -->
     <TextView
         android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="20dp"
+        android:fontFamily="sans-serif-medium"
         android:text="@string/onboarding_title"
-        android:textColor="@color/primary"
-        android:textSize="32sp"
+        android:textColor="#FFFFFF"
+        android:textSize="36sp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@id/tvSubtitle"
+        android:letterSpacing="0.05"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/ivLock" />
+        app:layout_constraintTop_toBottomOf="@id/ivLogo" />
 
+    <!-- Russian name -->
     <TextView
-        android:id="@+id/tvSubtitle"
+        android:id="@+id/tvRussianName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:gravity="center"
-        android:lineSpacingExtra="4dp"
-        android:text="@string/onboarding_subtitle"
-        android:textColor="@color/text_secondary"
-        android:textSize="15sp"
-        app:layout_constraintBottom_toTopOf="@id/tilDisplayName"
+        android:layout_marginTop="4dp"
+        android:text="Фиалка"
+        android:textColor="#8B7EC8"
+        android:textSize="16sp"
+        android:letterSpacing="0.15"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tvTitle" />
 
+    <!-- Subtitle -->
+    <TextView
+        android:id="@+id/tvSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:text="@string/onboarding_subtitle"
+        android:textColor="#9E9BB0"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvRussianName" />
+
+    <!-- Crypto badge -->
+    <TextView
+        android:id="@+id/tvCryptoBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_crypto_badge"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="6dp"
+        android:text="PQXDH · X25519 · ML-KEM-1024 · AES-256-GCM"
+        android:textColor="#6C63A0"
+        android:textSize="9sp"
+        android:letterSpacing="0.08"
+        android:fontFamily="monospace"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvSubtitle" />
+
+    <!-- Username Input -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilDisplayName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginTop="40dp"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-        app:layout_constraintBottom_toTopOf="@id/btnCreateIdentity"
+        app:boxStrokeColor="#7B68EE"
+        app:hintTextColor="#7B68EE"
+        app:boxCornerRadiusBottomEnd="16dp"
+        app:boxCornerRadiusBottomStart="16dp"
+        app:boxCornerRadiusTopEnd="16dp"
+        app:boxCornerRadiusTopStart="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvSubtitle">
+        app:layout_constraintTop_toBottomOf="@id/tvCryptoBadge">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etDisplayName"
@@ -67,45 +118,53 @@
             android:layout_height="wrap_content"
             android:hint="@string/enter_display_name"
             android:inputType="textPersonName"
-            android:maxLength="30" />
+            android:maxLength="30"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#6E6B80" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Create Identity Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnCreateIdentity"
         android:layout_width="0dp"
         android:layout_height="56dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginTop="20dp"
         android:text="@string/create_identity"
         android:textAllCaps="false"
+        android:textColor="#FFFFFF"
         android:textSize="16sp"
-        app:cornerRadius="28dp"
-        app:layout_constraintBottom_toTopOf="@id/btnRestore"
+        android:textStyle="bold"
+        app:backgroundTint="#7B68EE"
+        app:cornerRadius="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tilDisplayName" />
 
+    <!-- Restore Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnRestore"
         style="@style/Widget.Material3.Button.TextButton"
         android:layout_width="0dp"
         android:layout_height="48dp"
+        android:layout_marginHorizontal="32dp"
         android:layout_marginTop="8dp"
         android:text="@string/restore_identity"
         android:textAllCaps="false"
-        android:textColor="@color/primary"
+        android:textColor="#7B68EE"
         android:textSize="14sp"
-        app:layout_constraintBottom_toTopOf="@id/progressBar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnCreateIdentity" />
 
+    <!-- Progress Bar -->
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:indeterminateTint="#7B68EE"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnRestore" />

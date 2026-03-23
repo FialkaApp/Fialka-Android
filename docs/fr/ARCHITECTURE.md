@@ -146,7 +146,7 @@ DummyTrafficManager.start(context):
       → envoie sur Firebase RTDB (/messages/{convId})
       → le récepteur détecte le préfixe → drop silencieux (pas d'insertion Room)
 
-Toggle: SecurityFragment → SharedPreferences("securechat_settings") → "dummy_traffic_enabled"
+Toggle: SecurityFragment → SharedPreferences("fialka_settings") → "dummy_traffic_enabled"
 ```
 
 ---

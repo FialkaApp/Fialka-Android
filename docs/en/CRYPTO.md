@@ -68,7 +68,7 @@ Alice                                         Bob
 4. The role (initiator/responder) is determined by the **lexicographic order** of the public keys
 5. QR v2 also encodes the **ML-KEM-1024** public key for PQXDH upgrade
 
-> **QR v2 format:** `securechat://contact?key=<X25519_base64>&kem=<ML-KEM-1024_base64>&name=<displayName>`
+> **QR v2 format:** `fialka://contact?key=<X25519_base64>&kem=<ML-KEM-1024_base64>&name=<displayName>`
 
 ---
 
@@ -116,9 +116,9 @@ qr_data = hex(hash)   // 64 ASCII characters (a-f0-9)
 
 ```
 Initialization (on contact acceptance):
-  root_key     = HKDF(shared_secret, "SecureChat-DR-root")
-  send_chain   = HKDF(root_key, "SecureChat-DR-chain-init-send")
-  recv_chain   = HKDF(root_key, "SecureChat-DR-chain-init-recv")  (swapped for responder)
+  root_key     = HKDF(shared_secret, "Fialka-DR-root")
+  send_chain   = HKDF(root_key, "Fialka-DR-chain-init-send")
+  recv_chain   = HKDF(root_key, "Fialka-DR-chain-init-recv")  (swapped for responder)
   ephemeral    = X25519.generateKeyPair()
 
 For each message N (KDF chain):
@@ -192,7 +192,7 @@ Receive:
 
 ## PQXDH — Post-Quantum Upgrade (V3.4)
 
-SecureChat implements a **hybrid** key exchange combining X25519 (classic) and ML-KEM-1024 (post-quantum) via the PQXDH protocol.
+Fialka implements a **hybrid** key exchange combining X25519 (classic) and ML-KEM-1024 (post-quantum) via the PQXDH protocol.
 
 ### Principle
 
@@ -238,14 +238,14 @@ Every PQ_RATCHET_INTERVAL = 10 sent messages:
 
 Sender (Alice):
   kem_ct, kem_ss = ML-KEM-1024.Encaps(contact_kem_publicKey)
-  root_key' = HKDF(root_key, kem_ss, info="SecureChat-SPQR-pq-ratchet")
+  root_key' = HKDF(root_key, kem_ss, info="Fialka-SPQR-pq-ratchet")
   → Firebase message includes { ..., "kemCiphertext": Base64(kem_ct) }
   → pqRatchetCounter reset to 0
 
 Receiver (Bob):
   If pqxdhInitialized AND kemCiphertext present AND not an initial PQXDH:
     kem_ss = ML-KEM-1024.Decaps(my_kem_privateKey, kemCiphertext)
-    root_key' = HKDF(root_key, kem_ss, info="SecureChat-SPQR-pq-ratchet")
+    root_key' = HKDF(root_key, kem_ss, info="Fialka-SPQR-pq-ratchet")
     → pqRatchetCounter reset to 0
 ```
 
@@ -260,7 +260,7 @@ Receiver (Bob):
 
 ## ChaCha20-Poly1305 — Alternative Cipher (V3.5)
 
-SecureChat automatically selects the optimal symmetric cipher based on hardware:
+Fialka automatically selects the optimal symmetric cipher based on hardware:
 
 | Hardware | Cipher | Reason |
 |----------|--------|--------|

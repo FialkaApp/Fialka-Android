@@ -17,7 +17,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
-        android:name=".SecureChatApplication"
+        android:name=".FialkaApplication"
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
         android:icon="@mipmap/ic_launcher"
@@ -25,7 +25,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"
-        android:theme="@style/Theme.SecureChat"
+        android:theme="@style/Theme.Fialka"
         tools:targetApi="31">
 
         <activity
@@ -38,24 +38,30 @@
             android:name=".ui.LockScreenActivity"
             android:exported="false"
             android:filterTouchesWhenObscured="true"
-            android:theme="@style/Theme.SecureChat" />
+            android:theme="@style/Theme.Fialka" />
+
+        <activity
+            android:name=".ui.SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Fialka.Splash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:filterTouchesWhenObscured="true"
-            android:theme="@style/Theme.SecureChat">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <!-- Handle securechat://invite deep links from other apps / share sheet -->
+            android:theme="@style/Theme.Fialka">
+            <!-- Handle fialka://invite deep links from other apps / share sheet -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="securechat" android:host="invite" />
+                <data android:scheme="fialka" android:host="invite" />
             </intent-filter>
         </activity>
 

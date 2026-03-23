@@ -17,6 +17,8 @@
     <color name="surface">#FF161616</color>
     <color name="error">#FFEF5350</color>
     <color name="chat_background">#FF0A0A0A</color>
+    <color name="ic_launcher_background">#FF0D0B1A</color>
+    <color name="splash_background">#FF0D0B1A</color>
     <color name="green_verified">#FF00E676</color>
     <color name="orange_warning">#FFFFAB40</color>
     <color name="nav_bar">#FF0D0D0D</color>

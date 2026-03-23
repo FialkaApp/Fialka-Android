@@ -6,7 +6,7 @@
 
 <div align="center">
 
-# 🔐 SecureChat
+# 🔐 Fialka
 
 ### Chat chiffré de bout en bout pour Android — gratuit, anonyme, sans serveur
 
@@ -214,8 +214,8 @@
 
 ```bash
 # 1. Clone
-git clone https://github.com/DevBot667/SecureChat.git
-cd SecureChat
+git clone https://github.com/FialkaApp/Fialka.git
+cd Fialka
 
 # 2. Ajouter google-services.json dans app/ (voir docs/SETUP.md)
 
@@ -368,7 +368,7 @@ Fourni à des fins **éducatives**. Utilisez-le comme base pour comprendre le ch
 
 <br/>
 
-<img src="https://img.shields.io/badge/SecureChat-V3.5-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/Fialka-V3.5-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

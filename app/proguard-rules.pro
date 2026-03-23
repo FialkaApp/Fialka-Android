@@ -1,13 +1,13 @@
-﻿# ==============================================================================
-# SecureChat ProGuard / R8 Rules
+# ==============================================================================
+# Fialka ProGuard / R8 Rules
 # ==============================================================================
 
 # --- Data models (Room entities + Firebase deserialization) ---
--keepclassmembers class com.securechat.data.model.** { *; }
+-keepclassmembers class com.fialkaapp.fialka.data.model.** { *; }
 
 # --- Firebase RTDB deserialization needs default constructors + fields ---
--keep class com.securechat.data.model.FirebaseMessage { *; }
--keepclassmembers class com.securechat.data.model.FirebaseMessage {
+-keep class com.fialkaapp.fialka.data.model.FirebaseMessage { *; }
+-keepclassmembers class com.fialkaapp.fialka.data.model.FirebaseMessage {
     <init>();
     <fields>;
 }

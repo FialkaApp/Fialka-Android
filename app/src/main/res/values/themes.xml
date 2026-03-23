@@ -5,7 +5,7 @@
          BASE THEME — dark, teal/cyan accent ("Midnight")  DEFAULT
          Material 3 (Material You)
          ============================================================ -->
-    <style name="Theme.SecureChat" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.Fialka" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#00BFA5</item>
         <item name="colorPrimaryDark">#0A0A0A</item>
         <item name="colorAccent">#00E5FF</item>
@@ -70,7 +70,7 @@
     <!-- ============================================================
          HACKER — pure black AMOLED, Matrix-green accent
          ============================================================ -->
-    <style name="Theme.SecureChat.Hacker" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.Fialka.Hacker" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#00E676</item>
         <item name="colorPrimaryDark">#000000</item>
         <item name="colorAccent">#76FF03</item>
@@ -134,7 +134,7 @@
     <!-- ============================================================
          PHANTOM — dark anthracite, purple/pink accent
          ============================================================ -->
-    <style name="Theme.SecureChat.Phantom" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.Fialka.Phantom" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#BB86FC</item>
         <item name="colorPrimaryDark">#0F0F14</item>
         <item name="colorAccent">#CF6679</item>
@@ -198,7 +198,7 @@
     <!-- ============================================================
          AURORA — dark with warm amber/orange accent
          ============================================================ -->
-    <style name="Theme.SecureChat.Aurora" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.Fialka.Aurora" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">#FFB74D</item>
         <item name="colorPrimaryDark">#0D0D0D</item>
         <item name="colorAccent">#FF7043</item>
@@ -262,7 +262,7 @@
     <!-- ============================================================
          DAYLIGHT — clean light theme, blue accent
          ============================================================ -->
-    <style name="Theme.SecureChat.Daylight" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.Fialka.Daylight" parent="Theme.Material3.Light.NoActionBar">
         <item name="colorPrimary">#1976D2</item>
         <item name="colorPrimaryDark">#0D47A1</item>
         <item name="colorAccent">#448AFF</item>
@@ -333,5 +333,15 @@
         <item name="android:textColor">?android:attr/textColorPrimary</item>
         <item name="android:textStyle">bold</item>
         <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+    </style>
+
+    <!-- ============================================================
+         SPLASH SCREEN — Fialka logo on dark purple background
+         ============================================================ -->
+    <style name="Theme.Fialka.Splash" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:statusBarColor">@color/splash_background</item>
+        <item name="android:navigationBarColor">@color/splash_background</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

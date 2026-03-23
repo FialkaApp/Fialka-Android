@@ -1,4 +1,4 @@
-# Privacy Policy — SecureChat
+# Privacy Policy — Fialka
 
 *Last updated: March 20, 2026*
 
@@ -6,21 +6,21 @@
 
 ## 1. Introduction
 
-SecureChat is a privacy-first, end-to-end encrypted messaging application. This Privacy Policy describes what data is (and is not) collected, how it is handled, and your rights regarding your personal data.
+Fialka is a privacy-first, end-to-end encrypted messaging application. This Privacy Policy describes what data is (and is not) collected, how it is handled, and your rights regarding your personal data.
 
-**TL;DR: SecureChat collects virtually nothing. Messages are end-to-end encrypted. The developer cannot read your messages. No analytics, no tracking, no ads.**
+**TL;DR: Fialka collects virtually nothing. Messages are end-to-end encrypted. The developer cannot read your messages. No analytics, no tracking, no ads.**
 
 ## 2. Data Controller
 
-SecureChat is developed by an independent developer based in France under the pseudonym **DevBot667**. For privacy inquiries, contact via [GitHub](https://github.com/DevBot667/SecureChat).
+Fialka is developed by an independent developer based in France under the pseudonym **DevBot667**. For privacy inquiries, contact via [GitHub](https://github.com/FialkaApp/Fialka).
 
 ## 3. Data We Do NOT Collect
 
-SecureChat is designed to **minimize data collection by design**:
+Fialka is designed to **minimize data collection by design**:
 
 - **Message content** — All messages are end-to-end encrypted using PQXDH (X25519 + ML-KEM-1024) and Double Ratchet. The developer and relay infrastructure **cannot read, access, or decrypt** any message content.
 - **Private keys** — Your cryptographic keys are generated and stored **exclusively on your device**. They never leave your device.
-- **Contacts or address book** — SecureChat does not access or upload your phone contacts.
+- **Contacts or address book** — Fialka does not access or upload your phone contacts.
 - **Location data** — Not collected.
 - **Usage analytics** — No analytics SDK, no telemetry, no tracking.
 - **Advertising identifiers** — No ads, no ad SDKs.
@@ -30,7 +30,7 @@ SecureChat is designed to **minimize data collection by design**:
 
 ### 4.1. Firebase Authentication (Anonymous)
 
-SecureChat uses Firebase Anonymous Authentication to generate a unique, anonymous user ID. This ID:
+Fialka uses Firebase Anonymous Authentication to generate a unique, anonymous user ID. This ID:
 - Contains **no personal information** (no email, no phone number, no name)
 - Is used solely to route encrypted messages
 - Is stored by Google Firebase under their [Privacy Policy](https://firebase.google.com/support/privacy)
@@ -100,9 +100,9 @@ Under the General Data Protection Regulation (GDPR), you have the right to:
 - **Objection** — Object to data processing
 - **Restriction** — Restrict how your data is processed
 
-To exercise these rights, contact the developer via [GitHub](https://github.com/DevBot667/SecureChat).
+To exercise these rights, contact the developer via [GitHub](https://github.com/FialkaApp/Fialka).
 
-**In practice**, since SecureChat collects almost no personal data and uses anonymous authentication, most of these rights are satisfied by design.
+**In practice**, since Fialka collects almost no personal data and uses anonymous authentication, most of these rights are satisfied by design.
 
 To delete all your data:
 1. Delete the app from your device (removes all local data)
@@ -110,11 +110,11 @@ To delete all your data:
 
 ## 9. Children's Privacy
 
-SecureChat is **not intended for use by anyone under the age of 16** (or the minimum digital age of consent in your jurisdiction). We do not knowingly collect data from children under 16. See the [Terms of Service](TERMS.md) for details.
+Fialka is **not intended for use by anyone under the age of 16** (or the minimum digital age of consent in your jurisdiction). We do not knowingly collect data from children under 16. See the [Terms of Service](TERMS.md) for details.
 
 ## 10. Security
 
-SecureChat implements multiple layers of security:
+Fialka implements multiple layers of security:
 - **PQXDH** (X25519 + ML-KEM-1024) for post-quantum key exchange
 - **Double Ratchet** for forward secrecy and self-healing
 - **AES-256-GCM** for message encryption
@@ -132,7 +132,7 @@ This Privacy Policy may be updated from time to time. Changes will be published 
 ## 12. Contact
 
 For privacy-related questions or concerns:
-- GitHub: [github.com/DevBot667/SecureChat](https://github.com/DevBot667/SecureChat)
+- GitHub: [github.com/FialkaApp/Fialka](https://github.com/FialkaApp/Fialka)
 
 ---
 

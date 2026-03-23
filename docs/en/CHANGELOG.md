@@ -237,7 +237,7 @@
 - [x] **TorVpnService.kt** — VPN TUN service → hev-socks5-tunnel → SOCKS5 :9050 → Tor → Internet
 - [x] **libtor.so + libhev-socks5-tunnel.so** — Native arm64-v8a binaries embedded
 - [x] **Global ProxySelector** — All HTTP traffic routed via SOCKS5 `127.0.0.1:9050` when Tor enabled
-- [x] **Conditional startup** — `SecureChatApplication.onCreate()` starts Tor if enabled
+- [x] **Conditional startup** — `FialkaApplication.onCreate()` starts Tor if enabled
 - [x] **TorBootstrapFragment** — `startDestination` of nav graph, Tor/Normal choice on first launch
 - [x] **Animated circular progress** — Real-time percentage, dynamic status text, pulse animation
 - [x] **Respects all 5 themes** — Colors via `?attr/` from active theme
@@ -260,7 +260,7 @@
 - [x] **Hybrid PQXDH** — Classic X25519 key exchange + ML-KEM-1024 encapsulation in parallel
 - [x] **Deferred rootKey upgrade** — Initial conversation starts classic X25519-only; rootKey is upgraded with ML-KEM secret on the first message (no bootstrap message)
 - [x] **kemCiphertext in first message** — ML-KEM ciphertext sent once, in the first Firebase message of the conversation
-- [x] **QR deep link v2** — Format `securechat://contact?key=<X25519>&kem=<ML-KEM-1024-pubKey>&name=<displayName>` — ML-KEM key encoded in QR
+- [x] **QR deep link v2** — Format `fialka://contact?key=<X25519>&kem=<ML-KEM-1024-pubKey>&name=<displayName>` — ML-KEM key encoded in QR
 - [x] **Auto-fill name from QR** — Contact nickname auto-populated from QR scan data
 
 ### 🛡️ Device Security
@@ -375,7 +375,7 @@
 > Post-quantum Triple Ratchet (SPQR), alternative ChaCha20-Poly1305 cipher, documented threat model.
 
 ### 🔐 SPQR — Periodic PQ Re-encapsulation (Triple Ratchet)
-- [x] **PQ Ratchet Step** — New `DoubleRatchet.pqRatchetStep()` function: mixes a fresh ML-KEM secret into rootKey via HKDF (info: `SecureChat-SPQR-pq-ratchet`)
+- [x] **PQ Ratchet Step** — New `DoubleRatchet.pqRatchetStep()` function: mixes a fresh ML-KEM secret into rootKey via HKDF (info: `Fialka-SPQR-pq-ratchet`)
 - [x] **Re-encapsulation interval** — `PQ_RATCHET_INTERVAL = 10` messages: every 10 messages, the sender performs ML-KEM encaps and upgrades rootKey
 - [x] **Sender-side** — In `sendMessage()`, when counter reaches 10 and PQXDH is initialized: `mlkemEncaps(remoteMlkemPublicKey)` → `pqRatchetStep(rootKey, ssPQ)` → new rootKey + `kemCiphertext` attached to message
 - [x] **Receiver-side** — In `receiveMessage()`, detects `kemCiphertext` on an already PQ-initialized session: `mlkemDecaps()` → `pqRatchetStep()` → rootKey upgraded, counter reset
@@ -392,7 +392,7 @@
 ### 📋 Documented Threat Model
 - [x] **SECURITY.md** — Added comprehensive Threat Model section with 6 adversary tiers (T1 curious → T6 quantum)
 - [x] **Protection/residual matrix** — Detailed table of protections and residual risks per tier
-- [x] **Documented limitations** — Explicit section "What SecureChat does NOT protect against"
+- [x] **Documented limitations** — Explicit section "What Fialka does NOT protect against"
 - [x] **Design principles** — 7 principles: defense in depth, hybrid PQ, forward secrecy, post-compromise healing, zero trust transport, minimal metadata, fail-safe defaults
 
 ### 🗄️ Database

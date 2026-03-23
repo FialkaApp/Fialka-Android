@@ -1,4 +1,4 @@
-# Security Policy — SecureChat
+# Security Policy — Fialka
 
 ## Supported Versions
 
@@ -16,7 +16,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in SecureChat, **please do NOT open a public issue**.
+If you discover a security vulnerability in Fialka, **please do NOT open a public issue**.
 
 Instead, contact the maintainer privately:
 - Open a **private security advisory** on GitHub (Settings → Security → Advisories)
@@ -24,7 +24,7 @@ Instead, contact the maintainer privately:
 
 ## Cryptographic Design
 
-SecureChat uses the following cryptographic primitives:
+Fialka uses the following cryptographic primitives:
 
 | Component | Algorithm | Notes |
 |-----------|-----------|-------|
@@ -168,7 +168,7 @@ SecureChat uses the following cryptographic primitives:
 - ✅ **PQXDH hybrid key exchange**: X25519 + ML-KEM-1024 post-quantum key agreement via BouncyCastle 1.80 lightweight API (no JCA provider registration)
 - ✅ **ML-KEM-1024 identity key pair**: `generateMLKEMIdentityKeyPair()`, `mlkemEncaps()`, `mlkemDecaps()`, `deriveRootKeyPQXDH(ssClassic, ssPQ)` for hybrid root key derivation
 - ✅ **Deferred PQXDH upgrade**: both sides start with classic-only chains; `rootKey` upgraded to combined (classic+PQ) secret only after first KEM ciphertext exchange; current chains stay intact to avoid desync
-- ✅ **ML-KEM keys on Firebase**: `/mlkem_keys/{hash}` node for public key distribution; included in QR deep links (`securechat://invite?v=2&x25519=<key>&mlkem=<key>`)
+- ✅ **ML-KEM keys on Firebase**: `/mlkem_keys/{hash}` node for public key distribution; included in QR deep links (`fialka://invite?v=2&x25519=<key>&mlkem=<key>`)
 - ✅ **QR code v2**: deep link format with X25519 + ML-KEM public keys + displayName; Version 40 + ErrorCorrectionLevel.L automatic for large content; fallback to text if too large
 - ✅ **QR auto-fill contact name**: scanned or deep-linked displayName pre-fills the contact name field; helper text indicates auto-fill
 - ✅ **displayName hidden from Firebase**: `storeDisplayName()` → no-op; name only travels in ECIES inbox payload (zero server-side PII)
@@ -275,7 +275,7 @@ SecureChat uses the following cryptographic primitives:
 | **T5 — Device compromise** | Root access or runtime exploit on the target device | Spyware (Pegasus-class), rooted device with Frida, physical forensic extraction |
 | **T6 — Quantum adversary** | Future large-scale fault-tolerant quantum computer | "Harvest now, decrypt later" strategy targeting X25519/ECDH |
 
-### What SecureChat protects against
+### What Fialka protects against
 
 | Threat | Protection | Residual risk |
 |--------|-----------|---------------|
@@ -289,7 +289,7 @@ SecureChat uses the following cryptographic primitives:
 | **T5 — Memory forensics** | All key material zeroed explicitly (`fill(0)`) after use; message padding prevents plaintext length inference; `FLAG_SECURE` prevents screenshot/screen capture | JVM garbage collection may retain copies before zeroing; Frida-class runtime instrumentation can intercept keys before zeroing |
 | **T6 — Quantum attack** | PQXDH hybrid: X25519 + ML-KEM-1024 (NIST FIPS 203). SPQR re-encapsulation every 10 messages refreshes the PQ secret in the root key. Even if X25519 is broken, ML-KEM-1024 protects the session. | ML-KEM-1024 is a lattice-based scheme that has not yet been deployed at scale for decades; cryptanalytic advances remain possible. Hybrid design ensures we fall back to classical security if ML-KEM is broken. |
 
-### What SecureChat does NOT protect against
+### What Fialka does NOT protect against
 
 | Threat | Reason |
 |--------|--------|
