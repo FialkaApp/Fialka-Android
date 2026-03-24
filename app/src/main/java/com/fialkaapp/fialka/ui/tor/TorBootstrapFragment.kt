@@ -31,6 +31,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.AppMode
+import com.fialkaapp.fialka.AppModeType
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.databinding.FragmentTorBootstrapBinding
 import com.fialkaapp.fialka.tor.TorCircuit
@@ -68,11 +70,34 @@ class TorBootstrapFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // New user? Skip straight to onboarding — Tor connects in background
+        // New user? Route based on app mode
         if (!CryptoManager.hasIdentity()) {
             if (!hasNavigated) {
                 hasNavigated = true
-                findNavController().navigate(R.id.action_torBootstrap_to_onboarding)
+                val mode = AppMode.getMode(requireContext())
+                if (mode == AppModeType.NOT_SET) {
+                    findNavController().navigate(R.id.action_torBootstrap_to_modeChoice)
+                } else {
+                    findNavController().navigate(R.id.action_torBootstrap_to_onboarding)
+                }
+            }
+            return
+        }
+
+        // Returning MAILBOX user
+        if (AppMode.isMailbox(requireContext())) {
+            if (!hasNavigated) {
+                hasNavigated = true
+                if (AppMode.isOwnerQrValidated(requireContext())) {
+                    // Setup complete → dashboard
+                    findNavController().navigate(R.id.action_torBootstrap_to_mailboxDashboard)
+                } else if (AppMode.getMailboxType(requireContext()) != com.fialkaapp.fialka.MailboxType.NONE) {
+                    // Type chosen but owner QR not validated → back to setup (will resume at loading/QR step)
+                    findNavController().navigate(R.id.action_torBootstrap_to_mailboxSetup)
+                } else {
+                    // No type chosen yet → setup from scratch
+                    findNavController().navigate(R.id.action_torBootstrap_to_mailboxSetup)
+                }
             }
             return
         }
@@ -318,10 +343,17 @@ class TorBootstrapFragment : Fragment() {
         if (hasNavigated) return
         hasNavigated = true
         if (!isAdded) return
-        val action = if (CryptoManager.hasIdentity()) {
-            R.id.action_torBootstrap_to_conversations
-        } else {
-            R.id.action_torBootstrap_to_onboarding
+
+        val action = when {
+            AppMode.isMailbox(requireContext()) -> {
+                if (AppMode.isOwnerQrValidated(requireContext()))
+                    R.id.action_torBootstrap_to_mailboxDashboard
+                else
+                    R.id.action_torBootstrap_to_mailboxSetup
+            }
+            CryptoManager.hasIdentity() -> R.id.action_torBootstrap_to_conversations
+            AppMode.isNotSet(requireContext()) -> R.id.action_torBootstrap_to_modeChoice
+            else -> R.id.action_torBootstrap_to_onboarding
         }
         findNavController().navigate(action)
     }

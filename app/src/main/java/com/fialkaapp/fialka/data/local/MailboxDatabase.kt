@@ -83,6 +83,17 @@ abstract class MailboxDatabase : RoomDatabase() {
                 .build()
         }
 
+        /**
+         * Close and destroy the database instance.
+         * Used when resetting the mailbox.
+         */
+        fun destroyInstance() {
+            synchronized(this) {
+                try { INSTANCE?.close() } catch (_: Exception) {}
+                INSTANCE = null
+            }
+        }
+
         private fun getOrCreatePassphrase(context: Context): ByteArray {
             val masterKey = MasterKey.Builder(context.applicationContext)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)

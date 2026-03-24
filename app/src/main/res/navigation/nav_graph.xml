@@ -24,6 +24,27 @@
             app:popUpToInclusive="true"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out" />
+        <action
+            android:id="@+id/action_torBootstrap_to_modeChoice"
+            app:destination="@id/modeChoiceFragment"
+            app:popUpTo="@id/torBootstrapFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+        <action
+            android:id="@+id/action_torBootstrap_to_mailboxDashboard"
+            app:destination="@id/mailboxDashboardFragment"
+            app:popUpTo="@id/torBootstrapFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+        <action
+            android:id="@+id/action_torBootstrap_to_mailboxSetup"
+            app:destination="@id/mailboxSetupFragment"
+            app:popUpTo="@id/torBootstrapFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
     </fragment>
 
     <fragment
@@ -125,6 +146,13 @@
         <action
             android:id="@+id/action_conversations_to_settings"
             app:destination="@id/settingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_conversations_to_mailboxSettings"
+            app:destination="@id/mailboxSettingsFragment"
             app:enterAnim="@anim/slide_in_right"
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
@@ -252,6 +280,13 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settings_to_mailboxSettings"
+            app:destination="@id/mailboxSettingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -293,6 +328,12 @@
         tools:layout="@layout/fragment_settings_ephemeral" />
 
     <fragment
+        android:id="@+id/mailboxSettingsFragment"
+        android:name="com.fialkaapp.fialka.ui.mode.MailboxSettingsFragment"
+        android:label="Mailbox"
+        tools:layout="@layout/fragment_mailbox_settings" />
+
+    <fragment
         android:id="@+id/fingerprintFragment"
         android:name="com.fialkaapp.fialka.ui.chat.FingerprintFragment"
         android:label="Empreinte de sécurité"
@@ -303,6 +344,57 @@
         <argument
             android:name="contactName"
             app:argType="string" />
+    </fragment>
+
+    <!-- ── Mode selection ── -->
+
+    <fragment
+        android:id="@+id/modeChoiceFragment"
+        android:name="com.fialkaapp.fialka.ui.mode.ModeChoiceFragment"
+        android:label="Mode"
+        tools:layout="@layout/fragment_mode_choice">
+        <action
+            android:id="@+id/action_modeChoice_to_onboarding"
+            app:destination="@id/onboardingFragment"
+            app:popUpTo="@id/modeChoiceFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+        <action
+            android:id="@+id/action_modeChoice_to_mailboxSetup"
+            app:destination="@id/mailboxSetupFragment"
+            app:popUpTo="@id/modeChoiceFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/mailboxSetupFragment"
+        android:name="com.fialkaapp.fialka.ui.mode.MailboxSetupFragment"
+        android:label="Mailbox Setup"
+        tools:layout="@layout/fragment_mailbox_setup">
+        <action
+            android:id="@+id/action_mailboxSetup_to_dashboard"
+            app:destination="@id/mailboxDashboardFragment"
+            app:popUpTo="@id/mailboxSetupFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/mailboxDashboardFragment"
+        android:name="com.fialkaapp.fialka.ui.mode.MailboxDashboardFragment"
+        android:label="Dashboard"
+        tools:layout="@layout/fragment_mailbox_dashboard">
+        <action
+            android:id="@+id/action_mailboxDashboard_to_mailboxSetup"
+            app:destination="@id/mailboxSetupFragment"
+            app:popUpTo="@id/mailboxDashboardFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
     </fragment>
 
 </navigation>

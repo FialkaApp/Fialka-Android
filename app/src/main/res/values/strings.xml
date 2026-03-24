@@ -78,6 +78,105 @@
     <string name="contact_profile_title">Profil du contact</string>
     <string name="fingerprint_verified">Empreinte vérifiée ✓</string>
 
+    <!-- Mode Choice -->
+    <string name="mode_choice_subtitle">Ce téléphone sera configuré de manière irréversible.\nChoisissez son rôle avec soin.</string>
+    <string name="mode_normal_title">Mode Normal</string>
+    <string name="mode_normal_desc">Messagerie chiffrée complète.\nEnvoyez et recevez des messages via Tor.\nCe mode est pour un usage quotidien.</string>
+    <string name="mode_mailbox_title">Mode Mailbox</string>
+    <string name="mode_mailbox_desc">Serveur de dépôt dédié.\nStocke les messages chiffrés pour vos contacts.\nCe téléphone ne pourra PAS envoyer de messages.</string>
+    <string name="mode_choice_warning">⚠ Ce choix est irréversible. Seule une réinstallation permettra de changer.</string>
+
+    <!-- Mailbox Setup -->
+    <string name="mailbox_setup_title">Configuration Mailbox</string>
+    <string name="mailbox_setup_subtitle">Choisissez le type d\'accès à votre mailbox.</string>
+    <string name="mailbox_personal_title">Personnel</string>
+    <string name="mailbox_personal_desc">Mailbox privée — seul le premier membre (OWNER) peut rejoindre.\nAucune invitation n\'est nécessaire.</string>
+    <string name="mailbox_private_title">Privé</string>
+    <string name="mailbox_private_desc">Accès sur invitation uniquement.\nLe OWNER peut inviter d\'autres membres via des codes à usage unique.</string>
+    <string name="mailbox_qr_label">QR de connexion Mailbox</string>
+    <string name="mailbox_continue">Accéder au tableau de bord</string>
+    <string name="mailbox_btn_start">Continuer</string>
+    <string name="mailbox_loading_tor">Démarrage du service…</string>
+    <string name="mailbox_loading_detail">Connexion à Tor et publication de l\'adresse .onion</string>
+    <string name="mailbox_owner_qr_title">✅ Service actif</string>
+    <string name="mailbox_owner_qr_subtitle">Scannez ce QR depuis votre téléphone principal pour vous enregistrer en tant que OWNER.</string>
+    <string name="mailbox_owner_qr_warning">⚠ Ce QR ne sera affiché qu\'une seule fois.\nUne fois validé, seul le OWNER pourra administrer cette mailbox.</string>
+    <string name="mailbox_btn_validate">Valider — J\'ai scanné le QR</string>
+
+    <!-- Mailbox Dashboard -->
+    <string name="mailbox_dashboard_title">Tableau de bord</string>
+    <string name="mailbox_status_running">● En service</string>
+    <string name="mailbox_blobs">Messages</string>
+    <string name="mailbox_members">Membres</string>
+    <string name="mailbox_storage">Stockage</string>
+    <string name="mailbox_onion_label">Adresse .onion</string>
+    <string name="mailbox_members_label">Membres</string>
+    <string name="mailbox_purge">Purger</string>
+    <string name="mailbox_invite">Inviter</string>
+    <string name="mailbox_purge_confirm">Purger les messages expirés ?</string>
+    <string name="mailbox_invite_copied">Lien d\'invitation copié !</string>
+    <string name="mailbox_invite_qr_title">QR d\'invitation</string>
+    <string name="mailbox_invite_qr_validity">⏱ Valide 24 heures</string>
+    <string name="mailbox_invite_copy_link">Copier le lien</string>
+    <string name="mailbox_no_onion">Adresse .onion non disponible</string>
+
+    <!-- Mailbox Delete -->
+    <string name="mailbox_delete">Supprimer la Mailbox</string>
+    <string name="mailbox_delete_title">Supprimer la Mailbox</string>
+    <string name="mailbox_delete_message">Cela supprimera TOUTES les données de la mailbox (messages, membres, invitations).\n\nCette action est irréversible.\n\nVoulez-vous continuer ?</string>
+    <string name="mailbox_delete_confirm">Supprimer</string>
+
+    <!-- Mailbox Client (NORMAL user settings) -->
+    <string name="mailbox_client_no_connection">Vous n\'êtes connecté à aucune mailbox.\nScannez le QR code affiché sur le téléphone serveur pour vous connecter.</string>
+    <string name="mailbox_client_scan_qr">Scanner un QR Mailbox</string>
+    <string name="mailbox_client_scan_prompt">Scannez le QR code de la mailbox</string>
+    <string name="mailbox_client_connected">Connecté</string>
+    <string name="mailbox_client_type_label">Type de mailbox</string>
+    <string name="mailbox_client_role_label">Rôle</string>
+    <string name="mailbox_client_onion_label">Adresse .onion</string>
+    <string name="mailbox_client_disconnect">Se déconnecter</string>
+    <string name="mailbox_client_disconnect_title">Déconnexion</string>
+    <string name="mailbox_client_disconnect_message">Voulez-vous quitter cette mailbox et effacer la connexion locale ?</string>
+    <string name="mailbox_client_disconnect_confirm">Déconnecter</string>
+    <string name="mailbox_client_disconnected">Déconnecté de la mailbox</string>
+    <string name="mailbox_client_invalid_qr">QR code invalide — ce n\'est pas un QR de mailbox</string>
+    <string name="mailbox_client_joined">Rejoint en tant que %1$s</string>
+    <string name="mailbox_client_join_failed">Échec : %1$s</string>
+    <string name="mailbox_client_configured">Mailbox configurée ✓</string>
+
+    <!-- Mailbox Status Check -->
+    <string name="mailbox_status_online">En ligne</string>
+    <string name="mailbox_status_offline">Hors ligne</string>
+    <string name="mailbox_status_checking">Vérification…</string>
+
+    <!-- Mailbox Client - Paste Link -->
+    <string name="mailbox_client_paste_link">Coller un lien Mailbox</string>
+    <string name="mailbox_client_paste_prompt">Collez le lien fialka://mailbox reçu</string>
+    <string name="mailbox_client_invalid_link">Lien invalide — format incorrect</string>
+
+    <!-- Mailbox Owner (NORMAL side) -->
+    <string name="mailbox_owner_members_title">Membres (%1$d)</string>
+    <string name="mailbox_owner_invite_remote">Inviter</string>
+    <string name="mailbox_owner_share_link">Copier le lien</string>
+    <string name="mailbox_owner_invite_copied">Code d\'invitation copié !</string>
+    <string name="mailbox_owner_invite_failed">Impossible de générer l\'invitation</string>
+    <string name="mailbox_owner_kick_title">Exclure ce membre ?</string>
+    <string name="mailbox_owner_kick_message">%1$s sera retiré de la mailbox.</string>
+    <string name="mailbox_owner_kick_confirm">Exclure</string>
+    <string name="mailbox_owner_kicked">Membre exclu ✓</string>
+    <string name="mailbox_owner_kick_failed">Échec de l\'exclusion</string>
+    <string name="mailbox_owner_no_members">Aucun autre membre</string>
+    <string name="mailbox_link_copied">Lien Mailbox copié !</string>
+
+    <!-- Mailbox Dashboard Admin -->
+    <string name="mailbox_dashboard_kick">Exclure</string>
+    <string name="mailbox_dashboard_demote">Rétrograder en membre</string>
+    <string name="mailbox_dashboard_member_options">Options du membre</string>
+    <string name="mailbox_dashboard_kicked">Membre exclu ✓</string>
+    <string name="mailbox_dashboard_demoted">Rôle modifié en MEMBER ✓</string>
+    <string name="mailbox_dashboard_share_link">Copier le lien Mailbox</string>
+    <string name="mailbox_dashboard_refreshed">Données actualisées ✓</string>
+
     <!-- Theme names -->
     <string name="theme_midnight">Midnight</string>
     <string name="theme_hacker">Hacker</string>
