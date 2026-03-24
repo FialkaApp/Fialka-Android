@@ -24,82 +24,65 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import com.fialkaapp.fialka.data.model.Contact
-import com.fialkaapp.fialka.data.model.Conversation
-import com.fialkaapp.fialka.data.model.MessageLocal
-import com.fialkaapp.fialka.data.model.OutboxMessage
-import com.fialkaapp.fialka.data.model.RatchetState
-import com.fialkaapp.fialka.data.model.UserLocal
+import com.fialkaapp.fialka.data.model.MailboxBlob
+import com.fialkaapp.fialka.data.model.MailboxInvite
+import com.fialkaapp.fialka.data.model.MailboxMember
 import net.sqlcipher.database.SQLiteDatabase
 import net.sqlcipher.database.SupportFactory
 import java.security.SecureRandom
 
 /**
- * Room database for Fialka, encrypted with SQLCipher.
+ * Separate Room database for MAILBOX mode — encrypted with SQLCipher.
+ * Stores blobs, members, and invites. NEVER used in NORMAL mode.
  *
- * The 256-bit passphrase is:
- *  1. Generated once via SecureRandom (32 bytes → Base64)
- *  2. Stored in EncryptedSharedPreferences (AES-256-GCM, backed by Android Keystore)
- *  3. Loaded at each app start to unlock the database
- *
- * This ensures that even if the device storage is dumped (rooted phone, backup),
- * the SQLite database file is unreadable without the Keystore-protected passphrase.
+ * The mailbox has NO access to message content (blobs are opaque encrypted data).
  */
 @Database(
-    entities = [
-        UserLocal::class,
-        Contact::class,
-        Conversation::class,
-        MessageLocal::class,
-        RatchetState::class,
-        OutboxMessage::class
-    ],
-    version = 20,
+    entities = [MailboxBlob::class, MailboxMember::class, MailboxInvite::class],
+    version = 1,
     exportSchema = false
 )
-abstract class FialkaDatabase : RoomDatabase() {
+abstract class MailboxDatabase : RoomDatabase() {
 
-    abstract fun userLocalDao(): UserLocalDao
-    abstract fun contactDao(): ContactDao
-    abstract fun conversationDao(): ConversationDao
-    abstract fun messageLocalDao(): MessageLocalDao
-    abstract fun ratchetStateDao(): RatchetStateDao
-    abstract fun outboxDao(): OutboxDao
+    abstract fun blobDao(): MailboxBlobDao
+    abstract fun memberDao(): MailboxMemberDao
+    abstract fun inviteDao(): MailboxInviteDao
 
     companion object {
         @Volatile
-        private var INSTANCE: FialkaDatabase? = null
+        private var INSTANCE: MailboxDatabase? = null
 
-        private const val PREFS_FILE = "fialka_db_key"
+        private const val PREFS_FILE = "mailbox_db_key"
         private const val KEY_DB_PASSPHRASE = "db_passphrase"
 
-        fun getInstance(context: Context): FialkaDatabase {
+        fun getInstance(context: Context): MailboxDatabase {
             return INSTANCE ?: synchronized(this) {
-                val passphrase = getOrCreatePassphrase(context)
-                val factory = SupportFactory(passphrase, object : net.sqlcipher.database.SQLiteDatabaseHook {
+                INSTANCE ?: buildDatabase(context).also { INSTANCE = it }
+            }
+        }
+
+        private fun buildDatabase(context: Context): MailboxDatabase {
+            val passphrase = getOrCreatePassphrase(context)
+            val factory = SupportFactory(
+                passphrase,
+                object : net.sqlcipher.database.SQLiteDatabaseHook {
                     override fun preKey(database: SQLiteDatabase?) {}
                     override fun postKey(database: SQLiteDatabase?) {
                         database?.rawExecSQL("PRAGMA cipher_memory_security = ON;")
                     }
-                })
+                }
+            )
 
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    FialkaDatabase::class.java,
-                    "fialka_db"
-                )
-                    .openHelperFactory(factory)
-                    .fallbackToDestructiveMigration(dropAllTables = true)
-                    .build()
-                INSTANCE = instance
-                instance
-            }
+            return Room.databaseBuilder(
+                context.applicationContext,
+                MailboxDatabase::class.java,
+                "mailbox_db"
+            )
+                .openHelperFactory(factory)
+                .fallbackToDestructiveMigration(dropAllTables = true)
+                .build()
         }
 
-        /**
-         * Get or create the 256-bit database passphrase.
-         * Stored in EncryptedSharedPreferences (Keystore-backed AES-256-GCM).
-         */
         private fun getOrCreatePassphrase(context: Context): ByteArray {
             val masterKey = MasterKey.Builder(context.applicationContext)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -117,7 +100,6 @@ abstract class FialkaDatabase : RoomDatabase() {
                 return Base64.decode(existing, Base64.NO_WRAP)
             }
 
-            // Generate new 256-bit passphrase
             val passphrase = ByteArray(32)
             SecureRandom().nextBytes(passphrase)
             val encoded = Base64.encodeToString(passphrase, Base64.NO_WRAP)
