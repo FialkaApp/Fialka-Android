@@ -18,7 +18,6 @@
 package com.fialkaapp.fialka.data.repository
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.LiveData
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.DoubleRatchet
@@ -431,9 +430,7 @@ class ChatRepository(private val appContext: Context) {
                     ratchetState = ratchetState.copy(rootKey = newRootKey)
                     spqrKemCiphertext = kemCt
                     newPqRatchetCounter = 0
-                    Log.d("Fialka", "SPQR: ML-KEM re-encapsulation → rootKey upgraded")
                 } catch (e: Exception) {
-                    Log.w("Fialka", "SPQR encapsulation failed, skipping", e)
                 }
             }
 
@@ -697,7 +694,6 @@ class ChatRepository(private val appContext: Context) {
             updateConversationLastMessage(conversationId, finalMessage.plaintext)
             finalMessage
         } catch (e: Exception) {
-            android.util.Log.w("ChatRepository", "File receive failed: ${e.message}")
             // Store retry metadata in plaintext: ⚠️|url|key|iv|fileName|fileSize
             val errorMessage = placeholder.copy(
                 plaintext = "⚠️|$downloadUrl|$keyBase64|$ivBase64|$fileName|$fileSize"
@@ -744,7 +740,6 @@ class ChatRepository(private val appContext: Context) {
             messageDao.insertMessage(finalMessage)
             updateConversationLastMessage(message.conversationId, finalMessage.plaintext)
         } catch (e: Exception) {
-            android.util.Log.w("ChatRepository", "File retry failed: ${e.message}")
             val errorMessage = message.copy(
                 plaintext = "⚠️|$downloadUrl|$keyBase64|$ivBase64|$fileName|$fileSize"
             )
@@ -909,7 +904,6 @@ class ChatRepository(private val appContext: Context) {
                         )
                         ratchetDao.insertOrUpdate(ratchetState)
                     } catch (e: Exception) {
-                        Log.w("Fialka", "PQXDH deferred rootKey upgrade failed", e)
                     }
                 }
 
@@ -927,9 +921,7 @@ class ChatRepository(private val appContext: Context) {
                             pqRatchetCounter = 0
                         )
                         ratchetDao.insertOrUpdate(ratchetState)
-                        Log.d("Fialka", "SPQR: received ML-KEM re-encapsulation → rootKey upgraded")
                     } catch (e: Exception) {
-                        Log.w("Fialka", "SPQR decapsulation failed, skipping", e)
                     }
                 }
 
@@ -960,7 +952,6 @@ class ChatRepository(private val appContext: Context) {
                         .toByteArray(Charsets.UTF_8)
                     val mldsaValid = CryptoManager.verifyHandshakeMlDsa44(mldsaKey, handshakeData, firebaseMessage.mldsaSignature)
                     if (!mldsaValid) {
-                        Log.w("Fialka", "ML-DSA-44 handshake signature INVALID — possible MITM")
                     }
                 }
             }
@@ -1100,15 +1091,12 @@ class ChatRepository(private val appContext: Context) {
     suspend fun publishMLKEMPublicKey() {
         val publicKey = CryptoManager.getPublicKey()
         if (publicKey == null) {
-            Log.e("Fialka", "publishMLKEMPublicKey: identity key is null!")
             return
         }
         val mlkemPubKey = CryptoManager.getMLKEMPublicKey()
         if (mlkemPubKey == null) {
-            Log.e("Fialka", "publishMLKEMPublicKey: ML-KEM key not yet generated")
             return
         }
-        Log.d("Fialka", "publishMLKEMPublicKey: publishing to Firebase")
         FirebaseRelay.registerMLKEMPublicKey(mlkemPubKey)
         FirebaseRelay.storeMLKEMPublicKeyByIdentity(publicKey, mlkemPubKey)
     }
@@ -1120,15 +1108,12 @@ class ChatRepository(private val appContext: Context) {
     suspend fun publishMlDsaPublicKey() {
         val publicKey = CryptoManager.getPublicKey()
         if (publicKey == null) {
-            Log.e("Fialka", "publishMlDsaPublicKey: identity key is null!")
             return
         }
         val mldsaPubKey = CryptoManager.getMlDsaPublicKey()
         if (mldsaPubKey == null) {
-            Log.e("Fialka", "publishMlDsaPublicKey: ML-DSA-44 key not yet generated")
             return
         }
-        Log.d("Fialka", "publishMlDsaPublicKey: publishing to Firebase")
         FirebaseRelay.storeMlDsaPublicKeyByIdentity(publicKey, mldsaPubKey)
     }
 
@@ -1139,16 +1124,13 @@ class ChatRepository(private val appContext: Context) {
     suspend fun publishSigningPublicKey() {
         val publicKey = CryptoManager.getPublicKey()
         if (publicKey == null) {
-            Log.e("Fialka", "publishSigningPublicKey: identity key is null!")
             return
         }
         val signingPubKey = try {
             CryptoManager.getSigningPublicKeyBase64()
         } catch (e: Exception) {
-            Log.e("Fialka", "publishSigningPublicKey: failed to get signing key", e)
             return
         }
-        Log.d("Fialka", "publishSigningPublicKey: publishing to Firebase")
         FirebaseRelay.storeSigningPublicKey(signingPubKey)
         FirebaseRelay.storeSigningPublicKeyByIdentity(publicKey, signingPubKey)
     }

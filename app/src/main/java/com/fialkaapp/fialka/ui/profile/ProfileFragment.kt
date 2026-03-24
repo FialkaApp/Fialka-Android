@@ -26,7 +26,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.PersistableBundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -108,7 +107,6 @@ class ProfileFragment : Fragment() {
                         binding.ivQrCode.visibility = View.GONE
                     }
                 } catch (e: Exception) {
-                    Log.e("Fialka", "QR generation failed", e)
                 }
             }
         }

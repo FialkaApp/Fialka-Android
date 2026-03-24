@@ -20,7 +20,6 @@ package com.fialkaapp.fialka.tor
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
-import android.util.Log
 import com.fialkaapp.fialka.crypto.CryptoManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,7 +54,6 @@ import java.net.URI
  */
 object TorManager {
 
-    private const val TAG = "TorManager"
     private const val TOR_SOCKS_PORT = 9050
     private const val TOR_CONTROL_PORT = 9051
     private const val HIDDEN_SERVICE_PORT = 7333
@@ -108,7 +106,6 @@ object TorManager {
             try {
                 startTorDaemon()
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to start Tor", e)
                 _state.value = TorState.ERROR(e.message ?: "Unknown error")
             }
         }
@@ -178,7 +175,6 @@ object TorManager {
             if (conn != null) {
                 publishHiddenService()
             } else {
-                Log.w(TAG, "publishOnionIfReady: control port not available")
             }
         }
     }
@@ -216,7 +212,6 @@ object TorManager {
             appendLine("SocksPort $TOR_SOCKS_PORT")
             appendLine("ControlPort $TOR_CONTROL_PORT")
             appendLine("DataDirectory ${dataDir.absolutePath}")
-            appendLine("Log notice file ${File(torDir, "tor.log").absolutePath}")
             appendLine("RunAsDaemon 0")
             appendLine("CookieAuthentication 1")
             appendLine("CookieAuthFile ${cookieFile.absolutePath}")
@@ -258,18 +253,15 @@ object TorManager {
                 attempts++
             }
             if (!cookieFile.exists()) {
-                Log.w(TAG, "Cookie file never appeared after ${attempts * 500}ms")
                 return@launch
             }
             // Cookie exists — now retry connecting (port may not be ready yet)
             for (attempt in 1..10) {
                 try {
                     connectControlPort(cookieFile)
-                    Log.i(TAG, "Control port connected on attempt $attempt")
                     return@launch
                 } catch (e: Exception) {
                     if (attempt == 10) {
-                        Log.w(TAG, "Control port connection failed after 10 attempts", e)
                     } else {
                         delay(1500)
                     }
@@ -333,7 +325,6 @@ object TorManager {
         val conn = TorControlConnection(socket)
         conn.authenticate(cookieFile.readBytes())
         controlConnection = conn
-        Log.i(TAG, "jtorctl: control port connected (cookie auth)")
     }
 
     /**
@@ -347,11 +338,9 @@ object TorManager {
      */
     private fun publishHiddenService() {
         if (_onionAddress.value != null) {
-            Log.d(TAG, "Hidden Service already published, skipping")
             return
         }
         val conn = controlConnection ?: run {
-            Log.w(TAG, "Cannot publish Hidden Service: no control connection")
             return
         }
         try {
@@ -375,18 +364,14 @@ object TorManager {
                 // Update circuit info with onion address
                 _circuitInfo.value = _circuitInfo.value?.copy(onionAddress = fullAddress)
                 _state.value = TorState.ONION_PUBLISHED(fullAddress)
-                Log.i(TAG, "🧅 Hidden Service published: $fullAddress")
             } else {
-                Log.w(TAG, "ADD_ONION returned no ServiceID")
             }
         } catch (e: IllegalStateException) {
             // Identity not initialized yet — skip Hidden Service for now
-            Log.w(TAG, "Hidden Service skipped: identity not initialized", e)
         } catch (e: Exception) {
             val msg = e.message ?: ""
             if (msg.contains("Onion address collision", ignoreCase = true)) {
                 // Already published by Tor — extract .onion from circuit-status REND_QUERY
-                Log.i(TAG, "ADD_ONION collision — .onion already active, extracting address")
                 try {
                     val circuitStatus = controlConnection?.getInfo("circuit-status") ?: ""
                     val rendQuery = Regex("REND_QUERY=(\\S+)").find(circuitStatus)?.groupValues?.get(1)
@@ -395,13 +380,10 @@ object TorManager {
                         _onionAddress.value = fullAddress
                         _circuitInfo.value = _circuitInfo.value?.copy(onionAddress = fullAddress)
                         _state.value = TorState.ONION_PUBLISHED(fullAddress)
-                        Log.i(TAG, "🧅 Hidden Service recovered from collision: $fullAddress")
                     }
                 } catch (ex: Exception) {
-                    Log.w(TAG, "Failed to recover .onion from collision", ex)
                 }
             } else {
-                Log.e(TAG, "Failed to publish Hidden Service", e)
             }
         }
     }
@@ -414,16 +396,13 @@ object TorManager {
      */
     private fun fetchCircuitInfo() {
         val conn = controlConnection ?: run {
-            Log.d(TAG, "fetchCircuitInfo: no control connection yet")
             return
         }
         try {
             val circuitStatus = conn.getInfo("circuit-status")
             if (circuitStatus.isNullOrBlank()) {
-                Log.d(TAG, "fetchCircuitInfo: circuit-status empty")
                 return
             }
-            Log.d(TAG, "fetchCircuitInfo: raw=\n$circuitStatus")
 
             // Parse all BUILT circuits with 3+ hops (skip ONEHOP_TUNNEL)
             val builtLines = circuitStatus.lines().filter { line ->
@@ -431,7 +410,6 @@ object TorManager {
                     line.split(" ").getOrNull(2)?.split(",")?.size?.let { it >= 3 } == true
             }
             if (builtLines.isEmpty()) {
-                Log.d(TAG, "fetchCircuitInfo: no BUILT circuit with 3+ hops yet")
                 return
             }
 
@@ -492,11 +470,7 @@ object TorManager {
                     onionAddress = _onionAddress.value
                 )
             }
-            Log.i(TAG, "Circuits: ${allCircuits.size} found, first: ${
-                first?.relays?.map { "${it.name} (${it.country})" }
-            }")
         } catch (e: Exception) {
-            Log.w(TAG, "Failed to fetch circuit info (non-fatal)", e)
         }
     }
 
@@ -513,7 +487,6 @@ object TorManager {
                     if (conn != null) {
                         publishHiddenService()
                     } else {
-                        Log.e(TAG, "Control port never connected — cannot publish .onion")
                     }
                 }
                 scope.launch {
@@ -523,7 +496,6 @@ object TorManager {
                         delay(2000)
                         fetchCircuitInfo()
                     }
-                    Log.w(TAG, "Gave up fetching circuit info after 30 attempts")
                 }
                 TorState.CONNECTED
             } else {
@@ -573,7 +545,6 @@ object TorManager {
     private var originalProxySelector: ProxySelector? = null
 
     private fun enableProxy() {
-        Log.i(TAG, "Enabling SOCKS5 ProxySelector → 127.0.0.1:$TOR_SOCKS_PORT")
         originalProxySelector = ProxySelector.getDefault()
 
         val torProxy = Proxy(
@@ -597,13 +568,11 @@ object TorManager {
             }
 
             override fun connectFailed(uri: URI?, sa: SocketAddress?, ioe: IOException?) {
-                Log.w(TAG, "Proxy connect failed: $uri", ioe)
             }
         })
     }
 
     private fun disableProxy() {
-        Log.i(TAG, "Disabling SOCKS5 ProxySelector")
         originalProxySelector?.let { ProxySelector.setDefault(it) }
         originalProxySelector = null
     }

@@ -20,7 +20,6 @@ package com.fialkaapp.fialka.crypto
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
-import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.fialkaapp.fialka.util.DeviceSecurityManager
@@ -56,7 +55,6 @@ import javax.crypto.KeyAgreement
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
-
 
 /**
  * CryptoManager — "1 Seed → Everything" identity + E2E crypto module for Fialka.
@@ -841,7 +839,6 @@ object CryptoManager {
                     cachedSigningPublic = publicKey
                     return toJcaKeyPair(privateKey, publicKey)
                 } catch (e: Exception) {
-                    Log.w("BC", "Stored Ed25519 keys invalid, re-deriving from seed", e)
                     prefs.edit().remove(KEY_SIGNING_PUBLIC).remove(KEY_SIGNING_PRIVATE).apply()
                 }
             }

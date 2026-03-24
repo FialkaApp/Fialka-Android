@@ -19,7 +19,6 @@ package com.fialkaapp.fialka.data.remote
 
 import android.net.Uri
 import android.util.Base64
-import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
@@ -51,8 +50,6 @@ import kotlin.coroutines.resumeWithException
  *     - senderUid: String (Firebase anonymous UID, for push routing)
  */
 object FirebaseRelay {
-
-    private const val TAG = "FirebaseRelay"
 
     // TODO: Replace with your Firebase Realtime Database URL from Firebase Console
     // Go to: Firebase Console > Realtime Database > copy the URL at the top
@@ -271,10 +268,8 @@ object FirebaseRelay {
     suspend fun storeSigningPublicKey(signingPublicKeyBase64: String) {
         val uid = auth.currentUser?.uid
         if (uid == null) {
-            Log.e(TAG, "storeSigningPublicKey: uid is null, cannot store")
             return
         }
-        Log.d(TAG, "storeSigningPublicKey: writing to Firebase")
         suspendCancellableCoroutine { cont ->
             database.reference
                 .child("users")
@@ -282,11 +277,9 @@ object FirebaseRelay {
                 .child("signingPublicKey")
                 .setValue(signingPublicKeyBase64)
                 .addOnSuccessListener {
-                    Log.d(TAG, "storeSigningPublicKey: SUCCESS")
                     cont.resume(Unit)
                 }
                 .addOnFailureListener { e ->
-                    Log.e(TAG, "storeSigningPublicKey: FAILED", e)
                     cont.resume(Unit)
                 }
         }
@@ -320,18 +313,15 @@ object FirebaseRelay {
      */
     suspend fun storeSigningPublicKeyByIdentity(identityPublicKeyBase64: String, signingPublicKeyBase64: String) {
         val pubKeyHash = hashPublicKey(identityPublicKeyBase64)
-        Log.d(TAG, "storeSigningPublicKeyByIdentity: writing to Firebase")
         suspendCancellableCoroutine { cont ->
             database.reference
                 .child("signing_keys")
                 .child(pubKeyHash)
                 .setValue(signingPublicKeyBase64)
                 .addOnSuccessListener {
-                    Log.d(TAG, "storeSigningPublicKeyByIdentity: SUCCESS")
                     cont.resume(Unit)
                 }
                 .addOnFailureListener { e ->
-                    Log.e(TAG, "storeSigningPublicKeyByIdentity: FAILED", e)
                     cont.resume(Unit)
                 }
         }
@@ -530,7 +520,6 @@ object FirebaseRelay {
                 if (snapshot.exists()) trySend(conversationId)
             }
             override fun onCancelled(error: DatabaseError) {
-                Log.w(TAG, "listenForAcceptance($conversationId) cancelled: ${error.message}")
                 close(error.toException())
             }
         }
@@ -969,10 +958,8 @@ object FirebaseRelay {
     suspend fun registerMLKEMPublicKey(mlkemPublicKey: String) {
         val uid = auth.currentUser?.uid
         if (uid == null) {
-            Log.e(TAG, "registerMLKEMPublicKey: uid is null, cannot store")
             return
         }
-        Log.d(TAG, "registerMLKEMPublicKey: writing to Firebase")
         suspendCancellableCoroutine { cont ->
             database.reference
                 .child("users")
@@ -980,11 +967,9 @@ object FirebaseRelay {
                 .child("mlkemPublicKey")
                 .setValue(mlkemPublicKey)
                 .addOnSuccessListener {
-                    Log.d(TAG, "registerMLKEMPublicKey: SUCCESS")
                     cont.resume(Unit)
                 }
                 .addOnFailureListener { e ->
-                    Log.e(TAG, "registerMLKEMPublicKey: FAILED", e)
                     cont.resume(Unit) // Best effort
                 }
         }
@@ -1018,18 +1003,15 @@ object FirebaseRelay {
      */
     suspend fun storeMLKEMPublicKeyByIdentity(identityPublicKeyBase64: String, mlkemPublicKeyBase64: String) {
         val pubKeyHash = hashPublicKey(identityPublicKeyBase64)
-        Log.d(TAG, "storeMLKEMPublicKeyByIdentity: writing to Firebase")
         suspendCancellableCoroutine { cont ->
             database.reference
                 .child("mlkem_keys")
                 .child(pubKeyHash)
                 .setValue(mlkemPublicKeyBase64)
                 .addOnSuccessListener {
-                    Log.d(TAG, "storeMLKEMPublicKeyByIdentity: SUCCESS")
                     cont.resume(Unit)
                 }
                 .addOnFailureListener { e ->
-                    Log.e(TAG, "storeMLKEMPublicKeyByIdentity: FAILED", e)
                     cont.resume(Unit)
                 }
         }
@@ -1041,18 +1023,15 @@ object FirebaseRelay {
 
     suspend fun storeMlDsaPublicKeyByIdentity(identityPublicKeyBase64: String, mldsaPublicKeyBase64: String) {
         val pubKeyHash = hashPublicKey(identityPublicKeyBase64)
-        Log.d(TAG, "storeMlDsaPublicKeyByIdentity: writing to Firebase")
         suspendCancellableCoroutine { cont ->
             database.reference
                 .child("mldsa_keys")
                 .child(pubKeyHash)
                 .setValue(mldsaPublicKeyBase64)
                 .addOnSuccessListener {
-                    Log.d(TAG, "storeMlDsaPublicKeyByIdentity: SUCCESS")
                     cont.resume(Unit)
                 }
                 .addOnFailureListener { e ->
-                    Log.e(TAG, "storeMlDsaPublicKeyByIdentity: FAILED", e)
                     cont.resume(Unit)
                 }
         }

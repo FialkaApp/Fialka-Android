@@ -23,11 +23,8 @@ import android.os.Build
 import android.os.Process
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import android.util.Log
 import java.security.KeyStore
 import javax.crypto.KeyGenerator
-
-private const val TAG = "DeviceSecurityManager"
 
 // ============================================================================
 // Data classes & enums
@@ -71,7 +68,6 @@ object DeviceSecurityManager {
             cachedProfile?.let { return it }
             val profile = buildProfile(context.applicationContext)
             cachedProfile = profile
-            Log.i(TAG, "SecurityProfile built: $profile")
             return profile
         }
     }
@@ -139,7 +135,6 @@ object DeviceSecurityManager {
             ) {
                 StrongBoxStatus.DECLARED_BUT_UNAVAILABLE
             } else {
-                Log.w(TAG, "StrongBox probe threw unexpected exception: ${e.javaClass.name}: $msg")
                 StrongBoxStatus.DECLARED_BUT_UNAVAILABLE
             }
         }
@@ -158,7 +153,6 @@ object DeviceSecurityManager {
                 .invoke(handle) as Int
             if (identifier == 0) UserProfileType.OWNER else UserProfileType.SECONDARY
         } catch (e: Exception) {
-            Log.w(TAG, "User profile detection failed", e)
             UserProfileType.UNKNOWN
         }
     }

@@ -18,7 +18,6 @@
 package com.fialkaapp.fialka.ui.profile
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -60,10 +59,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 withContext(Dispatchers.IO) {
                     repository.resetAccount()
                 }
-                Log.d("Fialka", "Account reset successful from profile")
                 _accountReset.value = true
             } catch (e: Exception) {
-                Log.e("Fialka", "Account reset failed from profile", e)
                 _accountReset.value = false
             }
         }

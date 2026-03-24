@@ -18,7 +18,6 @@
 package com.fialkaapp.fialka.ui.conversations
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -119,7 +118,6 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
                 try {
                     FirebaseRelay.signInAnonymously()
                 } catch (e: Exception) {
-                    Log.e("Fialka", "Firebase re-auth failed", e)
                 }
             }
         }
@@ -155,7 +153,6 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
                     }
                 }
                 .catch { e ->
-                    Log.e("Fialka", "Inbox listener error", e)
                 }
                 .launchIn(viewModelScope)
         }
@@ -168,7 +165,7 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
             }
             repository.listenForAcceptance(conversationId)
                 .onEach { repository.markConversationAccepted(it) }
-                .catch { e -> Log.e("Fialka", "Acceptance listener error for $conversationId", e) }
+                .catch { _ -> }
                 .launchIn(viewModelScope)
         }
     }
@@ -190,7 +187,6 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
                         repository.markConversationAccepted(acceptedId)
                     }
                     .catch { e ->
-                        Log.e("Fialka", "Acceptance listener error for $conversationId", e)
                     }
                     .launchIn(viewModelScope)
             }
@@ -206,7 +202,6 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
                 pendingList.removeAll { it.conversationId == request.conversationId }
                 _pendingRequests.value = pendingList.toList()
             } catch (e: Exception) {
-                Log.e("Fialka", "Accept request failed", e)
             }
         }
     }
@@ -232,7 +227,6 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
                 }
                 _accountReset.value = true
             } catch (e: Exception) {
-                Log.e("Fialka", "Account reset failed", e)
                 _accountReset.value = false
             }
         }
