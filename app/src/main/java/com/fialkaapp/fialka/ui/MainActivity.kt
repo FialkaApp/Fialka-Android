@@ -95,12 +95,15 @@ class MainActivity : AppCompatActivity() {
 
         // Navigate to Add Contact if app opened via fialka://invite deep link
         handleInviteIntent(intent)
+        // Navigate to Mailbox Settings if opened via fialka://mailbox deep link
+        handleMailboxDeepLink(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent) // Update so fragments read the new intent via requireActivity().intent
         handleInviteIntent(intent)
+        handleMailboxDeepLink(intent)
     }
 
     /**
@@ -109,7 +112,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun handleInviteIntent(intent: Intent?) {
         val uri = intent?.data ?: return
-        if (uri.scheme != "Fialka" || uri.host != "invite") return
+        if (uri.scheme?.lowercase() != "fialka" || uri.host != "invite") return
 
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
@@ -129,6 +132,49 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    /**
+     * When the app receives a fialka://mailbox deep link, store the data
+     * and navigate to MailboxSettingsFragment when ready.
+     */
+    private fun handleMailboxDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme?.lowercase() != "fialka" || uri.host != "mailbox") return
+
+        val onion = uri.getQueryParameter("onion") ?: return
+        val pubkey = uri.getQueryParameter("pubkey") ?: return
+        val type = uri.getQueryParameter("type") ?: "PERSONAL"
+        val invite = uri.getQueryParameter("invite") ?: ""
+
+        if (!onion.endsWith(".onion")) return
+
+        pendingMailboxJoin = arrayOf(onion, pubkey, type, invite)
+
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
+        val navController = navHostFragment.navController
+
+        navController.addOnDestinationChangedListener(object : NavController.OnDestinationChangedListener {
+            override fun onDestinationChanged(
+                controller: NavController,
+                destination: NavDestination,
+                arguments: Bundle?
+            ) {
+                if (destination.id == R.id.conversationsFragment) {
+                    controller.removeOnDestinationChangedListener(this)
+                    try {
+                        controller.navigate(R.id.action_conversations_to_mailboxSettings)
+                    } catch (_: Exception) {}
+                }
+            }
+        })
+    }
+
+    companion object {
+        /** Pending mailbox join data: [onion, pubkey, type, inviteCode]. */
+        @Volatile
+        var pendingMailboxJoin: Array<String>? = null
     }
 
     override fun onPause() {

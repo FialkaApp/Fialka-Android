@@ -462,4 +462,24 @@ object MailboxServer : TorTransport.FrameListener {
         db.inviteDao().deleteExpired()
         refreshStats()
     }
+
+    /**
+     * Full mailbox reset — wipe all data, stop server, destroy DB.
+     * After this, the mailbox type can be re-chosen.
+     */
+    suspend fun resetMailbox() {
+        stop()
+        try {
+            val db = MailboxDatabase.getInstance(appContext)
+            db.blobDao().deleteAll()
+            db.memberDao().deleteAll()
+            db.inviteDao().deleteAll()
+        } catch (_: Exception) {}
+        MailboxDatabase.destroyInstance()
+        AppMode.resetMailboxType(appContext)
+        _blobCount.value = 0
+        _memberCount.value = 0
+        _totalSize.value = 0
+        synchronized(nonceLock) { seenNonces.clear() }
+    }
 }

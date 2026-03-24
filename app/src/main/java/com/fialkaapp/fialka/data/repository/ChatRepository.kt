@@ -24,6 +24,8 @@ import com.fialkaapp.fialka.crypto.DoubleRatchet
 import com.fialkaapp.fialka.data.local.FialkaDatabase
 import com.fialkaapp.fialka.data.model.*
 import com.fialkaapp.fialka.data.remote.FirebaseRelay
+import com.fialkaapp.fialka.tor.OutboxManager
+import com.fialkaapp.fialka.tor.TorTransport
 import com.fialkaapp.fialka.util.EphemeralManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -377,7 +379,7 @@ class ChatRepository(private val appContext: Context) {
      * Order of operations (atomic w.r.t. ratchet state):
      * 1. Advance send chain → get unique message key
      * 2. Encrypt with AES-256-GCM
-     * 3. Send to Firebase
+     * 3. Send via Tor P2P (.onion) or Firebase fallback
      * 4. ONLY on success: persist new ratchet state + save message locally
      */
     suspend fun sendMessage(conversationId: String, plaintext: String): MessageLocal {
@@ -385,11 +387,6 @@ class ChatRepository(private val appContext: Context) {
             ?: throw IllegalStateException("User not initialized")
         val conversation = conversationDao.getConversationById(conversationId)
             ?: throw IllegalStateException("Conversation not found")
-
-        // Ensure Firebase auth is active before sending
-        if (!FirebaseRelay.isAuthenticated()) {
-            FirebaseRelay.signInAnonymously()
-        }
 
         return getMutex(conversationId).withLock {
             // 1. Get ratchet state
@@ -466,7 +463,32 @@ class ChatRepository(private val appContext: Context) {
                 kemCiphertext = kemToSend,
                 mldsaSignature = mldsaSignature
             )
-            FirebaseRelay.sendMessage(conversationId, firebaseMessage)
+
+            // ── Send via Tor P2P if recipient has .onion, else Firebase fallback ──
+            val recipientOnion = conversation.participantOnionAddress
+            if (recipientOnion.isNotEmpty()) {
+                val messageJson = org.json.JSONObject().apply {
+                    put("ciphertext", encryptedData.ciphertext)
+                    put("iv", encryptedData.iv)
+                    put("createdAt", createdAt)
+                    put("ephemeralKey", ratchetState.localDhPublic)
+                    put("signature", signature)
+                    put("kemCiphertext", kemToSend)
+                    put("mldsaSignature", mldsaSignature)
+                    put("conversationId", conversationId)
+                }
+                val frame = TorTransport.Frame(
+                    TorTransport.TYPE_MESSAGE,
+                    messageJson.toString().toByteArray(Charsets.UTF_8)
+                )
+                OutboxManager.sendOrQueue(recipientOnion, frame)
+            } else {
+                // Firebase fallback for contacts without .onion
+                if (!FirebaseRelay.isAuthenticated()) {
+                    FirebaseRelay.signInAnonymously()
+                }
+                FirebaseRelay.sendMessage(conversationId, firebaseMessage)
+            }
 
             // 7. Firebase succeeded → persist ratchet state; clear pendingKemCiphertext
             //    If this was the first message carrying kemCiphertext (PQXDH initiator),

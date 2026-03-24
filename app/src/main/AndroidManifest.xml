@@ -65,6 +65,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="fialka" android:host="invite" />
             </intent-filter>
+            <!-- Handle fialka://mailbox deep links for joining a mailbox -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="fialka" android:host="mailbox" />
+            </intent-filter>
         </activity>
 
         <!-- Tor Foreground Service — keeps Tor daemon alive -->

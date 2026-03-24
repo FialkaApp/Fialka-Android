@@ -33,6 +33,7 @@ import com.fialkaapp.fialka.util.EphemeralManager
 import com.fialkaapp.fialka.util.SecurityLevel
 import com.fialkaapp.fialka.util.StrongBoxStatus
 import com.fialkaapp.fialka.util.ThemeManager
+import com.fialkaapp.fialka.tor.MailboxClientManager
 
 class SettingsFragment : Fragment() {
 
@@ -66,6 +67,10 @@ class SettingsFragment : Fragment() {
 
         binding.rowPrivacy.setOnClickListener {
             findNavController().navigate(R.id.action_settings_to_privacy)
+        }
+
+        binding.rowMailbox.setOnClickListener {
+            findNavController().navigate(R.id.action_settings_to_mailboxSettings)
         }
 
         // Version
@@ -108,6 +113,18 @@ class SettingsFragment : Fragment() {
             pinSet && bioEnabled -> "PIN + Biométrie · $lockLabel"
             pinSet -> "PIN activé · $lockLabel"
             else -> "Désactivé"
+        }
+
+        // Mailbox summary
+        try {
+            MailboxClientManager.init(requireContext())
+            binding.tvMailboxSummary.text = if (MailboxClientManager.isJoined()) {
+                "Connecté"
+            } else {
+                "Non connecté"
+            }
+        } catch (_: Exception) {
+            binding.tvMailboxSummary.text = "Non connecté"
         }
     }
 

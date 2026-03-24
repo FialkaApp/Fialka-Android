@@ -33,6 +33,7 @@ object AppMode {
     private const val PREFS_NAME = "fialka_app_mode"
     private const val KEY_MODE = "app_mode"
     private const val KEY_MAILBOX_TYPE = "mailbox_type"
+    private const val KEY_OWNER_QR_VALIDATED = "owner_qr_validated"
 
     @Volatile private var cachedMode: AppModeType? = null
     @Volatile private var cachedMailboxType: MailboxType? = null
@@ -96,4 +97,27 @@ object AppMode {
     fun isNormal(context: Context) = getMode(context) == AppModeType.NORMAL
     fun isMailbox(context: Context) = getMode(context) == AppModeType.MAILBOX
     fun isNotSet(context: Context) = getMode(context) == AppModeType.NOT_SET
+
+    /**
+     * Reset mailbox type to NONE — allows re-choosing Personal/Private.
+     * Only resets the type, NOT the mode (still MAILBOX).
+     * Used when user deletes/resets their mailbox from dashboard.
+     */
+    fun resetMailboxType(context: Context) {
+        require(getMode(context) == AppModeType.MAILBOX) { "Not in MAILBOX mode" }
+        prefs(context).edit()
+            .remove(KEY_MAILBOX_TYPE)
+            .remove(KEY_OWNER_QR_VALIDATED)
+            .apply()
+        cachedMailboxType = null
+    }
+
+    /** Mark the Owner QR as validated (shown once, never again). */
+    fun setOwnerQrValidated(context: Context) {
+        prefs(context).edit().putBoolean(KEY_OWNER_QR_VALIDATED, true).apply()
+    }
+
+    /** Has the owner QR already been shown and validated? */
+    fun isOwnerQrValidated(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_OWNER_QR_VALIDATED, false)
 }
