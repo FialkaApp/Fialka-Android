@@ -418,6 +418,25 @@ class ChatRepository(private val appContext: Context) {
             val (newSendChainKey, messageKey) = DoubleRatchet.advanceChain(ratchetState.sendChainKey)
             val messageIndex = ratchetState.sendIndex
 
+            // 3b. SPQR — periodic ML-KEM re-encapsulation for continuous PQ healing
+            var spqrKemCiphertext = ""
+            var newPqRatchetCounter = ratchetState.pqRatchetCounter + 1
+            if (ratchetState.pqxdhInitialized
+                && newPqRatchetCounter >= DoubleRatchet.PQ_RATCHET_INTERVAL
+                && ratchetState.remoteMlkemPublicKey.isNotEmpty()
+            ) {
+                try {
+                    val (kemCt, ssPQ) = CryptoManager.mlkemEncaps(ratchetState.remoteMlkemPublicKey)
+                    val newRootKey = DoubleRatchet.pqRatchetStep(ratchetState.rootKey, ssPQ)
+                    ratchetState = ratchetState.copy(rootKey = newRootKey)
+                    spqrKemCiphertext = kemCt
+                    newPqRatchetCounter = 0
+                    Log.d("Fialka", "SPQR: ML-KEM re-encapsulation → rootKey upgraded")
+                } catch (e: Exception) {
+                    Log.w("Fialka", "SPQR encapsulation failed, skipping", e)
+                }
+            }
+
             // 4. Embed messageIndex in plaintext for metadata privacy, then encrypt
             val augmentedPlaintext = "$messageIndex|$plaintext"
             val encryptedData = CryptoManager.encrypt(augmentedPlaintext, messageKey)
@@ -429,8 +448,9 @@ class ChatRepository(private val appContext: Context) {
             } catch (_: Exception) { "" }
 
             // 6. Send to Firebase — include ephemeral DH public key for Double Ratchet
-            //    and KEM ciphertext on first message (PQXDH initiator)
+            //    and KEM ciphertext on first message (PQXDH initiator) or SPQR re-key
             //    ML-DSA-44 signature on handshake message for PQ authentication
+            val kemToSend = ratchetState.pendingKemCiphertext.ifEmpty { spqrKemCiphertext }
             val mldsaSignature = if (ratchetState.pendingKemCiphertext.isNotEmpty()) {
                 try {
                     val handshakeData = (ratchetState.pendingKemCiphertext + ratchetState.localDhPublic)
@@ -446,7 +466,7 @@ class ChatRepository(private val appContext: Context) {
                 senderUid = CryptoManager.hashSenderUid(conversationId, FirebaseRelay.getCurrentUid() ?: ""),
                 ephemeralKey = ratchetState.localDhPublic,
                 signature = signature,
-                kemCiphertext = ratchetState.pendingKemCiphertext,
+                kemCiphertext = kemToSend,
                 mldsaSignature = mldsaSignature
             )
             FirebaseRelay.sendMessage(conversationId, firebaseMessage)
@@ -479,7 +499,8 @@ class ChatRepository(private val appContext: Context) {
                         pendingKemCiphertext = "",
                         rootKey = pqInit.rootKey,
                         pqxdhInitialized = true,
-                        pendingClassicSecret = ""
+                        pendingClassicSecret = "",
+                        pqRatchetCounter = 0
                     )
                 )
             } else {
@@ -487,7 +508,8 @@ class ChatRepository(private val appContext: Context) {
                     ratchetState.copy(
                         sendChainKey = newSendChainKey,
                         sendIndex = messageIndex + 1,
-                        pendingKemCiphertext = ""
+                        pendingKemCiphertext = "",
+                        pqRatchetCounter = newPqRatchetCounter
                     )
                 )
             }
@@ -888,6 +910,26 @@ class ChatRepository(private val appContext: Context) {
                         ratchetDao.insertOrUpdate(ratchetState)
                     } catch (e: Exception) {
                         Log.w("Fialka", "PQXDH deferred rootKey upgrade failed", e)
+                    }
+                }
+
+                // SPQR — periodic ML-KEM re-encapsulation (receiver side):
+                // If PQXDH is already complete and this message carries a fresh kemCiphertext,
+                // it's a SPQR re-key: decapsulate and mix into rootKey.
+                if (ratchetState.pqxdhInitialized
+                    && firebaseMessage.kemCiphertext.isNotEmpty()
+                ) {
+                    try {
+                        val ssPQ = CryptoManager.mlkemDecaps(firebaseMessage.kemCiphertext)
+                        val newRootKey = DoubleRatchet.pqRatchetStep(ratchetState.rootKey, ssPQ)
+                        ratchetState = ratchetState.copy(
+                            rootKey = newRootKey,
+                            pqRatchetCounter = 0
+                        )
+                        ratchetDao.insertOrUpdate(ratchetState)
+                        Log.d("Fialka", "SPQR: received ML-KEM re-encapsulation → rootKey upgraded")
+                    } catch (e: Exception) {
+                        Log.w("Fialka", "SPQR decapsulation failed, skipping", e)
                     }
                 }
 
