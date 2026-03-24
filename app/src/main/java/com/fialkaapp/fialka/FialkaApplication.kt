@@ -24,6 +24,8 @@ import android.os.Build
 import com.google.firebase.FirebaseApp
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.MnemonicManager
+import com.fialkaapp.fialka.tor.MailboxServer
+import com.fialkaapp.fialka.tor.OutboxManager
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.util.DeviceSecurityManager
 import kotlinx.coroutines.CoroutineScope
@@ -51,6 +53,18 @@ class FialkaApplication : Application() {
         // Tor is mandatory — always start
         TorManager.start()
         createNotificationChannel()
+
+        // Mode-conditional initialization
+        when (AppMode.getMode(this)) {
+            AppModeType.MAILBOX -> {
+                MailboxServer.init(this)
+                MailboxServer.start()
+            }
+            else -> {
+                // NORMAL or NOT_SET — init outbox manager (no-op until identity exists)
+                OutboxManager.init(this)
+            }
+        }
     }
 
     private fun createNotificationChannel() {
