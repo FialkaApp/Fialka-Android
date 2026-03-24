@@ -189,6 +189,61 @@ object CryptoManager {
     /** Account ID: SHA3-256(Ed25519 pubkey) → Base58. */
     fun getAccountId(): String? = prefs.getString(KEY_ACCOUNT_ID, null)
 
+    /** Raw 32-byte Ed25519 public key (BC encoded = raw bytes, no ASN.1). */
+    fun getEd25519PublicKeyRaw(): ByteArray {
+        val pubBase64 = prefs.getString(KEY_SIGNING_PUBLIC, null)
+            ?: throw IllegalStateException("Identity not initialized")
+        return Base64.decode(pubBase64, Base64.NO_WRAP)
+    }
+
+    /**
+     * Tor v3 .onion address derived from the Ed25519 public key.
+     *
+     * Spec: rend-spec-v3 §6 "Encoding onion addresses"
+     *   checksum = SHA3-256(".onion checksum" || pubkey || version)[0..1]
+     *   version  = 0x03
+     *   address  = base32(pubkey || checksum || version).lowercase() + ".onion"
+     *   Result:  56 chars + ".onion"
+     */
+    fun getOnionAddress(): String {
+        val pubBytes = getEd25519PublicKeyRaw() // 32 bytes
+        val version: Byte = 0x03
+
+        // checksum = SHA3-256(".onion checksum" || pubkey || 0x03)[0..1]
+        val sha3 = SHA3Digest(256)
+        val prefix = ".onion checksum".toByteArray(Charsets.US_ASCII)
+        sha3.update(prefix, 0, prefix.size)
+        sha3.update(pubBytes, 0, pubBytes.size)
+        sha3.update(byteArrayOf(version), 0, 1)
+        val hash = ByteArray(32)
+        sha3.doFinal(hash, 0)
+        val checksum = hash.copyOf(2)
+
+        // address = base32(pubkey(32) || checksum(2) || version(1))
+        val addressBytes = pubBytes + checksum + byteArrayOf(version)
+        return base32Encode(addressBytes).lowercase() + ".onion"
+    }
+
+    /**
+     * 64-byte expanded Ed25519 secret key for Tor ADD_ONION.
+     *
+     * Format: SHA-512(seed) with first 32 bytes clamped per Ed25519 spec.
+     * Tor control protocol expects: "ED25519-V3:<base64 of 64 bytes>".
+     *
+     * The expanded key encodes the same keypair as our identity —
+     * so the resulting .onion matches [getOnionAddress] exactly.
+     */
+    fun getExpandedEd25519KeyForTor(): ByteArray {
+        val seed = getIdentitySeed()
+        val expanded = MessageDigest.getInstance("SHA-512").digest(seed)
+        // Clamp scalar (first 32 bytes) per RFC 8032 §5.1.5
+        expanded[0] = (expanded[0].toInt() and 248).toByte()
+        expanded[31] = (expanded[31].toInt() and 63).toByte()
+        expanded[31] = (expanded[31].toInt() or 64).toByte()
+        seed.fill(0)
+        return expanded
+    }
+
     /**
      * Core derivation: 1 Ed25519 seed → all keys + Account ID.
      * Called by both generateIdentity() and restoreFromSeed().
@@ -1078,6 +1133,27 @@ object CryptoManager {
         val hash = ByteArray(32)
         sha3.doFinal(hash, 0)
         return base58Encode(hash)
+    }
+
+    private const val BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+
+    /** RFC 4648 Base32 encoding (no padding). Used for Tor v3 .onion addresses. */
+    private fun base32Encode(data: ByteArray): String {
+        val sb = StringBuilder()
+        var buffer = 0
+        var bitsLeft = 0
+        for (byte in data) {
+            buffer = (buffer shl 8) or (byte.toInt() and 0xFF)
+            bitsLeft += 8
+            while (bitsLeft >= 5) {
+                bitsLeft -= 5
+                sb.append(BASE32_ALPHABET[(buffer shr bitsLeft) and 0x1F])
+            }
+        }
+        if (bitsLeft > 0) {
+            sb.append(BASE32_ALPHABET[(buffer shl (5 - bitsLeft)) and 0x1F])
+        }
+        return sb.toString()
     }
 
     private const val BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"

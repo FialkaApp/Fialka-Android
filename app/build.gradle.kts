@@ -54,10 +54,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         viewBinding = true
     }
@@ -69,6 +65,12 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
@@ -111,9 +113,12 @@ dependencies {
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("org.bouncycastle:bcprov-jdk18on:1.80")  // ML-KEM-1024 (mlkem package) added in 1.80
 
-    // Tor — native binaries (libtor.so + libtun2socks.so) must be placed
-    // in app/src/main/jniLibs/{arm64-v8a,armeabi-v7a}/ manually.
-    // See: https://github.com/nicksenger/tor-android for pre-built binaries.
+    // Tor — Guardian Project Tor binary (BSD) + Briar privacy libs (Apache/BSD)
+    implementation("info.guardianproject:tor-android:0.4.9.5")
+    implementation("info.guardianproject:jtorctl:0.4.5.7")
+    implementation("org.briarproject:socks-socket:0.1")
+    implementation("org.briarproject:lyrebird-android:0.6.2")
+    implementation("org.briarproject:moat-api:0.4")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

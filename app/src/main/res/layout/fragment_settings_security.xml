@@ -268,7 +268,7 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
-            <!-- Tor toggle -->
+            <!-- Tor status (always active) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -286,7 +286,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Activer Tor"
+                        android:text="État Tor"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="16sp" />
 
@@ -299,11 +299,6 @@
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switchTor"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
             </LinearLayout>
 
             <View
@@ -353,6 +348,42 @@
                 app:trackCornerRadius="2dp"
                 app:trackThickness="4dp" />
 
+            <!-- .onion address -->
+            <TextView
+                android:id="@+id/tvOnionAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="10dp"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:textColor="@color/primary"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- Circuit info card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardCircuitInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="10dp"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/grey_medium"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:id="@+id/circuitsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="14dp" />
+
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Tor info card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -383,7 +414,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="3dp"
-                        android:text="Tor masque votre adresse IP en routant le trafic à travers 3 relais chiffrés. Firebase ne voit qu'un nœud de sortie Tor, jamais votre IP réelle.\n\nLa connexion peut être plus lente. Désactivez Tor si la latence est gênante."
+                        android:text="Tor masque votre adresse IP en routant le trafic à travers 3 relais chiffrés. Personne ne voit votre IP réelle.\n\nVotre adresse .onion est dérivée de votre clé Ed25519 et sert d'identifiant réseau unique."
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>

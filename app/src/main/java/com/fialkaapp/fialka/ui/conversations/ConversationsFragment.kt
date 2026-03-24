@@ -144,11 +144,15 @@ class ConversationsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 TorManager.state.collect { state ->
-                    val base = "chiffrée de bout en bout \uD83D\uDD12"
-                    binding.toolbar.subtitle = if (TorManager.isTorEnabled() && state is TorState.CONNECTED) {
-                        "$base • \uD83E\uDDC5"
-                    } else {
-                        base
+                    binding.toolbar.subtitle = when (state) {
+                        is TorState.ONION_PUBLISHED -> {
+                            val a = state.address
+                            "\uD83D\uDD12 \uD83E\uDDC5 ${a.take(8)}…${a.takeLast(8)}"
+                        }
+                        is TorState.CONNECTED -> "\uD83D\uDD12 \uD83E\uDDC5 Tor connecté"
+                        is TorState.BOOTSTRAPPING -> "\uD83D\uDD12 \uD83E\uDDC5 Tor ${state.percent}%"
+                        is TorState.PUBLISHING_ONION -> "\uD83D\uDD12 \uD83E\uDDC5 .onion…"
+                        else -> "\uD83D\uDD12 chiffrée de bout en bout"
                     }
                 }
             }

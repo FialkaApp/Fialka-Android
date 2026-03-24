@@ -297,7 +297,7 @@ class MessagesAdapter(
                         binding.btnOpenFileSent.text = "Verrouillée"
                         binding.btnOpenFileSent.alpha = 0.5f
                         binding.tvFileSizeSent.text = "Déjà vue"
-                        openFile(v, message.localFilePath!!)
+                        openFile(v, message.localFilePath)
                         // Flag as opened immediately in DB (file deletion is delayed in repository)
                         onOneShotOpen?.invoke(message.localId)
                     }
@@ -313,8 +313,8 @@ class MessagesAdapter(
                     binding.tvFileSizeSent.text = formatFileSize(message.fileSize)
                     binding.btnOpenFileSent.text = "Ouvrir"
                     binding.btnOpenFileSent.alpha = 1.0f
-                    binding.btnOpenFileSent.setOnClickListener { openFile(it, message.localFilePath!!) }
-                    binding.bubbleSent.setOnClickListener { openFile(it, message.localFilePath!!) }
+                    binding.btnOpenFileSent.setOnClickListener { openFile(it, message.localFilePath) }
+                    binding.bubbleSent.setOnClickListener { openFile(it, message.localFilePath) }
                 }
                 else -> {
                     // Text message
@@ -377,7 +377,7 @@ class MessagesAdapter(
                     binding.bubbleReceived.setOnClickListener(null)
                 }
                 isError -> {
-                    val fileName = message.fileName ?: "fichier"
+                    val fileName = message.fileName
                     binding.tvMessageReceived.visibility = View.GONE
                     binding.fileRowReceived.visibility = View.GONE
                     binding.statusRowReceived.visibility = View.VISIBLE
@@ -406,7 +406,7 @@ class MessagesAdapter(
                         binding.btnOpenFileReceived.text = "Expirée"
                         binding.btnOpenFileReceived.alpha = 0.5f
                         binding.tvFileSizeReceived.text = "Déjà vue"
-                        openFile(v, message.localFilePath!!)
+                        openFile(v, message.localFilePath)
                         // Flag as opened immediately in DB (file deletion is delayed in repository)
                         onOneShotOpen?.invoke(message.localId)
                     }
@@ -423,8 +423,8 @@ class MessagesAdapter(
                     binding.tvFileSizeReceived.text = formatFileSize(message.fileSize)
                     binding.btnOpenFileReceived.text = "Ouvrir"
                     binding.btnOpenFileReceived.alpha = 1.0f
-                    binding.btnOpenFileReceived.setOnClickListener { openFile(it, message.localFilePath!!) }
-                    binding.bubbleReceived.setOnClickListener { openFile(it, message.localFilePath!!) }
+                    binding.btnOpenFileReceived.setOnClickListener { openFile(it, message.localFilePath) }
+                    binding.bubbleReceived.setOnClickListener { openFile(it, message.localFilePath) }
                 }
                 else -> {
                     // Text message

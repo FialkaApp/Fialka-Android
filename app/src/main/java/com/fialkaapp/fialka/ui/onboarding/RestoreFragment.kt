@@ -43,6 +43,7 @@ import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.MnemonicManager
 import com.fialkaapp.fialka.data.remote.FirebaseRelay
 import com.fialkaapp.fialka.data.repository.ChatRepository
+import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.ui.conversations.ConversationsViewModel
 import com.fialkaapp.fialka.databinding.FragmentRestoreBinding
 import kotlinx.coroutines.launch
@@ -295,7 +296,10 @@ class RestoreFragment : Fragment() {
                     repository.publishMlDsaPublicKey()
                     ConversationsViewModel.markSigningKeyPublished()
 
-                    findNavController().navigate(R.id.action_restore_to_conversations)
+                    // Identity restored — publish .onion (Tor is already connected)
+                    TorManager.publishOnionIfReady()
+
+                    findNavController().navigate(R.id.action_restore_to_torBootstrap)
                 }
             } catch (e: Exception) {
                 binding.progressBar.visibility = View.GONE

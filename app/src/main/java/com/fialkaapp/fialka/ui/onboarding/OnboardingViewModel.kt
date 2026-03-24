@@ -25,6 +25,7 @@ import androidx.lifecycle.viewModelScope
 import com.fialkaapp.fialka.data.model.UserLocal
 import com.fialkaapp.fialka.data.remote.FirebaseRelay
 import com.fialkaapp.fialka.data.repository.ChatRepository
+import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.ui.conversations.ConversationsViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
@@ -75,6 +76,9 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                     // Publish ML-DSA-44 public key for PQ handshake auth
                     repository.publishMlDsaPublicKey()
                     ConversationsViewModel.markSigningKeyPublished()
+
+                    // Identity now exists — publish .onion (Tor is already connected)
+                    TorManager.publishOnionIfReady()
 
                     _state.value = OnboardingState.Success(user)
                 }

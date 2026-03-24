@@ -24,14 +24,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
-import androidx.core.content.ContextCompat
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.databinding.FragmentTorBootstrapBinding
+import com.fialkaapp.fialka.tor.TorCircuit
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.tor.TorState
 import kotlinx.coroutines.Job
@@ -39,9 +41,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * First-launch screen: user picks Tor or Normal, clicks Continue.
- * If Tor: shows progress, user clicks Continue again when connected.
- * Skipped on subsequent launches (choice already made).
+ * Tor bootstrap screen — shown on EVERY app launch.
+ * Displays real-time connection progress, circuit info (relays + countries),
+ * and .onion address once published.
  */
 class TorBootstrapFragment : Fragment() {
 
@@ -50,7 +52,6 @@ class TorBootstrapFragment : Fragment() {
 
     private var pulseAnimator: ObjectAnimator? = null
     private var hasNavigated = false
-    private var torSelected = true
 
     // Smooth progress
     private var realPercent = 0
@@ -67,35 +68,29 @@ class TorBootstrapFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Skip on subsequent launches
-        if (TorManager.isTorChoiceMade()) {
-            navigateToNext()
+        // New user? Skip straight to onboarding — Tor connects in background
+        if (!CryptoManager.hasIdentity()) {
+            if (!hasNavigated) {
+                hasNavigated = true
+                findNavController().navigate(R.id.action_torBootstrap_to_onboarding)
+            }
             return
         }
 
-        setupChoiceCards()
+        // Returning user — show bootstrap progress
+        binding.tvTitle.text = "Connexion au réseau Tor"
+        binding.btnContinue.isEnabled = false
+        binding.btnContinue.text = "Connexion…"
+        binding.cardCircuitInfo.visibility = View.GONE
+        startPulseAnimation()
+        startSmoothProgress()
+
+        // Tor is already started by FialkaApplication — just observe
 
         binding.btnContinue.setOnClickListener {
-            if (binding.progressContainer.visibility == View.VISIBLE) {
-                // Phase 2: user clicks after loading
-                val state = TorManager.state.value
-                if (state is TorState.CONNECTED) {
-                    TorManager.setTorEnabled(true)
-                    navigateToNext()
-                } else if (state is TorState.ERROR || state is TorState.DISCONNECTED) {
-                    TorManager.setTorEnabled(false)
-                    TorManager.stop()
-                    navigateToNext()
-                }
-            } else {
-                // Phase 1: user made a choice
-                if (torSelected) {
-                    showLoadingPhase()
-                    TorManager.start()
-                } else {
-                    TorManager.setTorEnabled(false)
-                    navigateToNext()
-                }
+            val state = TorManager.state.value
+            if (state is TorState.CONNECTED || state is TorState.ONION_PUBLISHED) {
+                navigateToNext()
             }
         }
 
@@ -103,68 +98,53 @@ class TorBootstrapFragment : Fragment() {
             binding.btnRetry.visibility = View.GONE
             binding.btnContinue.isEnabled = false
             binding.btnContinue.text = "Connexion…"
-            binding.tvTitle.text = "Connexion en cours…"
+            binding.tvTitle.text = "Connexion au réseau Tor"
+            binding.cardCircuitInfo.visibility = View.GONE
+            continueTimeoutJob?.cancel()
             realPercent = 0
             displayedPercent = 0
             TorManager.restart()
+            startPulseAnimation()
             startSmoothProgress()
         }
 
-        // Observe Tor state (only affects UI in loading phase)
+        // Observe Tor state
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 TorManager.state.collect { state ->
                     if (_binding == null) return@collect
-                    if (binding.progressContainer.visibility == View.VISIBLE) {
-                        handleLoadingState(state)
-                    }
+                    handleLoadingState(state)
                 }
             }
         }
-    }
 
-    // ── Phase 1: Choice ──
-
-    private fun setupChoiceCards() {
-        updateCardSelection()
-
-        binding.cardTor.setOnClickListener {
-            torSelected = true
-            updateCardSelection()
+        // Observe all circuits
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                TorManager.circuits.collect { circuits ->
+                    if (_binding == null || circuits.isEmpty()) return@collect
+                    binding.cardCircuitInfo.visibility = View.VISIBLE
+                    binding.tvCircuitCount.text = "${circuits.size} circuits Tor actifs"
+                    buildCircuitViews(circuits)
+                    binding.btnContinue.isEnabled = true
+                    binding.btnContinue.text = "Continuer"
+                }
+            }
         }
-        binding.cardNormal.setOnClickListener {
-            torSelected = false
-            updateCardSelection()
+
+        // Observe .onion address (published before circuit info is ready)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                TorManager.onionAddress.collect { address ->
+                    if (_binding == null || address == null) return@collect
+                    binding.cardCircuitInfo.visibility = View.VISIBLE
+                    binding.tvOnionAddress.text = address
+                    binding.tvStatus.text = "Service .onion publié"
+                    binding.btnContinue.isEnabled = true
+                    binding.btnContinue.text = "Continuer"
+                }
+            }
         }
-    }
-
-    private fun updateCardSelection() {
-        val primary = ContextCompat.getColor(requireContext(), R.color.primary)
-        val grey = ContextCompat.getColor(requireContext(), R.color.grey_medium)
-        val dp2 = (2 * resources.displayMetrics.density).toInt()
-        val dp1 = (1 * resources.displayMetrics.density).toInt()
-
-        binding.cardTor.strokeColor = if (torSelected) primary else grey
-        binding.cardTor.strokeWidth = if (torSelected) dp2 else dp1
-        binding.tvTorRadio.text = if (torSelected) "●" else "○"
-        binding.tvTorRadio.setTextColor(if (torSelected) primary else grey)
-
-        binding.cardNormal.strokeColor = if (!torSelected) primary else grey
-        binding.cardNormal.strokeWidth = if (!torSelected) dp2 else dp1
-        binding.tvNormalRadio.text = if (!torSelected) "●" else "○"
-        binding.tvNormalRadio.setTextColor(if (!torSelected) primary else grey)
-    }
-
-    // ── Phase 2: Loading ──
-
-    private fun showLoadingPhase() {
-        binding.choiceContainer.visibility = View.GONE
-        binding.progressContainer.visibility = View.VISIBLE
-        binding.tvTitle.text = "Connexion en cours…"
-        binding.btnContinue.isEnabled = false
-        binding.btnContinue.text = "Connexion…"
-        startPulseAnimation()
-        startSmoothProgress()
     }
 
     private fun handleLoadingState(state: TorState) {
@@ -185,11 +165,39 @@ class TorBootstrapFragment : Fragment() {
                 binding.progressIndicator.isIndeterminate = false
                 binding.progressIndicator.setProgressCompat(100, true)
                 binding.tvTitle.text = "Connecté ✓"
-                binding.tvStatus.text = "Connecté au réseau Tor"
+                binding.btnRetry.visibility = View.GONE
+                stopPulseAnimation()
+                if (!CryptoManager.hasIdentity()) {
+                    // New user: no seed yet, can't publish .onion — let them proceed to onboarding
+                    binding.tvStatus.text = "Tor connecté — créez votre identité"
+                    binding.btnContinue.isEnabled = true
+                    binding.btnContinue.text = "Continuer"
+                } else {
+                    binding.tvStatus.text = "Récupération du circuit…"
+                    // Wait for circuit info or timeout
+                    startContinueTimeout()
+                }
+            }
+            is TorState.PUBLISHING_ONION -> {
+                realPercent = 100
+                binding.progressIndicator.isIndeterminate = true
+                binding.tvTitle.text = "Publication .onion…"
+                binding.tvStatus.text = "Service caché en cours de publication"
+                binding.btnRetry.visibility = View.GONE
+            }
+            is TorState.ONION_PUBLISHED -> {
+                realPercent = 100
+                smoothJob?.cancel()
+                displayedPercent = 100
+                binding.progressIndicator.isIndeterminate = false
+                binding.progressIndicator.setProgressCompat(100, true)
+                binding.tvTitle.text = "Connecté ✓"
+                binding.tvStatus.text = "Service .onion publié"
                 binding.btnContinue.isEnabled = true
                 binding.btnContinue.text = "Continuer"
                 binding.btnRetry.visibility = View.GONE
                 stopPulseAnimation()
+                startContinueTimeout()
             }
             is TorState.ERROR -> {
                 smoothJob?.cancel()
@@ -197,8 +205,8 @@ class TorBootstrapFragment : Fragment() {
                 binding.tvTitle.text = "Échec de connexion"
                 binding.tvStatus.text = state.message
                 binding.btnRetry.visibility = View.VISIBLE
-                binding.btnContinue.isEnabled = true
-                binding.btnContinue.text = "Continuer sans Tor"
+                binding.btnContinue.isEnabled = false
+                binding.btnContinue.text = "Connexion…"
                 stopPulseAnimation()
             }
             is TorState.DISCONNECTED -> {
@@ -207,18 +215,67 @@ class TorBootstrapFragment : Fragment() {
                 binding.tvTitle.text = "Déconnecté"
                 binding.tvStatus.text = "La connexion a été interrompue"
                 binding.btnRetry.visibility = View.VISIBLE
-                binding.btnContinue.isEnabled = true
-                binding.btnContinue.text = "Continuer sans Tor"
+                binding.btnContinue.isEnabled = false
+                binding.btnContinue.text = "Connexion…"
                 stopPulseAnimation()
             }
         }
     }
 
+    private var continueTimeoutJob: Job? = null
+
+    private fun countryToFlag(countryCode: String): String {
+        if (countryCode.length != 2) return "\uD83C\uDF10" // 🌐
+        val code = countryCode.uppercase()
+        if (!code[0].isLetter() || !code[1].isLetter()) return "\uD83C\uDF10" // 🌐
+        val first = 0x1F1E6 - 'A'.code + code[0].code
+        val second = 0x1F1E6 - 'A'.code + code[1].code
+        return String(intArrayOf(first, second), 0, 2)
+    }
+
+    private fun buildCircuitViews(circuits: List<TorCircuit>) {
+        val container = binding.circuitsContainer
+        container.removeAllViews()
+        val dp = resources.displayMetrics.density
+
+        circuits.forEach { circuit ->
+            val chain = circuit.relays.joinToString(" → ") { relay ->
+                "${countryToFlag(relay.country)} ${relay.name}"
+            }
+            val line = TextView(requireContext()).apply {
+                text = "${purposeIcon(circuit.purpose)} $chain"
+                setTextColor(resources.getColor(R.color.white, null))
+                textSize = 11f
+                setPadding(0, (3 * dp).toInt(), 0, (3 * dp).toInt())
+            }
+            container.addView(line)
+        }
+    }
+
+    private fun purposeIcon(purpose: String): String = when (purpose) {
+        "GENERAL" -> "🌐"
+        "CONFLUX_LINKED" -> "⚡"
+        "HS_SERVICE_INTRO" -> "🧅"
+        "HS_VANGUARDS" -> "🛡️"
+        "HS_SERVICE_HSDIR" -> "📒"
+        else -> "🔗"
+    }
+
     /**
-     * Smooth progress: slowly increments the displayed percent to give visual
-     * feedback even when Tor's output is buffered and jumps from 0% to 100%.
-     * When real progress comes in, we catch up to it; otherwise we fake-crawl.
+     * Fallback: if circuit info hasn't arrived after 12s, enable continue anyway.
      */
+    private fun startContinueTimeout() {
+        if (continueTimeoutJob?.isActive == true) return
+        continueTimeoutJob = viewLifecycleOwner.lifecycleScope.launch {
+            delay(12_000)
+            if (_binding != null && !binding.btnContinue.isEnabled) {
+                binding.btnContinue.isEnabled = true
+                binding.btnContinue.text = "Continuer"
+                binding.tvStatus.text = "Connecté au réseau Tor"
+            }
+        }
+    }
+
     private fun startSmoothProgress() {
         smoothJob?.cancel()
         displayedPercent = 0
@@ -229,21 +286,16 @@ class TorBootstrapFragment : Fragment() {
             binding.progressIndicator.setProgressCompat(0, false)
 
             while (displayedPercent < 100) {
-                delay(400)
+                delay(if (displayedPercent < 80) 350L else 600L)
                 if (_binding == null) return@launch
 
                 val target = realPercent
-                if (target >= 100) {
-                    // Real progress hit 100, handled by CONNECTED state
-                    break
-                } else if (displayedPercent < target) {
-                    // Catch up to real progress (5% steps)
+                if (target >= 100) break
+                else if (displayedPercent < target) {
                     displayedPercent = minOf(displayedPercent + 5, target)
-                } else if (displayedPercent < 90) {
-                    // Slow fake progress (~1% per 400ms)
+                } else if (displayedPercent < 98) {
                     displayedPercent++
                 }
-                // else: stay at 90+ until real progress catches up
 
                 binding.progressIndicator.setProgressCompat(displayedPercent, true)
                 binding.tvStatus.text = "$displayedPercent% — ${getStatusText(displayedPercent)}"
@@ -261,9 +313,13 @@ class TorBootstrapFragment : Fragment() {
     private fun navigateToNext() {
         if (hasNavigated) return
         hasNavigated = true
-        if (isAdded) {
-            findNavController().navigate(R.id.action_torBootstrap_to_onboarding)
+        if (!isAdded) return
+        val action = if (CryptoManager.hasIdentity()) {
+            R.id.action_torBootstrap_to_conversations
+        } else {
+            R.id.action_torBootstrap_to_onboarding
         }
+        findNavController().navigate(action)
     }
 
     private fun startPulseAnimation() {
@@ -290,6 +346,7 @@ class TorBootstrapFragment : Fragment() {
 
     override fun onDestroyView() {
         smoothJob?.cancel()
+        continueTimeoutJob?.cancel()
         pulseAnimator?.cancel()
         pulseAnimator = null
         _binding = null

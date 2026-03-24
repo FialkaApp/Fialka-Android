@@ -17,6 +17,13 @@
             app:popUpToInclusive="true"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out" />
+        <action
+            android:id="@+id/action_torBootstrap_to_conversations"
+            app:destination="@id/conversationsFragment"
+            app:popUpTo="@id/torBootstrapFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
     </fragment>
 
     <fragment
@@ -59,6 +66,13 @@
             app:popUpToInclusive="true"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out" />
+        <action
+            android:id="@+id/action_backup_to_torBootstrap"
+            app:destination="@id/torBootstrapFragment"
+            app:popUpTo="@id/backupPhraseFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
     </fragment>
 
     <fragment
@@ -69,6 +83,13 @@
         <action
             android:id="@+id/action_restore_to_conversations"
             app:destination="@id/conversationsFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+        <action
+            android:id="@+id/action_restore_to_torBootstrap"
+            app:destination="@id/torBootstrapFragment"
             app:popUpTo="@id/nav_graph"
             app:popUpToInclusive="true"
             app:enterAnim="@anim/fade_in"

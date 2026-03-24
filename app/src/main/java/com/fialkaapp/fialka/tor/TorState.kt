@@ -22,6 +22,36 @@ sealed class TorState {
     data object STARTING : TorState()
     data class BOOTSTRAPPING(val percent: Int) : TorState()
     data object CONNECTED : TorState()
+    data class PUBLISHING_ONION(val percent: Int) : TorState()
+    data class ONION_PUBLISHED(val address: String) : TorState()
     data class ERROR(val message: String) : TorState()
     data object DISCONNECTED : TorState()
 }
+
+/**
+ * Tor circuit relay info — one entry per hop in the circuit.
+ */
+data class TorRelay(
+    val name: String,
+    val ip: String,
+    val country: String
+)
+
+/**
+ * Full circuit info: 3 relays (guard, middle, exit) + .onion address.
+ */
+data class CircuitInfo(
+    val guard: TorRelay,
+    val middle: TorRelay,
+    val exit: TorRelay,
+    val onionAddress: String?
+)
+
+/**
+ * A single Tor circuit with its relay chain and purpose.
+ */
+data class TorCircuit(
+    val id: String,
+    val relays: List<TorRelay>,
+    val purpose: String
+)

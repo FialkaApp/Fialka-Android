@@ -19,13 +19,15 @@ package com.fialkaapp.fialka.tor
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Base64
 import android.util.Log
+import com.fialkaapp.fialka.crypto.CryptoManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import android.os.Build
+import net.freehaven.tor.control.TorControlConnection
 import java.io.File
 import java.io.IOException
 import java.net.InetSocketAddress
@@ -38,28 +40,50 @@ import java.net.URI
 /**
  * Singleton managing the embedded Tor daemon lifecycle.
  *
- * Tor binary is extracted from assets and executed as a process.
- * Exposes a SOCKS5 proxy at 127.0.0.1:9050.
- * StateFlow broadcasts connection state to all observers.
+ * Tor binary comes from the Guardian Project's tor-android Gradle dependency
+ * (info.guardianproject:tor-android) — reproducible builds, 4 ABI support.
+ * Executed directly from nativeLibraryDir (SELinux allows this on Android 10+).
+ *
+ * Control port (jtorctl) is used for authenticated communication with the
+ * Tor daemon: graceful shutdown, and Hidden Service management.
+ * The Hidden Service keypair is derived from the Ed25519 identity seed,
+ * so the .onion address is deterministic (same seed = same .onion).
+ *
+ * SOCKS5 proxy at 127.0.0.1:9050 handles all outbound traffic via Tor.
+ * Firebase/Google domains temporarily bypass Tor (they block exit nodes)
+ * until Firebase is replaced by .onion P2P in a future release.
  */
 object TorManager {
 
     private const val TAG = "TorManager"
     private const val TOR_SOCKS_PORT = 9050
     private const val TOR_CONTROL_PORT = 9051
+    private const val HIDDEN_SERVICE_PORT = 7333
     private const val PREFS_NAME = "tor_prefs"
-    private const val KEY_TOR_ENABLED = "tor_enabled"
-    private const val KEY_TOR_CHOICE_MADE = "tor_choice_made"
 
     private val _state = MutableStateFlow<TorState>(TorState.IDLE)
     val state: StateFlow<TorState> = _state.asStateFlow()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var torProcess: Process? = null
+    private var controlConnection: TorControlConnection? = null
     private var monitorJob: Job? = null
     private lateinit var appContext: Context
 
+    /** The published .onion address (null until Hidden Service is live). */
+    private val _onionAddress = MutableStateFlow<String?>(null)
+    val onionAddress: StateFlow<String?> = _onionAddress.asStateFlow()
+
+    /** Circuit info (relays + countries), populated once Tor is connected. */
+    private val _circuitInfo = MutableStateFlow<CircuitInfo?>(null)
+    val circuitInfo: StateFlow<CircuitInfo?> = _circuitInfo.asStateFlow()
+
+    /** All active circuits (3+ hops, no ONEHOP_TUNNEL). */
+    private val _circuits = MutableStateFlow<List<TorCircuit>>(emptyList())
+    val circuits: StateFlow<List<TorCircuit>> = _circuits.asStateFlow()
+
     val socksPort: Int get() = TOR_SOCKS_PORT
+    val hiddenServicePort: Int get() = HIDDEN_SERVICE_PORT
 
     private val prefs: SharedPreferences
         get() = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -68,22 +92,17 @@ object TorManager {
         appContext = context.applicationContext
     }
 
-    fun isTorEnabled(): Boolean = prefs.getBoolean(KEY_TOR_ENABLED, true)
-
-    /** Whether the user has already made a Tor enable/disable choice (first launch). */
-    fun isTorChoiceMade(): Boolean = prefs.getBoolean(KEY_TOR_CHOICE_MADE, false)
-
-    fun setTorEnabled(enabled: Boolean) {
-        prefs.edit()
-            .putBoolean(KEY_TOR_ENABLED, enabled)
-            .putBoolean(KEY_TOR_CHOICE_MADE, true)
-            .apply()
-        if (enabled) start() else stop()
-    }
+    fun isTorEnabled(): Boolean = true
 
     fun start() {
-        if (_state.value is TorState.CONNECTED || _state.value is TorState.STARTING) return
+        val s = _state.value
+        if (s is TorState.STARTING || s is TorState.BOOTSTRAPPING) return
+        // If already connected/published, skip re-start
+        if (s is TorState.CONNECTED || s is TorState.ONION_PUBLISHED) return
         _state.value = TorState.STARTING
+
+        // Keep the process alive with a foreground service + WakeLock
+        TorForegroundService.start(appContext)
 
         scope.launch {
             try {
@@ -99,38 +118,77 @@ object TorManager {
         disableProxy()
         monitorJob?.cancel()
         monitorJob = null
-        torProcess?.destroy()
+
+        // Graceful shutdown via control port if available
+        try {
+            controlConnection?.shutdownTor("SHUTDOWN")
+        } catch (_: Exception) { }
+        // Always kill the process to avoid stale daemon
+        try {
+            torProcess?.destroyForcibly()
+        } catch (_: Exception) { }
+        controlConnection = null
         torProcess = null
+        _onionAddress.value = null
+        _circuitInfo.value = null
         _state.value = TorState.DISCONNECTED
+
+        TorForegroundService.stop(appContext)
     }
 
     fun restart() {
-        stop()
+        // Don't stop the foreground service — just kill Tor and re-launch
+        disableProxy()
+        monitorJob?.cancel()
+        monitorJob = null
+        try {
+            controlConnection?.shutdownTor("SHUTDOWN")
+        } catch (_: Exception) { }
+        try {
+            torProcess?.destroyForcibly()
+        } catch (_: Exception) { }
+        controlConnection = null
+        torProcess = null
+        _onionAddress.value = null
+        _circuitInfo.value = null
+        _state.value = TorState.IDLE
+
+        // Re-start without touching the foreground service
         start()
     }
 
     /**
-     * Suspends until Tor reaches CONNECTED state.
-     * If Tor is disabled, returns immediately.
+     * Suspends until Tor reaches CONNECTED or ONION_PUBLISHED state.
      */
     suspend fun awaitConnection() {
-        if (!isTorEnabled()) return
-        if (_state.value is TorState.CONNECTED) return
-        _state.first { it is TorState.CONNECTED }
+        val s = _state.value
+        if (s is TorState.CONNECTED || s is TorState.ONION_PUBLISHED) return
+        _state.first { it is TorState.CONNECTED || it is TorState.ONION_PUBLISHED }
     }
 
     /**
-     * Returns the path of a native binary from nativeLibraryDir.
-     * This is the only directory with SELinux context allowing execution on Android 10+.
-     * No copy, no chmod — execute directly from here.
+     * Call AFTER identity creation (onboarding / restore) to publish the
+     * Hidden Service now that the Ed25519 seed exists.
+     * If Tor isn't connected yet, waits up to 60s for the control port.
      */
-    fun getNativeBinary(name: String): File {
-        val binary = File(appContext.applicationInfo.nativeLibraryDir, name)
+    fun publishOnionIfReady() {
+        if (_onionAddress.value != null) return
+        scope.launch {
+            val conn = awaitControlConnection(60_000)
+            if (conn != null) {
+                publishHiddenService()
+            } else {
+                Log.w(TAG, "publishOnionIfReady: control port not available")
+            }
+        }
+    }
+
+    private fun getTorBinary(): File {
+        val binary = File(appContext.applicationInfo.nativeLibraryDir, "libtor.so")
         if (!binary.exists()) {
-            val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
             throw IllegalStateException(
-                "$name introuvable pour l'ABI $abi. " +
-                "Binaires disponibles uniquement pour arm64-v8a."
+                "libtor.so not found. The Guardian Project tor-android " +
+                "dependency should provide it for all supported ABIs."
             )
         }
         return binary
@@ -140,26 +198,32 @@ object TorManager {
         val torDir = File(appContext.filesDir, "tor")
         torDir.mkdirs()
 
-        val torrc = File(torDir, "torrc")
         val dataDir = File(torDir, "data")
         dataDir.mkdirs()
 
-        // Execute directly from nativeLibraryDir (SELinux allows execution only here)
-        val torBinary = getNativeBinary("libtor.so")
+        val torBinary = getTorBinary()
+        val cookieFile = File(dataDir, "control_auth_cookie")
 
-        // Write torrc
+        // Delete stale cookie from previous run
+        cookieFile.delete()
+
+        // Kill any orphaned Tor process bound to ports
+        killOrphanedTor()
+
+        // Write torrc with cookie authentication for control port security
+        val torrc = File(torDir, "torrc")
         torrc.writeText(buildString {
             appendLine("SocksPort $TOR_SOCKS_PORT")
             appendLine("ControlPort $TOR_CONTROL_PORT")
             appendLine("DataDirectory ${dataDir.absolutePath}")
             appendLine("Log notice file ${File(torDir, "tor.log").absolutePath}")
             appendLine("RunAsDaemon 0")
-            appendLine("CookieAuthentication 0")
+            appendLine("CookieAuthentication 1")
+            appendLine("CookieAuthFile ${cookieFile.absolutePath}")
         })
 
         _state.value = TorState.BOOTSTRAPPING(0)
 
-        // Start Tor process
         val processBuilder = ProcessBuilder(
             torBinary.absolutePath, "-f", torrc.absolutePath
         )
@@ -168,7 +232,7 @@ object TorManager {
 
         torProcess = processBuilder.start()
 
-        // Monitor Tor output for bootstrap progress
+        // Monitor Tor stdout for bootstrap progress
         monitorJob = scope.launch {
             try {
                 torProcess?.inputStream?.bufferedReader()?.use { reader ->
@@ -185,18 +249,57 @@ object TorManager {
             }
         }
 
-        // Also poll the SOCKS port as fallback (bootstrap log might miss 100%)
+        // Connect jtorctl to control port — retry until cookie file appears and port is ready
+        scope.launch {
+            // Wait for fresh cookie file
+            var attempts = 0
+            while (!cookieFile.exists() && attempts < 60) {
+                delay(500)
+                attempts++
+            }
+            if (!cookieFile.exists()) {
+                Log.w(TAG, "Cookie file never appeared after ${attempts * 500}ms")
+                return@launch
+            }
+            // Cookie exists — now retry connecting (port may not be ready yet)
+            for (attempt in 1..10) {
+                try {
+                    connectControlPort(cookieFile)
+                    Log.i(TAG, "Control port connected on attempt $attempt")
+                    return@launch
+                } catch (e: Exception) {
+                    if (attempt == 10) {
+                        Log.w(TAG, "Control port connection failed after 10 attempts", e)
+                    } else {
+                        delay(1500)
+                    }
+                }
+            }
+        }
+
+        // Fallback: poll SOCKS port if bootstrap log is buffered
         scope.launch {
             var attempts = 0
             while (attempts < 120 && _state.value !is TorState.CONNECTED) {
                 delay(500)
                 attempts++
             }
-            if (_state.value !is TorState.CONNECTED) {
-                // Last chance: if SOCKS port is open, consider connected
+            if (_state.value !is TorState.CONNECTED && _state.value !is TorState.ONION_PUBLISHED) {
                 if (isSocksReady()) {
                     enableProxy()
                     _state.value = TorState.CONNECTED
+                    // Fallback path: also try publishing
+                    scope.launch {
+                        val conn = awaitControlConnection(30_000)
+                        if (conn != null) {
+                            publishHiddenService()
+                            for (attempt in 1..30) {
+                                if (_circuitInfo.value != null) return@launch
+                                delay(2000)
+                                fetchCircuitInfo()
+                            }
+                        }
+                    }
                 } else {
                     _state.value = TorState.ERROR("Tor connection timeout")
                 }
@@ -204,19 +307,240 @@ object TorManager {
         }
     }
 
+    /**
+     * Kill any orphaned Tor daemon from a previous run by checking if
+     * our control or SOCKS ports are still occupied.
+     */
+    private fun killOrphanedTor() {
+        try {
+            // Try connecting to old control port and sending SHUTDOWN
+            Socket().use { s ->
+                s.connect(InetSocketAddress("127.0.0.1", TOR_CONTROL_PORT), 500)
+                s.getOutputStream().write("AUTHENTICATE\r\nSIGNAL SHUTDOWN\r\n".toByteArray())
+            }
+            Thread.sleep(500)
+        } catch (_: Exception) {
+            // No orphan or can't connect — that's fine
+        }
+    }
+
+    /**
+     * Connect to Tor's control port with cookie authentication.
+     * Used for graceful shutdown and Hidden Service management.
+     */
+    private fun connectControlPort(cookieFile: File) {
+        val socket = Socket("127.0.0.1", TOR_CONTROL_PORT)
+        val conn = TorControlConnection(socket)
+        conn.authenticate(cookieFile.readBytes())
+        controlConnection = conn
+        Log.i(TAG, "jtorctl: control port connected (cookie auth)")
+    }
+
+    /**
+     * Publish a Tor v3 Hidden Service using the Ed25519 identity key.
+     *
+     * Uses ADD_ONION with "ED25519-V3:<base64 expanded key>" so the .onion
+     * is deterministic: same seed → same .onion address, every time.
+     *
+     * Port mapping: external port [HIDDEN_SERVICE_PORT] → 127.0.0.1:[HIDDEN_SERVICE_PORT]
+     * (future: local messaging server will listen there)
+     */
+    private fun publishHiddenService() {
+        if (_onionAddress.value != null) {
+            Log.d(TAG, "Hidden Service already published, skipping")
+            return
+        }
+        val conn = controlConnection ?: run {
+            Log.w(TAG, "Cannot publish Hidden Service: no control connection")
+            return
+        }
+        try {
+            // Get expanded Ed25519 key (64 bytes) from CryptoManager
+            val expandedKey = CryptoManager.getExpandedEd25519KeyForTor()
+            val keyBlob = "ED25519-V3:" + Base64.encodeToString(expandedKey, Base64.NO_WRAP)
+            expandedKey.fill(0)
+
+            // Port mapping: virtual port → local target
+            val portMap = mapOf<Int, String>(
+                HIDDEN_SERVICE_PORT to "127.0.0.1:$HIDDEN_SERVICE_PORT"
+            )
+
+            // addOnion returns {"ServiceID" → "<56-char onion without .onion>"}
+            val result = conn.addOnion(keyBlob, portMap)
+            val serviceId = result["ServiceID"]
+
+            if (serviceId != null) {
+                val fullAddress = "$serviceId.onion"
+                _onionAddress.value = fullAddress
+                // Update circuit info with onion address
+                _circuitInfo.value = _circuitInfo.value?.copy(onionAddress = fullAddress)
+                _state.value = TorState.ONION_PUBLISHED(fullAddress)
+                Log.i(TAG, "🧅 Hidden Service published: $fullAddress")
+            } else {
+                Log.w(TAG, "ADD_ONION returned no ServiceID")
+            }
+        } catch (e: IllegalStateException) {
+            // Identity not initialized yet — skip Hidden Service for now
+            Log.w(TAG, "Hidden Service skipped: identity not initialized", e)
+        } catch (e: Exception) {
+            val msg = e.message ?: ""
+            if (msg.contains("Onion address collision", ignoreCase = true)) {
+                // Already published by Tor — extract .onion from circuit-status REND_QUERY
+                Log.i(TAG, "ADD_ONION collision — .onion already active, extracting address")
+                try {
+                    val circuitStatus = controlConnection?.getInfo("circuit-status") ?: ""
+                    val rendQuery = Regex("REND_QUERY=(\\S+)").find(circuitStatus)?.groupValues?.get(1)
+                    if (rendQuery != null) {
+                        val fullAddress = "$rendQuery.onion"
+                        _onionAddress.value = fullAddress
+                        _circuitInfo.value = _circuitInfo.value?.copy(onionAddress = fullAddress)
+                        _state.value = TorState.ONION_PUBLISHED(fullAddress)
+                        Log.i(TAG, "🧅 Hidden Service recovered from collision: $fullAddress")
+                    }
+                } catch (ex: Exception) {
+                    Log.w(TAG, "Failed to recover .onion from collision", ex)
+                }
+            } else {
+                Log.e(TAG, "Failed to publish Hidden Service", e)
+            }
+        }
+    }
+
+    /**
+     * Fetch active circuit info from Tor via control port.
+     * Parses GETINFO circuit-status to extract relay fingerprints,
+     * then resolves each relay's IP and country via ip-to-country.
+     * Populates both _circuitInfo (first 3-hop circuit) and _circuits (all valid circuits).
+     */
+    private fun fetchCircuitInfo() {
+        val conn = controlConnection ?: run {
+            Log.d(TAG, "fetchCircuitInfo: no control connection yet")
+            return
+        }
+        try {
+            val circuitStatus = conn.getInfo("circuit-status")
+            if (circuitStatus.isNullOrBlank()) {
+                Log.d(TAG, "fetchCircuitInfo: circuit-status empty")
+                return
+            }
+            Log.d(TAG, "fetchCircuitInfo: raw=\n$circuitStatus")
+
+            // Parse all BUILT circuits with 3+ hops (skip ONEHOP_TUNNEL)
+            val builtLines = circuitStatus.lines().filter { line ->
+                line.contains(" BUILT ") && !line.contains("ONEHOP_TUNNEL") &&
+                    line.split(" ").getOrNull(2)?.split(",")?.size?.let { it >= 3 } == true
+            }
+            if (builtLines.isEmpty()) {
+                Log.d(TAG, "fetchCircuitInfo: no BUILT circuit with 3+ hops yet")
+                return
+            }
+
+            // Cache resolved relays to avoid duplicate control port lookups
+            val relayCache = mutableMapOf<String, TorRelay>()
+
+            fun resolveRelay(hop: String): TorRelay {
+                val clean = hop.removePrefix("$")
+                val fp = clean.substringBefore("~")
+                relayCache[fp]?.let { return it }
+                val nickname = clean.substringAfter("~", "relay")
+                var ip = "?"
+                try {
+                    val nsInfo = conn.getInfo("ns/id/$fp")
+                    if (nsInfo != null) {
+                        val rLine = nsInfo.lines().firstOrNull { it.startsWith("r ") }
+                        if (rLine != null) {
+                            val fields = rLine.split(" ")
+                            if (fields.size >= 7) ip = fields[6]
+                        }
+                    }
+                } catch (_: Exception) { }
+                var country = "??"
+                if (ip != "?") {
+                    try {
+                        val cc = conn.getInfo("ip-to-country/$ip")
+                        if (cc != null) country = cc.trim().uppercase()
+                    } catch (_: Exception) { }
+                }
+                val relay = TorRelay(name = nickname, ip = ip, country = country)
+                relayCache[fp] = relay
+                return relay
+            }
+
+            // Extract PURPOSE from each line
+            val purposeRegex = Regex("""PURPOSE=(\S+)""")
+
+            val allCircuits = builtLines.take(10).mapNotNull { line ->
+                val parts = line.split(" ")
+                if (parts.size < 3) return@mapNotNull null
+                val circuitId = parts[0]
+                val hops = parts[2].split(",")
+                if (hops.size < 3) return@mapNotNull null
+                val purpose = purposeRegex.find(line)?.groupValues?.get(1) ?: "GENERAL"
+                val relays = hops.map { resolveRelay(it) }
+                TorCircuit(id = circuitId, relays = relays, purpose = purpose)
+            }
+
+            _circuits.value = allCircuits
+
+            // First circuit populates backward-compatible _circuitInfo
+            val first = allCircuits.firstOrNull()
+            if (first != null && first.relays.size >= 3) {
+                _circuitInfo.value = CircuitInfo(
+                    guard = first.relays[0],
+                    middle = first.relays[1],
+                    exit = first.relays[2],
+                    onionAddress = _onionAddress.value
+                )
+            }
+            Log.i(TAG, "Circuits: ${allCircuits.size} found, first: ${
+                first?.relays?.map { "${it.name} (${it.country})" }
+            }")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to fetch circuit info (non-fatal)", e)
+        }
+    }
+
     private fun parseBootstrapProgress(line: String) {
-        // Tor logs: "Bootstrapped 50% (loading_descriptors): Loading relay descriptors"
         val regex = Regex("""Bootstrapped (\d+)%""")
         val match = regex.find(line)
         if (match != null) {
             val percent = match.groupValues[1].toIntOrNull() ?: return
             _state.value = if (percent >= 100) {
                 enableProxy()
+                // Wait for control connection, THEN publish + fetch circuit
+                scope.launch {
+                    val conn = awaitControlConnection(30_000)
+                    if (conn != null) {
+                        publishHiddenService()
+                    } else {
+                        Log.e(TAG, "Control port never connected — cannot publish .onion")
+                    }
+                }
+                scope.launch {
+                    awaitControlConnection(30_000) ?: return@launch
+                    for (attempt in 1..30) {
+                        if (_circuitInfo.value != null) return@launch
+                        delay(2000)
+                        fetchCircuitInfo()
+                    }
+                    Log.w(TAG, "Gave up fetching circuit info after 30 attempts")
+                }
                 TorState.CONNECTED
             } else {
                 TorState.BOOTSTRAPPING(percent)
             }
         }
+    }
+
+    /**
+     * Suspend until controlConnection is non-null, or timeout.
+     */
+    private suspend fun awaitControlConnection(timeoutMs: Long): TorControlConnection? {
+        val start = System.currentTimeMillis()
+        while (controlConnection == null && System.currentTimeMillis() - start < timeoutMs) {
+            delay(500)
+        }
+        return controlConnection
     }
 
     private fun isSocksReady(): Boolean {
@@ -230,8 +554,11 @@ object TorManager {
         }
     }
 
-    // Domains that must bypass Tor (Firebase/Google block exit nodes)
-    private val DIRECT_DOMAINS = setOf(
+    // ── SOCKS5 Proxy ──
+    // Firebase/Google bypass Tor temporarily — they block Tor exit nodes.
+    // This will be removed when Firebase is replaced by .onion P2P transport.
+
+    private val FIREBASE_BYPASS_DOMAINS = setOf(
         "googleapis.com",
         "firebaseio.com",
         "firebase.com",
@@ -245,20 +572,13 @@ object TorManager {
 
     private var originalProxySelector: ProxySelector? = null
 
-    /**
-     * Install a custom ProxySelector that routes traffic through Tor's SOCKS5 proxy,
-     * EXCEPT Firebase/Google domains which connect directly.
-     *
-     * socksNonProxyHosts doesn't exist in Java — only ProxySelector
-     * can selectively bypass a SOCKS proxy per-connection.
-     */
     private fun enableProxy() {
         Log.i(TAG, "Enabling SOCKS5 ProxySelector → 127.0.0.1:$TOR_SOCKS_PORT")
         originalProxySelector = ProxySelector.getDefault()
 
         val torProxy = Proxy(
             Proxy.Type.SOCKS,
-            InetSocketAddress("127.0.0.1", TOR_SOCKS_PORT)
+            InetSocketAddress.createUnresolved("127.0.0.1", TOR_SOCKS_PORT)
         )
 
         ProxySelector.setDefault(object : ProxySelector() {
@@ -268,11 +588,11 @@ object TorManager {
                 if (host == "localhost" || host == "127.0.0.1") {
                     return listOf(Proxy.NO_PROXY)
                 }
-                // Firebase/Google domains go direct (they block Tor)
-                if (DIRECT_DOMAINS.any { host == it || host.endsWith(".$it") }) {
+                // Firebase/Google domains go direct (temporary — until P2P replaces Firebase)
+                if (FIREBASE_BYPASS_DOMAINS.any { host == it || host.endsWith(".$it") }) {
                     return listOf(Proxy.NO_PROXY)
                 }
-                // Everything else goes through Tor
+                // Everything else goes through Tor SOCKS5
                 return listOf(torProxy)
             }
 
@@ -282,9 +602,6 @@ object TorManager {
         })
     }
 
-    /**
-     * Remove the custom ProxySelector — all traffic goes direct again.
-     */
     private fun disableProxy() {
         Log.i(TAG, "Disabling SOCKS5 ProxySelector")
         originalProxySelector?.let { ProxySelector.setDefault(it) }

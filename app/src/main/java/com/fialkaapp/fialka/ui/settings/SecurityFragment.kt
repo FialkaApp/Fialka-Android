@@ -17,10 +17,12 @@
  */
 package com.fialkaapp.fialka.ui.settings
 
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.biometric.BiometricManager
@@ -30,6 +32,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.databinding.FragmentSettingsSecurityBinding
+import com.fialkaapp.fialka.tor.TorCircuit
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.tor.TorState
 import com.fialkaapp.fialka.util.AppLockManager
@@ -183,16 +186,7 @@ class SecurityFragment : Fragment() {
     }
 
     private fun setupTor() {
-        binding.switchTor.isChecked = TorManager.isTorEnabled()
-
-        binding.switchTor.setOnCheckedChangeListener { _, isChecked ->
-            TorManager.setTorEnabled(isChecked)
-            binding.layoutTorReconnect.visibility = if (isChecked) View.VISIBLE else View.GONE
-        }
-
-        // Show/hide reconnect based on whether Tor is enabled
-        binding.layoutTorReconnect.visibility = if (TorManager.isTorEnabled()) View.VISIBLE else View.GONE
-
+        // Tor is mandatory — no toggle, just show status + reconnect
         binding.layoutTorReconnect.setOnClickListener {
             binding.torProgressIndicator.visibility = View.VISIBLE
             binding.torProgressIndicator.isIndeterminate = true
@@ -208,12 +202,87 @@ class SecurityFragment : Fragment() {
                 }
             }
         }
+
+        // Observe all circuits
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                TorManager.circuits.collect { circuits ->
+                    if (_binding == null) return@collect
+                    if (circuits.isNotEmpty()) {
+                        binding.cardCircuitInfo.visibility = View.VISIBLE
+                        buildCircuitViews(circuits)
+                    } else {
+                        binding.cardCircuitInfo.visibility = View.GONE
+                    }
+                }
+            }
+        }
+
+        // Observe .onion address (may arrive before circuit info)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                TorManager.onionAddress.collect { address ->
+                    if (_binding == null) return@collect
+                    if (address != null) {
+                        binding.tvOnionAddress.visibility = View.VISIBLE
+                        binding.tvOnionAddress.text = address
+                    }
+                }
+            }
+        }
+    }
+
+    private fun buildCircuitViews(circuits: List<TorCircuit>) {
+        val container = binding.circuitsContainer
+        container.removeAllViews()
+        val dp = resources.displayMetrics.density
+
+        // Title
+        val title = TextView(requireContext()).apply {
+            text = "${circuits.size} circuits actifs"
+            setTextColor(resources.getColor(com.fialkaapp.fialka.R.color.white, null))
+            textSize = 13f
+            setTypeface(null, Typeface.BOLD)
+            setPadding(0, 0, 0, (6 * dp).toInt())
+        }
+        container.addView(title)
+
+        circuits.forEach { circuit ->
+            val chain = circuit.relays.joinToString(" → ") { relay ->
+                "${countryToFlag(relay.country)} ${relay.name}"
+            }
+            val line = TextView(requireContext()).apply {
+                text = "${purposeIcon(circuit.purpose)} $chain"
+                setTextColor(resources.getColor(com.fialkaapp.fialka.R.color.white, null))
+                textSize = 11f
+                setPadding(0, (3 * dp).toInt(), 0, (3 * dp).toInt())
+            }
+            container.addView(line)
+        }
+    }
+
+    private fun purposeIcon(purpose: String): String = when (purpose) {
+        "GENERAL" -> "🌐"
+        "CONFLUX_LINKED" -> "⚡"
+        "HS_SERVICE_INTRO" -> "🧅"
+        "HS_VANGUARDS" -> "🛡️"
+        "HS_SERVICE_HSDIR" -> "📒"
+        else -> "🔗"
+    }
+
+    private fun countryToFlag(countryCode: String): String {
+        if (countryCode.length != 2) return "\uD83C\uDF10" // 🌐
+        val code = countryCode.uppercase()
+        if (!code[0].isLetter() || !code[1].isLetter()) return "\uD83C\uDF10" // 🌐
+        val first = 0x1F1E6 - 'A'.code + code[0].code
+        val second = 0x1F1E6 - 'A'.code + code[1].code
+        return String(intArrayOf(first, second), 0, 2)
     }
 
     private fun updateTorStatus(state: TorState) {
         when (state) {
             is TorState.IDLE -> {
-                binding.tvTorStatus.text = "Tor désactivé"
+                binding.tvTorStatus.text = "En attente…"
                 binding.torProgressIndicator.visibility = View.GONE
             }
             is TorState.STARTING -> {
@@ -230,6 +299,15 @@ class SecurityFragment : Fragment() {
             }
             is TorState.CONNECTED -> {
                 binding.tvTorStatus.text = "✅ Connecté au réseau Tor"
+                binding.torProgressIndicator.visibility = View.GONE
+            }
+            is TorState.PUBLISHING_ONION -> {
+                binding.tvTorStatus.text = "Publication .onion…"
+                binding.torProgressIndicator.visibility = View.VISIBLE
+                binding.torProgressIndicator.isIndeterminate = true
+            }
+            is TorState.ONION_PUBLISHED -> {
+                binding.tvTorStatus.text = "✅ ${state.address}"
                 binding.torProgressIndicator.visibility = View.GONE
             }
             is TorState.ERROR -> {

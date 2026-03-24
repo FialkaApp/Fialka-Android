@@ -48,11 +48,8 @@ class FialkaApplication : Application() {
         CryptoManager.init(this)
         MnemonicManager.init(this)
         TorManager.init(this)
-        // Only auto-start Tor if the user has already made their choice
-        // (first launch: TorBootstrapFragment handles the start)
-        if (TorManager.isTorChoiceMade() && TorManager.isTorEnabled()) {
-            TorManager.start()
-        }
+        // Tor is mandatory — always start
+        TorManager.start()
         createNotificationChannel()
     }
 

@@ -30,6 +30,10 @@
 -keep class net.sqlcipher.** { *; }
 -dontwarn net.sqlcipher.**
 
+# --- jtorctl (Tor control port) ---
+-keep class net.freehaven.tor.control.** { *; }
+-dontwarn net.freehaven.tor.control.**
+
 # --- ZXing (QR codes) ---
 -keep class com.journeyapps.** { *; }
 -keep class com.google.zxing.** { *; }

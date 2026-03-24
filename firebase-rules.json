@@ -72,6 +72,13 @@
         ".write":    "auth != null && (!data.exists() || !newData.exists())",
         ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 3000"
       }
+    },
+    "mldsa_keys": {
+      "$pubKeyHash": {
+        ".read":     "auth != null",
+        ".write":    "auth != null && (!data.exists() || !newData.exists())",
+        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 6000"
+      }
     }
   }
 }
