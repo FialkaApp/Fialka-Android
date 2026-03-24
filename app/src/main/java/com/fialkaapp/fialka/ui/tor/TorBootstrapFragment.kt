@@ -128,6 +128,10 @@ class TorBootstrapFragment : Fragment() {
                     buildCircuitViews(circuits)
                     binding.btnContinue.isEnabled = true
                     binding.btnContinue.text = "Continuer"
+                    // Circuits work → if .onion still not published, trigger retry
+                    if (TorManager.onionAddress.value == null && CryptoManager.hasIdentity()) {
+                        TorManager.publishOnionIfReady()
+                    }
                 }
             }
         }

@@ -171,10 +171,11 @@ object TorManager {
     fun publishOnionIfReady() {
         if (_onionAddress.value != null) return
         scope.launch {
-            val conn = awaitControlConnection(60_000)
-            if (conn != null) {
+            val conn = awaitControlConnection(60_000) ?: return@launch
+            for (retry in 1..5) {
                 publishHiddenService()
-            } else {
+                if (_onionAddress.value != null) return@launch
+                delay(3000)
             }
         }
     }
@@ -282,13 +283,21 @@ object TorManager {
                     _state.value = TorState.CONNECTED
                     // Fallback path: also try publishing
                     scope.launch {
-                        val conn = awaitControlConnection(30_000)
-                        if (conn != null) {
-                            publishHiddenService()
-                            for (attempt in 1..30) {
-                                if (_circuitInfo.value != null) return@launch
-                                delay(2000)
-                                fetchCircuitInfo()
+                        val conn = awaitControlConnection(30_000) ?: return@launch
+
+                        if (_onionAddress.value == null) publishHiddenService()
+
+                        for (attempt in 1..30) {
+                            if (_circuitInfo.value != null) break
+                            delay(2000)
+                            fetchCircuitInfo()
+                        }
+
+                        if (_onionAddress.value == null) {
+                            for (retry in 1..5) {
+                                delay(3000)
+                                publishHiddenService()
+                                if (_onionAddress.value != null) break
                             }
                         }
                     }
@@ -483,18 +492,26 @@ object TorManager {
                 enableProxy()
                 // Wait for control connection, THEN publish + fetch circuit
                 scope.launch {
-                    val conn = awaitControlConnection(30_000)
-                    if (conn != null) {
-                        publishHiddenService()
-                    } else {
-                    }
-                }
-                scope.launch {
-                    awaitControlConnection(30_000) ?: return@launch
+                    val conn = awaitControlConnection(30_000) ?: return@launch
+
+                    // 1. Publish .onion (first attempt)
+                    if (_onionAddress.value == null) publishHiddenService()
+
+                    // 2. Fetch circuit info
                     for (attempt in 1..30) {
-                        if (_circuitInfo.value != null) return@launch
+                        if (_circuitInfo.value != null) break
                         delay(2000)
                         fetchCircuitInfo()
+                    }
+
+                    // 3. Retry .onion if still not published
+                    //    (control port works — circuits resolved — so retry is safe)
+                    if (_onionAddress.value == null) {
+                        for (retry in 1..5) {
+                            delay(3000)
+                            publishHiddenService()
+                            if (_onionAddress.value != null) break
+                        }
                     }
                 }
                 TorState.CONNECTED
