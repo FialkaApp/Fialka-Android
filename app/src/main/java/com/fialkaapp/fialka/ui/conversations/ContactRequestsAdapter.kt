@@ -22,13 +22,13 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.fialkaapp.fialka.data.remote.FirebaseRelay
+import com.fialkaapp.fialka.data.model.ContactRequest
 import com.fialkaapp.fialka.databinding.ItemContactRequestBinding
 
 class ContactRequestsAdapter(
-    private val onAccept: (FirebaseRelay.ContactRequest) -> Unit,
-    private val onDecline: (FirebaseRelay.ContactRequest) -> Unit
-) : ListAdapter<FirebaseRelay.ContactRequest, ContactRequestsAdapter.ViewHolder>(DiffCallback) {
+    private val onAccept: (ContactRequest) -> Unit,
+    private val onDecline: (ContactRequest) -> Unit
+) : ListAdapter<ContactRequest, ContactRequestsAdapter.ViewHolder>(DiffCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemContactRequestBinding.inflate(
@@ -45,7 +45,7 @@ class ContactRequestsAdapter(
         private val binding: ItemContactRequestBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(request: FirebaseRelay.ContactRequest) {
+        fun bind(request: ContactRequest) {
             binding.tvRequestName.text = request.senderDisplayName
             binding.tvRequestInitial.text =
                 request.senderDisplayName.firstOrNull()?.uppercase() ?: "?"
@@ -55,15 +55,15 @@ class ContactRequestsAdapter(
         }
     }
 
-    object DiffCallback : DiffUtil.ItemCallback<FirebaseRelay.ContactRequest>() {
+    object DiffCallback : DiffUtil.ItemCallback<ContactRequest>() {
         override fun areItemsTheSame(
-            a: FirebaseRelay.ContactRequest,
-            b: FirebaseRelay.ContactRequest
+            a: ContactRequest,
+            b: ContactRequest
         ) = a.conversationId == b.conversationId
 
         override fun areContentsTheSame(
-            a: FirebaseRelay.ContactRequest,
-            b: FirebaseRelay.ContactRequest
+            a: ContactRequest,
+            b: ContactRequest
         ) = a == b
     }
 }

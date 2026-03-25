@@ -23,9 +23,14 @@ import android.util.Base64
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.fialkaapp.fialka.crypto.CryptoManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 
 /**
@@ -43,6 +48,8 @@ object MailboxClientManager {
 
     private lateinit var appContext: Context
 
+    private const val FETCH_INTERVAL_MS = 60_000L // 1 minute
+
     private val _connected = MutableStateFlow(false)
     val connected: StateFlow<Boolean> = _connected.asStateFlow()
 
@@ -52,12 +59,43 @@ object MailboxClientManager {
     private val _role = MutableStateFlow<String?>(null)
     val role: StateFlow<String?> = _role.asStateFlow()
 
+    /** True while actively fetching messages from the mailbox */
+    private val _fetching = MutableStateFlow(false)
+    val fetching: StateFlow<Boolean> = _fetching.asStateFlow()
+
+    private var fetchJob: Job? = null
+
     fun init(context: Context) {
         appContext = context.applicationContext
         val prefs = prefs()
         _connected.value = prefs.getBoolean(KEY_JOINED, false)
         _mailboxOnion.value = prefs.getString(KEY_ONION, null)
         _role.value = prefs.getString(KEY_ROLE, null)
+        // Auto-start fetch loop if already joined
+        if (_connected.value) startFetchLoop()
+    }
+
+    /** Start the periodic fetch loop that polls the mailbox for deposited messages. */
+    fun startFetchLoop() {
+        if (fetchJob?.isActive == true) return
+        fetchJob = CoroutineScope(Dispatchers.IO).launch {
+            // Immediate first fetch on startup
+            try {
+                if (isJoined()) fetchFromMailbox()
+            } catch (_: Exception) {}
+            while (true) {
+                delay(FETCH_INTERVAL_MS)
+                try {
+                    if (isJoined()) fetchFromMailbox()
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    /** Stop the periodic fetch loop. */
+    fun stopFetchLoop() {
+        fetchJob?.cancel()
+        fetchJob = null
     }
 
     private fun prefs() = EncryptedSharedPreferences.create(
@@ -112,6 +150,7 @@ object MailboxClientManager {
                     .apply()
                 _connected.value = true
                 _role.value = role
+                startFetchLoop()
                 return Pair(true, role)
             } else {
                 val msg = if (response.payload.size > 1)
@@ -126,7 +165,18 @@ object MailboxClientManager {
             return Pair(false, msg)
         }
 
-        return Pair(false, "Unexpected response")
+        // P2PServer (not a mailbox) returns TYPE_ACK for unknown frames
+        if (response.type == TorTransport.TYPE_ACK && response.payload.isNotEmpty()
+            && response.payload[0] == TorTransport.ACK_ERROR) {
+            val msg = if (response.payload.size > 3) {
+                val len = java.nio.ByteBuffer.wrap(response.payload, 1, 2).short.toInt()
+                    .coerceIn(0, response.payload.size - 3)
+                String(response.payload, 3, len, Charsets.UTF_8)
+            } else "Server error"
+            return Pair(false, msg)
+        }
+
+        return Pair(false, "Unexpected response (type=0x${String.format("%02X", response.type)})")
     }
 
     /**
@@ -230,5 +280,89 @@ object MailboxClientManager {
         val type = getMailboxType() ?: "PERSONAL"
         val base = "fialka://mailbox?onion=${Uri.encode(onion)}&pubkey=${Uri.encode(pubkey)}&type=${Uri.encode(type)}"
         return if (!inviteCode.isNullOrEmpty()) "$base&invite=${Uri.encode(inviteCode)}" else base
+    }
+
+    /**
+     * Deposit an opaque blob on a remote mailbox for a specific recipient.
+     * The blob is: [frameType:1B][payload] — so the recipient can reconstruct the frame on fetch.
+     * @param mailboxOnion the .onion of the mailbox server
+     * @param recipientEd25519PubKey Base64-encoded Ed25519 public key of the recipient (mailbox member)
+     * @param frameType original frame type (e.g. TYPE_MESSAGE, TYPE_CONTACT_REQ)
+     * @param payload original frame payload
+     * @return true if mailbox accepted the deposit
+     */
+    suspend fun depositToMailbox(
+        mailboxOnion: String,
+        recipientEd25519PubKey: ByteArray,
+        frameType: Byte,
+        payload: ByteArray
+    ): Boolean {
+        // Blob = [frameType:1B][payload]
+        val blob = ByteArray(1 + payload.size)
+        blob[0] = frameType
+        System.arraycopy(payload, 0, blob, 1, payload.size)
+
+        // Extra = [recipientPub:32B][blob]
+        val extra = ByteArray(32 + blob.size)
+        System.arraycopy(recipientEd25519PubKey, 0, extra, 0, 32)
+        System.arraycopy(blob, 0, extra, 32, blob.size)
+
+        val authPayload = TorTransport.buildAuthenticatedPayload("DEPOSIT", extra)
+        val frame = TorTransport.Frame(TorTransport.TYPE_DEPOSIT, authPayload)
+        val response = TorTransport.sendFrame(mailboxOnion, frame = frame)
+        return response?.type == TorTransport.TYPE_ACK &&
+                response.payload.isNotEmpty() &&
+                response.payload[0] == TorTransport.ACK_OK
+    }
+
+    /**
+     * Fetch all pending blobs from our mailbox.
+     * Parses them back into frames and feeds them to P2PServer.onFrame() for normal processing.
+     * @return number of messages processed, or -1 on failure
+     */
+    suspend fun fetchFromMailbox(): Int {
+        val onion = getMailboxOnion() ?: return -1
+        if (!isJoined()) return -1
+
+        _fetching.value = true
+        try {
+            val authPayload = TorTransport.buildAuthenticatedPayload("FETCH", ByteArray(0))
+            val frame = TorTransport.Frame(TorTransport.TYPE_FETCH, authPayload)
+            val response = TorTransport.sendFrame(onion, frame = frame) ?: return -1
+            if (response.type != TorTransport.TYPE_FETCH_RESP) return -1
+
+            val buf = ByteBuffer.wrap(response.payload)
+            val count = buf.short.toInt()
+            if (count == 0) return 0
+            var processed = 0
+
+            for (i in 0 until count) {
+                try {
+                    val idLen = buf.short.toInt()
+                    val idBytes = ByteArray(idLen)
+                    buf.get(idBytes)
+                    val senderPub = ByteArray(32)
+                    buf.get(senderPub)
+                    val depositedAt = buf.long
+                    val blobLen = buf.int
+                    val blob = ByteArray(blobLen)
+                    buf.get(blob)
+
+                    // Blob format: [frameType:1B][payload]
+                    if (blob.isNotEmpty()) {
+                        val frameType = blob[0]
+                        val framePayload = blob.copyOfRange(1, blob.size)
+                        val reconstructedFrame = TorTransport.Frame(frameType, framePayload)
+                        P2PServer.onFrame(reconstructedFrame)
+                        processed++
+                    }
+                } catch (_: Exception) {
+                    // Skip malformed blob, continue with next
+                }
+            }
+            return processed
+        } finally {
+            _fetching.value = false
+        }
     }
 }

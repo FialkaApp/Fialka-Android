@@ -35,6 +35,9 @@ interface ContactDao {
     @Query("SELECT * FROM contacts WHERE contactId = :contactId LIMIT 1")
     suspend fun getContactById(contactId: String): Contact?
 
+    @Query("SELECT * FROM contacts WHERE onionAddress = :onionAddress LIMIT 1")
+    suspend fun getContactByOnionAddress(onionAddress: String): Contact?
+
     @Delete
     suspend fun deleteContact(contact: Contact)
 }

@@ -52,4 +52,7 @@ interface OutboxDao {
 
     @Query("DELETE FROM outbox WHERE retryCount >= 50")
     suspend fun deleteExhaustedRetries()
+
+    @Query("UPDATE outbox SET status = 0, retryCount = 0, nextRetryAt = 0 WHERE messageLocalId = :messageLocalId")
+    suspend fun resetRetryForMessage(messageLocalId: String)
 }

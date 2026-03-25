@@ -77,4 +77,7 @@ interface MessageLocalDao {
      */
     @Query("UPDATE messages SET expiresAt = :now + ephemeralDuration WHERE conversationId = :conversationId AND isMine = 0 AND ephemeralDuration > 0 AND expiresAt = 0")
     suspend fun activateEphemeralTimersForRead(conversationId: String, now: Long)
+
+    @Query("UPDATE messages SET deliveryStatus = :status WHERE localId = :localId")
+    suspend fun updateDeliveryStatus(localId: String, status: Int)
 }

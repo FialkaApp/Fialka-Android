@@ -23,14 +23,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
+import com.fialkaapp.fialka.data.model.ContactRequest
 import com.fialkaapp.fialka.data.model.Conversation
-import com.fialkaapp.fialka.data.remote.FirebaseRelay
 import com.fialkaapp.fialka.data.repository.ChatRepository
+import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.util.DummyTrafficManager
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -43,19 +41,16 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
     private val _accountReset = MutableLiveData<Boolean?>()
     val accountReset: LiveData<Boolean?> = _accountReset
 
-    private val _pendingRequests = MutableLiveData<List<FirebaseRelay.ContactRequest>>(emptyList())
-    val pendingRequests: LiveData<List<FirebaseRelay.ContactRequest>> = _pendingRequests
+    private val _pendingRequests = MutableLiveData<List<ContactRequest>>(emptyList())
+    val pendingRequests: LiveData<List<ContactRequest>> = _pendingRequests
 
-    private val pendingList = mutableListOf<FirebaseRelay.ContactRequest>()
+    private val pendingList = mutableListOf<ContactRequest>()
 
-    // Track which conversations already have active Firebase message listeners
-    private val activeMessageListeners = mutableSetOf<String>()
     // Track pending conversations that already have an acceptance listener running
     private val activeAcceptanceListeners = mutableSetOf<String>()
 
     // Observer to react when conversations change (new conversation added, etc.)
     private val conversationsObserver = Observer<List<Conversation>> { convos ->
-        refreshMessageListeners()
         // Start acceptance listeners for any pending conversation not yet covered
         convos.filter { !it.accepted }.forEach { conv ->
             if (activeAcceptanceListeners.add(conv.conversationId)) {
@@ -65,31 +60,10 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
     }
 
     init {
-        ensureAuthenticated()
         listenForIncomingRequests()
         // Acceptance listeners are started dynamically via conversationsObserver
         conversations.observeForever(conversationsObserver)
         DummyTrafficManager.start(viewModelScope, repository)
-        // Publish signing key once per process (skip on subsequent ViewModel recreations)
-        if (!signingKeyPublished) {
-            viewModelScope.launch {
-                try {
-                    if (!FirebaseRelay.isAuthenticated()) {
-                        FirebaseRelay.signInAnonymously()
-                    }
-                    repository.publishSigningPublicKey()
-                    repository.publishMlDsaPublicKey()
-                    signingKeyPublished = true
-                } catch (_: Exception) { }
-            }
-        }
-    }
-
-    companion object {
-        @Volatile
-        private var signingKeyPublished = false
-
-        fun markSigningKeyPublished() { signingKeyPublished = true }
     }
 
     override fun onCleared() {
@@ -99,104 +73,44 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
     }
 
     /**
-     * Start Firebase message listeners for all accepted conversations
-     * that don't already have one. This ensures the conversation list
-     * shows new messages in real-time even when no chat is open.
+     * Collect incoming contact requests from P2PServer SharedFlow.
+     * Requests arrive via Tor P2P — no Firebase polling needed.
      */
-    private fun refreshMessageListeners() {
-        viewModelScope.launch {
-            if (!FirebaseRelay.isAuthenticated()) {
-                try { FirebaseRelay.signInAnonymously() } catch (_: Exception) { return@launch }
-            }
-            repository.startListeningAllConversations(viewModelScope, activeMessageListeners)
-        }
-    }
-
-    private fun ensureAuthenticated() {
-        if (!FirebaseRelay.isAuthenticated()) {
-            viewModelScope.launch {
-                try {
-                    FirebaseRelay.signInAnonymously()
-                } catch (e: Exception) {
-                }
-            }
-        }
-    }
-
     private fun listenForIncomingRequests() {
         viewModelScope.launch {
-            // Wait for auth to be ready
-            if (!FirebaseRelay.isAuthenticated()) {
-                try {
-                    FirebaseRelay.signInAnonymously()
-                } catch (_: Exception) { return@launch }
+            P2PServer.incomingRequests.collect { request ->
+                // If conversation exists locally, treat as stale — clean up so user can re-accept
+                if (repository.isContactRequestAlreadyAccepted(request.conversationId)) {
+                    val contact = repository.getContactByPublicKey(request.senderPublicKey)
+                    if (contact != null) {
+                        repository.deleteStaleConversation(request.conversationId, contact)
+                    }
+                }
+
+                // Avoid duplicates in pending list
+                if (pendingList.none { it.conversationId == request.conversationId }) {
+                    pendingList.add(request)
+                    _pendingRequests.postValue(pendingList.toList())
+                }
             }
-
-            repository.listenForContactRequests()
-                .onEach { request ->
-                    // If conversation exists locally, check if it's still alive on Firebase
-                    if (repository.isContactRequestAlreadyAccepted(request.conversationId)) {
-                        val alive = repository.isConversationAliveOnFirebase(request.conversationId)
-                        if (alive) return@onEach // Truly active — skip
-
-                        // Stale conversation — clean up so user can re-accept
-                        val contact = repository.getContactByPublicKey(request.senderPublicKey)
-                        if (contact != null) {
-                            repository.deleteStaleConversation(request.conversationId, contact)
-                        }
-                    }
-
-                    // Avoid duplicates in pending list
-                    if (pendingList.none { it.conversationId == request.conversationId }) {
-                        pendingList.add(request)
-                        _pendingRequests.postValue(pendingList.toList())
-                    }
-                }
-                .catch { e ->
-                }
-                .launchIn(viewModelScope)
         }
     }
 
+    /** Listen for acceptance of a pending conversation via P2PServer SharedFlow. */
     private fun startAcceptanceListener(conversationId: String) {
         viewModelScope.launch {
-            if (!FirebaseRelay.isAuthenticated()) {
-                try { FirebaseRelay.signInAnonymously() } catch (_: Exception) { return@launch }
-            }
-            repository.listenForAcceptance(conversationId)
-                .onEach { repository.markConversationAccepted(it) }
-                .catch { _ -> }
-                .launchIn(viewModelScope)
-        }
-    }
-
-    private fun listenForAcceptances() {
-        viewModelScope.launch {
-            if (!FirebaseRelay.isAuthenticated()) {
-                try {
-                    FirebaseRelay.signInAnonymously()
-                } catch (_: Exception) { return@launch }
-            }
-
-            // Listen per-conversationId on /accepted/{id} so Firebase per-participant
-            // read rules are satisfied (global /accepted parent would get PERMISSION_DENIED)
-            val pendingIds = repository.getPendingConversationIds()
-            pendingIds.forEach { conversationId ->
-                repository.listenForAcceptance(conversationId)
-                    .onEach { acceptedId ->
-                        repository.markConversationAccepted(acceptedId)
-                    }
-                    .catch { e ->
-                    }
-                    .launchIn(viewModelScope)
+            P2PServer.incomingAcceptances.collect { acceptedId ->
+                if (acceptedId == conversationId) {
+                    repository.markConversationAccepted(acceptedId)
+                }
             }
         }
     }
 
-    fun acceptRequest(request: FirebaseRelay.ContactRequest) {
+    fun acceptRequest(request: ContactRequest) {
         viewModelScope.launch {
             try {
-                val conversation = repository.acceptContactRequest(request)
+                repository.acceptContactRequest(request)
 
                 // Remove from pending list
                 pendingList.removeAll { it.conversationId == request.conversationId }
@@ -206,17 +120,10 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    fun declineRequest(request: FirebaseRelay.ContactRequest) {
-        viewModelScope.launch {
-            // Just remove from pending list and Firebase inbox
-            pendingList.removeAll { it.conversationId == request.conversationId }
-            _pendingRequests.value = pendingList.toList()
-
-            val myPublicKey = repository.getUser()?.publicKey ?: return@launch
-            try {
-                FirebaseRelay.removeContactRequest(myPublicKey, request.conversationId)
-            } catch (_: Exception) { }
-        }
+    fun declineRequest(request: ContactRequest) {
+        // Just remove from pending list — no Firebase to clean up
+        pendingList.removeAll { it.conversationId == request.conversationId }
+        _pendingRequests.value = pendingList.toList()
     }
 
     fun resetAccount() {

@@ -195,31 +195,87 @@ object CryptoManager {
     }
 
     /**
-     * Tor v3 .onion address derived from the Ed25519 public key.
+     * Tor v3 .onion address derived from the local Ed25519 public key.
+     * Delegates to [computeOnionFromEd25519] with our own identity key.
+     */
+    fun getOnionAddress(): String = computeOnionFromEd25519(getEd25519PublicKeyRaw())
+
+    /**
+     * Compute a Tor v3 .onion address from ANY Ed25519 public key.
      *
      * Spec: rend-spec-v3 §6 "Encoding onion addresses"
      *   checksum = SHA3-256(".onion checksum" || pubkey || version)[0..1]
      *   version  = 0x03
      *   address  = base32(pubkey || checksum || version).lowercase() + ".onion"
      *   Result:  56 chars + ".onion"
+     *
+     * @param ed25519PubBytes 32-byte Ed25519 public key (raw, no ASN.1).
      */
-    fun getOnionAddress(): String {
-        val pubBytes = getEd25519PublicKeyRaw() // 32 bytes
+    fun computeOnionFromEd25519(ed25519PubBytes: ByteArray): String {
+        require(ed25519PubBytes.size == 32) { "Ed25519 public key must be 32 bytes" }
         val version: Byte = 0x03
 
-        // checksum = SHA3-256(".onion checksum" || pubkey || 0x03)[0..1]
         val sha3 = SHA3Digest(256)
         val prefix = ".onion checksum".toByteArray(Charsets.US_ASCII)
         sha3.update(prefix, 0, prefix.size)
-        sha3.update(pubBytes, 0, pubBytes.size)
+        sha3.update(ed25519PubBytes, 0, ed25519PubBytes.size)
         sha3.update(byteArrayOf(version), 0, 1)
         val hash = ByteArray(32)
         sha3.doFinal(hash, 0)
         val checksum = hash.copyOf(2)
 
-        // address = base32(pubkey(32) || checksum(2) || version(1))
-        val addressBytes = pubBytes + checksum + byteArrayOf(version)
+        val addressBytes = ed25519PubBytes + checksum + byteArrayOf(version)
         return base32Encode(addressBytes).lowercase() + ".onion"
+    }
+
+    /**
+     * Convert an Ed25519 public key to its X25519 equivalent via the birational
+     * map between twisted Edwards25519 and Montgomery/Curve25519.
+     *
+     * Math: u = (1 + y) / (1 - y) mod p,  where p = 2²⁵⁵ − 19
+     * and y is the y-coordinate encoded in the 32-byte Ed25519 public key.
+     *
+     * Same conversion as libsodium's crypto_sign_ed25519_pk_to_curve25519.
+     *
+     * @param ed25519PubBytes 32-byte Ed25519 public key (raw, no ASN.1).
+     * @return 32-byte raw X25519 public key (little-endian u-coordinate).
+     */
+    fun ed25519PublicKeyToX25519Raw(ed25519PubBytes: ByteArray): ByteArray {
+        require(ed25519PubBytes.size == 32) { "Ed25519 public key must be 32 bytes" }
+        val p = BigInteger.TWO.pow(255).subtract(BigInteger.valueOf(19))
+
+        // Ed25519 encoding: y in little-endian, sign of x in top bit of byte[31]
+        val yCopy = ed25519PubBytes.copyOf()
+        yCopy[31] = (yCopy[31].toInt() and 0x7F).toByte()  // clear sign bit
+
+        // Little-endian → BigInteger (reverse to big-endian first)
+        val y = BigInteger(1, yCopy.reversedArray())
+
+        // u = (1 + y) * modInverse(1 - y, p) mod p
+        val numerator   = BigInteger.ONE.add(y).mod(p)
+        val denominator = BigInteger.ONE.subtract(y).mod(p)
+        val u = numerator.multiply(denominator.modInverse(p)).mod(p)
+
+        // BigInteger → 32-byte big-endian → reverse to little-endian
+        val uBytes = ByteArray(32)
+        val raw = u.toByteArray()
+        val srcOff = if (raw.size > 32) raw.size - 32 else 0
+        val dstOff = if (raw.size < 32) 32 - raw.size else 0
+        System.arraycopy(raw, srcOff, uBytes, dstOff, minOf(raw.size, 32))
+        uBytes.reverse()  // big-endian → little-endian
+        return uBytes
+    }
+
+    /**
+     * Convert an Ed25519 public key to a full X25519 X.509-encoded public key
+     * (Base64), compatible with [Contact.publicKey] and [performKeyAgreement].
+     *
+     * @param ed25519PubBytes 32-byte Ed25519 public key (raw, no ASN.1).
+     * @return Base64-encoded X25519 public key (44-byte X.509 SubjectPublicKeyInfo).
+     */
+    fun ed25519PublicKeyToX25519(ed25519PubBytes: ByteArray): String {
+        val rawX25519 = ed25519PublicKeyToX25519Raw(ed25519PubBytes)
+        return Base64.encodeToString(X25519_X509_PREFIX + rawX25519, Base64.NO_WRAP)
     }
 
     /**

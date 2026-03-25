@@ -59,10 +59,10 @@ class AddContactFragment : Fragment() {
             val scanned = result.contents
             when {
                 scanned.startsWith("fialka://invite?") -> {
-                    // V2 PQXDH deep link: extract X25519 + ML-KEM keys + sender name
                     val invite = QrCodeGenerator.parseInvite(scanned)
                     if (invite != null) {
-                        binding.etPublicKey.setText(invite.x25519PublicKey)
+                        // Store the FULL deeplink so "Créer" re-parses it with all keys intact
+                        binding.etPublicKey.setText(scanned)
                         binding.etPublicKey.tag = invite.mlkemPublicKey
                         if (!invite.displayName.isNullOrBlank()) {
                             binding.etContactName.setText(invite.displayName)
@@ -139,11 +139,12 @@ class AddContactFragment : Fragment() {
         binding.btnCreateConversation.setOnClickListener {
             val name = binding.etContactName.text.toString()
             val rawInput = binding.etPublicKey.text.toString().trim()
-            // Support both pasted deep links (fialka://invite?...) and raw X25519 keys
+            // Support v3 (Ed25519), v2 (X25519+mlkem), and raw X25519 keys
             val invite = QrCodeGenerator.parseInvite(rawInput)
             val key = invite?.x25519PublicKey ?: rawInput
             val mlkemKey = (binding.etPublicKey.tag as? String) ?: invite?.mlkemPublicKey
-            viewModel.addContact(name, key, mlkemKey)
+            val ed25519Key = invite?.ed25519PublicKey
+            viewModel.addContact(name, key, mlkemKey, ed25519Key)
         }
 
         viewModel.state.observe(viewLifecycleOwner) { state ->

@@ -32,6 +32,8 @@ import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.databinding.FragmentMailboxSetupBinding
 import com.fialkaapp.fialka.tor.MailboxServer
+import com.fialkaapp.fialka.tor.OutboxManager
+import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.util.QrCodeGenerator
 import kotlinx.coroutines.launch
@@ -93,6 +95,10 @@ class MailboxSetupFragment : Fragment() {
         // ── Step 2: Show loading ──
         binding.stepChoose.visibility = View.GONE
         binding.stepLoading.visibility = View.VISIBLE
+
+        // Stop P2PServer + OutboxManager that were started for NOT_SET mode
+        P2PServer.stop()
+        OutboxManager.stop()
 
         // Init + start mailbox server
         MailboxServer.init(requireContext())

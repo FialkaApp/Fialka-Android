@@ -84,11 +84,12 @@ object AppMode {
         return type
     }
 
-    /** Set mailbox type. Only valid in MAILBOX mode. Irréversible. */
+    /** Set mailbox type. Only valid in MAILBOX mode. Irréversible (idempotent for same value). */
     fun setMailboxType(context: Context, type: MailboxType) {
         require(type != MailboxType.NONE) { "Cannot set mailbox type to NONE" }
         require(getMode(context) == AppModeType.MAILBOX) { "Not in MAILBOX mode" }
         val current = getMailboxType(context)
+        if (current == type) return
         require(current == MailboxType.NONE) { "Mailbox type already set — irréversible" }
         prefs(context).edit().putString(KEY_MAILBOX_TYPE, type.name).apply()
         cachedMailboxType = type

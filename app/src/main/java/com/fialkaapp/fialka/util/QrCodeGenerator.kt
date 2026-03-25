@@ -30,13 +30,12 @@ import java.net.URLEncoder
 /**
  * Utility to generate QR code bitmaps from text content.
  *
- * Supports two modes:
+ * Supports three modes:
  *  - Legacy: raw X25519 public key Base64 (v1 — existing contacts)
- *  - PQXDH : deep link `fialka://invite?v=2&x25519=<key>&mlkem=<key>` (v2)
+ *  - PQXDH : deep link `fialka://invite?v=2&x25519=<key>&mlkem=<key>` (v2 — legacy)
+ *  - ED25519: deep link `fialka://invite?v=3&ed=<base64_32B>&name=<name>` (v3 — current)
  *
- * For PQXDH deep links (~1650 chars) we force QR Version 40 with error correction L
- * to maximise data capacity (~2953 chars). If encoding fails (e.g. ZXing version
- * constraint unavailable), the caller should fall back to sharing the deep link as text.
+ * v3 QR is small (~80 chars) → fast scan. Recipient derives X25519, .onion from Ed25519.
  */
 object QrCodeGenerator {
 
@@ -67,10 +66,20 @@ object QrCodeGenerator {
     fun stripX25519Header(fullBase64: String): String = runCatching { x25519ToRaw(fullBase64) }.getOrDefault(fullBase64)
 
     /**
-     * Build a PQXDH v2 deep link from X25519 and ML-KEM public keys.
-     * @param x25519PublicKeyBase64  X25519 identity public key (Base64, ~44 chars).
-     * @param mlkemPublicKeyBase64   ML-KEM-1024 identity public key (Base64, ~2092 chars). Pass null for classic-only invite.
-     * @param displayName            Optional display name to embed so the recipient's form auto-fills.
+     * Build a v3 deep link from the user's Ed25519 signing public key.
+     * The Ed25519 key is everything the recipient needs: they derive X25519 + .onion from it.
+     * @param ed25519Base64  Raw 32-byte Ed25519 public key, Base64-encoded (~44 chars).
+     * @param displayName    Optional display name to embed so the recipient's form auto-fills.
+     */
+    fun buildDeepLinkV3(ed25519Base64: String, displayName: String? = null): String {
+        val base = "fialka://invite?v=3&ed=$ed25519Base64"
+        return if (!displayName.isNullOrBlank()) {
+            "$base&name=${URLEncoder.encode(displayName, "UTF-8")}"
+        } else base
+    }
+
+    /**
+     * Build a PQXDH v2 deep link (legacy — kept for backward compatibility).
      */
     fun buildDeepLink(x25519PublicKeyBase64: String, mlkemPublicKeyBase64: String?, displayName: String? = null): String {
         val rawX25519 = runCatching { x25519ToRaw(x25519PublicKeyBase64) }.getOrDefault(x25519PublicKeyBase64)
@@ -86,7 +95,8 @@ object QrCodeGenerator {
 
     /**
      * Parse an invite string (scanned QR or received deep link).
-     * @return InviteData with x25519 key populated; mlkemKey is null for v1 invites.
+     * Supports v1 (raw key), v2 (x25519+mlkem), v3 (ed25519).
+     * @return InviteData — for v3, x25519PublicKey is derived from ed25519PublicKey.
      */
     fun parseInvite(raw: String): InviteData? {
         return try {
@@ -101,13 +111,40 @@ object QrCodeGenerator {
                             if (idx > 0) {
                                 val key = part.substring(0, idx)
                                 // whitelist only known parameters, reject duplicates
-                                if (key !in listOf("v", "x25519", "mlkem", "name")) return@mapNotNull null
+                                if (key !in listOf("v", "x25519", "mlkem", "name", "ed")) return@mapNotNull null
                                 if (key in seen) return null  // duplicate param → reject
                                 seen.add(key)
                                 key to part.substring(idx + 1)
                             } else null
                         }
                         .toMap()
+
+                    val version = params["v"]
+
+                    // ── v3: Ed25519-only invite ──
+                    if (version == "3") {
+                        val ed = params["ed"] ?: return null
+                        if (ed.length > 60) return null  // base64 of 32 bytes ≈ 44 chars
+                        val name = params["name"]?.let { n ->
+                            if (n.length > 200) return null
+                            val decoded = runCatching { URLDecoder.decode(n, "UTF-8") }.getOrNull() ?: return null
+                            if (decoded.length > 100) return null
+                            if (decoded.any { it.code < 32 }) return null
+                            decoded
+                        }
+                        // Derive X25519 from Ed25519 using CryptoManager birational map
+                        val x25519Derived = com.fialkaapp.fialka.crypto.CryptoManager.ed25519PublicKeyToX25519(
+                            Base64.decode(ed, Base64.NO_WRAP)
+                        )
+                        return InviteData(
+                            x25519PublicKey = x25519Derived,
+                            mlkemPublicKey = null,
+                            displayName = name,
+                            ed25519PublicKey = ed
+                        )
+                    }
+
+                    // ── v2: X25519 (+ optional ML-KEM) invite ──
                     val x25519 = params["x25519"]?.let { k ->
                         if (k.length > 60) return null  // base64 of 32 bytes ≈ 44 chars
                         runCatching { rawToX25519(k) }.getOrDefault(k)
@@ -139,8 +176,9 @@ object QrCodeGenerator {
 
     data class InviteData(
         val x25519PublicKey: String,
-        val mlkemPublicKey: String?,   // null = contact has no ML-KEM key (classic fallback)
-        val displayName: String? = null
+        val mlkemPublicKey: String?,
+        val displayName: String? = null,
+        val ed25519PublicKey: String? = null  // present for v3 invites
     )
 
     /**

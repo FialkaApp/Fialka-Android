@@ -34,7 +34,7 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
     private val _state = MutableLiveData<AddContactState>(AddContactState.Idle)
     val state: LiveData<AddContactState> = _state
 
-    fun addContact(displayName: String, publicKey: String, mlkemPublicKey: String? = null) {
+    fun addContact(displayName: String, publicKey: String, mlkemPublicKey: String? = null, ed25519PublicKey: String? = null) {
         // Validate input
         if (displayName.isBlank() || publicKey.isBlank()) {
             _state.value = AddContactState.Error("Veuillez remplir tous les champs.")
@@ -77,32 +77,44 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
 
         viewModelScope.launch {
             try {
-                // Check for duplicate contact — if conversation is dead, reset it
+                // Check for duplicate contact
                 val existingContact = repository.getContactByPublicKey(trimmedKey)
                 if (existingContact != null) {
                     val convoId = repository.getConversationIdByContactPublicKey(trimmedKey)
                     if (convoId != null) {
-                        val convoAlive = repository.isConversationAliveOnFirebase(convoId)
-                        if (convoAlive) {
-                            _state.value = AddContactState.Error(
-                                "Ce contact existe déjà sous le nom \"${existingContact.displayName}\"."
-                            )
-                            return@launch
-                        }
-                        // Dead conversation — clean up and recreate
-                        repository.deleteStaleConversation(convoId, existingContact)
-                    } else {
-                        // Contact exists but no conversation yet — fall through to recreate
+                        _state.value = AddContactState.Error(
+                            "Ce contact existe déjà sous le nom \"${existingContact.displayName}\"."
+                        )
+                        return@launch
                     }
                 }
 
-                // Add contact to local DB (with ML-KEM key from QR scan if available)
-                repository.addContact(displayName.trim(), trimmedKey, mlkemPublicKey = mlkemPublicKey)
+                // Compute .onion address from Ed25519 key if available
+                val signingKey = ed25519PublicKey  // raw Ed25519 base64
+                val onionAddress = if (ed25519PublicKey != null) {
+                    try {
+                        val ed25519Bytes = android.util.Base64.decode(ed25519PublicKey, android.util.Base64.NO_WRAP)
+                        CryptoManager.computeOnionFromEd25519(ed25519Bytes)
+                    } catch (_: Exception) { null }
+                } else null
+
+                // Add contact to local DB (with Ed25519 signing key + .onion from QR scan)
+                val contact = repository.addContact(
+                    displayName.trim(),
+                    trimmedKey,
+                    signingPublicKey = signingKey,
+                    mlkemPublicKey = mlkemPublicKey
+                )
+
+                // Update onion address on the contact if we computed it
+                if (onionAddress != null && contact.onionAddress == null) {
+                    repository.updateContact(contact.copy(onionAddress = onionAddress))
+                }
 
                 // Create conversation as pending (not yet accepted by the other user)
                 val conversation = repository.createConversation(trimmedKey, displayName.trim(), accepted = false)
 
-                // Notify the contact via Firebase inbox
+                // Notify the contact via Tor P2P
                 repository.sendContactRequest(trimmedKey)
 
                 _state.value = AddContactState.Success(conversation)

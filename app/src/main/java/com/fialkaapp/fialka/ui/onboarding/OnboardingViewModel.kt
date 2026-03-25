@@ -23,10 +23,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.fialkaapp.fialka.data.model.UserLocal
-import com.fialkaapp.fialka.data.remote.FirebaseRelay
 import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.tor.TorManager
-import com.fialkaapp.fialka.ui.conversations.ConversationsViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
@@ -57,25 +55,8 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             try {
                 withTimeout(15_000L) {
-                    // Sign in anonymously to Firebase
-                    if (!FirebaseRelay.isAuthenticated()) {
-                        FirebaseRelay.signInAnonymously()
-                    }
-
                     // Create local user (generates keys)
                     val user = repository.createUser(displayName.trim())
-
-                    // Register public key + display name on Firebase
-                    FirebaseRelay.registerPublicKey(user.publicKey)
-                    FirebaseRelay.storeDisplayName(displayName.trim())
-
-                    // Publish Ed25519 signing public key
-                    repository.publishSigningPublicKey()
-                    // Publish ML-KEM-1024 public key for PQXDH
-                    repository.publishMLKEMPublicKey()
-                    // Publish ML-DSA-44 public key for PQ handshake auth
-                    repository.publishMlDsaPublicKey()
-                    ConversationsViewModel.markSigningKeyPublished()
 
                     // Identity now exists — publish .onion (Tor is already connected)
                     TorManager.publishOnionIfReady()
@@ -84,23 +65,10 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                 }
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                 _state.value = OnboardingState.Error(
-                    "Délai d'attente dépassé. Vérifiez votre connexion Internet " +
-                    "et que la Realtime Database est bien créée dans Firebase Console."
+                    "Délai d'attente dépassé. Vérifiez votre connexion Internet."
                 )
             } catch (e: Exception) {
-                val message = when {
-                    e.message?.contains("CONFIGURATION_NOT_FOUND") == true ->
-                        "L'authentification anonyme n'est pas activée dans Firebase Console. " +
-                        "Allez dans Authentication > Méthode de connexion > Anonyme > Activer."
-                    e.message?.contains("NETWORK") == true ||
-                    e.message?.contains("network") == true ->
-                        "Erreur réseau. Vérifiez votre connexion Internet."
-                    e.message?.contains("Failed to get FirebaseDatabase") == true ->
-                        "URL de la base de données Firebase introuvable. " +
-                        "Vérifiez l'URL dans FirebaseRelay.kt."
-                    else -> e.message ?: "Erreur inconnue"
-                }
-                _state.value = OnboardingState.Error(message)
+                _state.value = OnboardingState.Error(e.message ?: "Erreur inconnue")
             }
         }
     }

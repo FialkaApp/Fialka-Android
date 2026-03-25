@@ -54,7 +54,7 @@ import java.security.SecureRandom
         RatchetState::class,
         OutboxMessage::class
     ],
-    version = 21,
+    version = 24,
     exportSchema = false
 )
 abstract class FialkaDatabase : RoomDatabase() {

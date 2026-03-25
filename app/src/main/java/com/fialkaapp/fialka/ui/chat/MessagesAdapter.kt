@@ -53,7 +53,8 @@ sealed class ChatItem {
 class MessagesAdapter(
     private val onFingerprintInfoClick: (() -> Unit)? = null,
     private val onRetryDownload: ((String) -> Unit)? = null,
-    private val onOneShotOpen: ((String) -> Unit)? = null
+    private val onOneShotOpen: ((String) -> Unit)? = null,
+    private val onResend: ((String) -> Unit)? = null
 ) : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
 
     private var lastAnimatedPosition = -1
@@ -227,7 +228,7 @@ class MessagesAdapter(
         when (holder) {
             is SentViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
-                holder.bind(msg, onOneShotOpen)
+                holder.bind(msg, onOneShotOpen, onResend)
             }
             is ReceivedViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
@@ -261,7 +262,7 @@ class MessagesAdapter(
     class SentViewHolder(
         private val binding: ItemMessageSentBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: MessageLocal, onOneShotOpen: ((String) -> Unit)? = null) {
+        fun bind(message: MessageLocal, onOneShotOpen: ((String) -> Unit)? = null, onResend: ((String) -> Unit)? = null) {
             binding.tvTimeSent.text = timeFormat.format(Date(message.timestamp))
             binding.ivImagePreviewSent.visibility = View.GONE
 
@@ -335,6 +336,37 @@ class MessagesAdapter(
 
             // Signature badge
             bindSignatureBadge(binding.tvSignatureBadge, message.signatureValid)
+
+            // Delivery status badge
+            when (message.deliveryStatus) {
+                MessageLocal.DELIVERY_MAILBOX -> {
+                    binding.ivSentCheck.visibility = View.VISIBLE
+                    binding.tvDeliveryBadge.visibility = View.VISIBLE
+                    binding.tvDeliveryBadge.text = "📬"
+                    binding.failedRowSent.visibility = View.GONE
+                }
+                MessageLocal.DELIVERY_FAILED -> {
+                    binding.ivSentCheck.visibility = View.GONE
+                    binding.tvDeliveryBadge.visibility = View.VISIBLE
+                    binding.tvDeliveryBadge.text = "❌"
+                    binding.failedRowSent.visibility = View.VISIBLE
+                    binding.btnResend.setOnClickListener { onResend?.invoke(message.localId) }
+                }
+                MessageLocal.DELIVERY_PENDING -> {
+                    binding.ivSentCheck.visibility = View.VISIBLE
+                    binding.ivSentCheck.alpha = 0.4f
+                    binding.tvDeliveryBadge.visibility = View.VISIBLE
+                    binding.tvDeliveryBadge.text = "⏳"
+                    binding.failedRowSent.visibility = View.GONE
+                }
+                else -> {
+                    // DELIVERY_SENT (direct)
+                    binding.ivSentCheck.visibility = View.VISIBLE
+                    binding.ivSentCheck.alpha = 1.0f
+                    binding.tvDeliveryBadge.visibility = View.GONE
+                    binding.failedRowSent.visibility = View.GONE
+                }
+            }
         }
     }
 

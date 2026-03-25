@@ -21,11 +21,12 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
-import com.google.firebase.FirebaseApp
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.MnemonicManager
+import com.fialkaapp.fialka.tor.MailboxClientManager
 import com.fialkaapp.fialka.tor.MailboxServer
 import com.fialkaapp.fialka.tor.OutboxManager
+import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.util.DeviceSecurityManager
 import kotlinx.coroutines.CoroutineScope
@@ -34,14 +35,13 @@ import kotlinx.coroutines.launch
 
 /**
  * Application class for Fialka.
- * Initializes Firebase, notification channels. Theme applied per-Activity.
+ * Initializes notification channels. Theme applied per-Activity.
  */
 class FialkaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         // BC provider NOT registered — Ed25519 uses BC lightweight API directly,
-        // and registering platform's stripped BC at position 1 breaks TLS/Firebase.
-        FirebaseApp.initializeApp(this)
+        // and registering platform's stripped BC at position 1 breaks TLS.
         // Pre-warm DeviceSecurityManager on IO thread so the StrongBox probe
         // (100–300 ms) doesn't block the main thread when CryptoManager.init() calls it.
         CoroutineScope(Dispatchers.IO).launch {
@@ -61,8 +61,12 @@ class FialkaApplication : Application() {
                 MailboxServer.start()
             }
             else -> {
-                // NORMAL or NOT_SET — init outbox manager (no-op until identity exists)
+                // NORMAL or NOT_SET — init outbox + P2P server
                 OutboxManager.init(this)
+                OutboxManager.start()
+                P2PServer.init(this)
+                P2PServer.start()
+                MailboxClientManager.init(this)
             }
         }
     }
@@ -70,7 +74,7 @@ class FialkaApplication : Application() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                MyFirebaseMessagingService.CHANNEL_ID,
+                NOTIFICATION_CHANNEL_ID,
                 "Messages Fialka",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
@@ -79,5 +83,9 @@ class FialkaApplication : Application() {
             getSystemService(NotificationManager::class.java)
                 .createNotificationChannel(channel)
         }
+    }
+
+    companion object {
+        const val NOTIFICATION_CHANNEL_ID = "fialka_messages"
     }
 }

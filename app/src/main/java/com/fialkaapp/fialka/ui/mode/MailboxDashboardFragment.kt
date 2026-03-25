@@ -47,6 +47,7 @@ import com.fialkaapp.fialka.tor.MailboxServer
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.util.QrCodeGenerator
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.security.SecureRandom
@@ -85,7 +86,7 @@ class MailboxDashboardFragment : Fragment() {
             binding.btnInvite.visibility = View.GONE
         }
 
-        // Observe stats
+        // Observe stats — live state
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 MailboxServer.blobCount.collect { count ->
@@ -104,6 +105,29 @@ class MailboxDashboardFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 MailboxServer.totalSize.collect { size ->
                     if (_binding != null) binding.tvStorageSize.text = formatSize(size)
+                }
+            }
+        }
+
+        // Observe stats — cumulative totals
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                MailboxServer.totalDeposited.collect { count ->
+                    if (_binding != null) binding.tvTotalDeposited.text = count.toString()
+                }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                MailboxServer.totalFetched.collect { count ->
+                    if (_binding != null) binding.tvTotalFetched.text = count.toString()
+                }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                MailboxServer.totalDataProcessed.collect { size ->
+                    if (_binding != null) binding.tvTotalData.text = formatSize(size)
                 }
             }
         }
@@ -133,6 +157,16 @@ class MailboxDashboardFragment : Fragment() {
         // Refresh stats on resume
         viewLifecycleOwner.lifecycleScope.launch {
             MailboxServer.refreshStats()
+        }
+
+        // Periodic auto-refresh every 30s while dashboard is visible
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    delay(30_000)
+                    MailboxServer.refreshStats()
+                }
+            }
         }
 
         // Buttons

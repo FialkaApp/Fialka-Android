@@ -129,7 +129,11 @@ object TorTransport {
         port: Int = TorManager.hiddenServicePort,
         frameListener: FrameListener
     ) {
-        if (serverSocket != null) return
+        if (serverSocket != null) {
+            if (listener === frameListener) return   // same listener, already running
+            // Different listener (e.g. mode change NOT_SET→MAILBOX) — swap
+            stopServer()
+        }
         listener = frameListener
         serverJob = scope.launch {
             try {

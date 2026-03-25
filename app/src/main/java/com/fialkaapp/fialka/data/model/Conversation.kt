@@ -48,5 +48,6 @@ data class Conversation(
     // Used as the Firebase listener lower-bound on restart so already-seen messages
     // (including ones we failed to decrypt) are not re-fetched and don't corrupt the ratchet.
     val lastDeliveredAt: Long = 0L,
-    val participantOnionAddress: String = "" // .onion address for P2P delivery via Tor
+    val participantOnionAddress: String = "", // .onion address for P2P delivery via Tor
+    val participantMailboxOnion: String = ""  // .onion of the participant's mailbox (offline fallback)
 )

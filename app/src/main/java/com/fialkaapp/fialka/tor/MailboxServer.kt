@@ -62,12 +62,51 @@ object MailboxServer : TorTransport.FrameListener {
     private val _totalSize = MutableStateFlow(0L)
     val totalSize: StateFlow<Long> = _totalSize.asStateFlow()
 
+    // ── Cumulative stats (persistent) ──
+    private val _totalDeposited = MutableStateFlow(0L)
+    val totalDeposited: StateFlow<Long> = _totalDeposited.asStateFlow()
+
+    private val _totalFetched = MutableStateFlow(0L)
+    val totalFetched: StateFlow<Long> = _totalFetched.asStateFlow()
+
+    private val _totalDataProcessed = MutableStateFlow(0L)
+    val totalDataProcessed: StateFlow<Long> = _totalDataProcessed.asStateFlow()
+
+    private const val PREFS_NAME = "mailbox_stats"
+    private const val KEY_TOTAL_DEPOSITED = "total_deposited"
+    private const val KEY_TOTAL_FETCHED = "total_fetched"
+    private const val KEY_TOTAL_DATA = "total_data_processed"
+
     // ── Nonce replay protection (in-memory, auto-expiring) ──
     private val seenNonces = LinkedHashMap<String, Long>(500, 0.75f, true)
     private val nonceLock = Any()
 
     fun init(context: Context) {
         appContext = context.applicationContext
+        loadCumulativeStats()
+    }
+
+    private fun loadCumulativeStats() {
+        val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        _totalDeposited.value = prefs.getLong(KEY_TOTAL_DEPOSITED, 0L)
+        _totalFetched.value = prefs.getLong(KEY_TOTAL_FETCHED, 0L)
+        _totalDataProcessed.value = prefs.getLong(KEY_TOTAL_DATA, 0L)
+    }
+
+    private fun incrementDeposited(dataSize: Int) {
+        val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val newCount = prefs.getLong(KEY_TOTAL_DEPOSITED, 0L) + 1
+        val newData = prefs.getLong(KEY_TOTAL_DATA, 0L) + dataSize
+        prefs.edit().putLong(KEY_TOTAL_DEPOSITED, newCount).putLong(KEY_TOTAL_DATA, newData).apply()
+        _totalDeposited.value = newCount
+        _totalDataProcessed.value = newData
+    }
+
+    private fun incrementFetched(count: Int) {
+        val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val newCount = prefs.getLong(KEY_TOTAL_FETCHED, 0L) + count
+        prefs.edit().putLong(KEY_TOTAL_FETCHED, newCount).apply()
+        _totalFetched.value = newCount
     }
 
     fun start() {
@@ -212,6 +251,7 @@ object MailboxServer : TorTransport.FrameListener {
                 expiresAt = now + BLOB_TTL_MS
             )
         )
+        incrementDeposited(blob.size)
         refreshStats()
         return TorTransport.ackOk()
     }
@@ -260,6 +300,7 @@ object MailboxServer : TorTransport.FrameListener {
         for (b in blobs) {
             db.blobDao().deleteById(b.blobId)
         }
+        if (blobs.isNotEmpty()) incrementFetched(blobs.size)
         refreshStats()
 
         return TorTransport.Frame(TorTransport.TYPE_FETCH_RESP, buf.array())
