@@ -481,6 +481,10 @@ class ChatRepository(private val appContext: Context) {
                 put("kemCiphertext", kemToSend)
                 put("mldsaSignature", mldsaSignature)
                 put("conversationId", conversationId)
+                // Inclure notre mailboxOnion pour que le destinataire puisse nous joindre
+                // même si on est offline, et mettre à jour sa DB si on a changé de mailbox
+                val myMailbox = com.fialkaapp.fialka.tor.MailboxClientManager.getMailboxOnion()
+                if (myMailbox != null) put("senderMailboxOnion", myMailbox)
             }
             val frame = TorTransport.Frame(
                 TorTransport.TYPE_MESSAGE,

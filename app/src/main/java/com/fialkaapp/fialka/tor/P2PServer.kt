@@ -121,7 +121,22 @@ object P2PServer : TorTransport.FrameListener {
             )
 
             val repository = ChatRepository(appContext)
-            repository.receiveMessage(conversationId, wireMessage)
+            val received = repository.receiveMessage(conversationId, wireMessage)
+
+            // Mettre à jour le mailboxOnion de l'expéditeur si fourni
+            // Cela permet de le joindre via mailbox même s'il a rejoint la mailbox après le handshake
+            val senderMailboxOnion = json.optString("senderMailboxOnion", "")
+            if (senderMailboxOnion.isNotEmpty() && received != null) {
+                try {
+                    val conv = repository.getConversation(conversationId)
+                    if (conv != null && conv.participantMailboxOnion != senderMailboxOnion) {
+                        repository.updateContactMailbox(conv.participantPublicKey, senderMailboxOnion)
+                        android.util.Log.i("P2PServer", "mailboxOnion mis à jour pour conv $conversationId → $senderMailboxOnion")
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("P2PServer", "updateContactMailbox failed: ${e.message}")
+                }
+            }
 
             TorTransport.ackOk()
         } catch (_: Exception) {
