@@ -28,21 +28,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import com.google.firebase.messaging.FirebaseMessaging
-import com.fialkaapp.fialka.data.remote.FirebaseRelay
-import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.databinding.FragmentSettingsNotificationsBinding
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 class NotificationsFragment : Fragment() {
 
     private var _binding: FragmentSettingsNotificationsBinding? = null
     private val binding get() = _binding!!
-
-    private val repository by lazy { ChatRepository(requireContext()) }
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -90,24 +81,11 @@ class NotificationsFragment : Fragment() {
     private fun enablePush() {
         savePref(true)
         updateStatusText(true)
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val token = FirebaseMessaging.getInstance().token.await()
-                if (!FirebaseRelay.isAuthenticated()) FirebaseRelay.signInAnonymously()
-                repository.storeFcmToken(token)
-            } catch (_: Exception) { }
-        }
     }
 
     private fun disablePush() {
         savePref(false)
         updateStatusText(false)
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                if (!FirebaseRelay.isAuthenticated()) FirebaseRelay.signInAnonymously()
-                repository.deleteFcmToken()
-            } catch (_: Exception) { }
-        }
     }
 
     private fun savePref(enabled: Boolean) {

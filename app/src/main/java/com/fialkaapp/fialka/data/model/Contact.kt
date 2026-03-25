@@ -38,5 +38,7 @@ data class Contact(
     val addedAt: Long = System.currentTimeMillis(),
     val signingPublicKey: String? = null,  // Base64 Ed25519 public key for signature verification
     val mlkemPublicKey: String? = null,    // Base64 ML-KEM-1024 public key for PQXDH
-    val mldsaPublicKey: String? = null     // Base64 ML-DSA-44 public key for PQ handshake auth
+    val mldsaPublicKey: String? = null,    // Base64 ML-DSA-44 public key for PQ handshake auth
+    val onionAddress: String? = null,      // Tor v3 .onion address derived from Ed25519 signing key
+    val mailboxOnion: String? = null       // .onion of the contact's mailbox (fallback when offline)
 )

@@ -40,7 +40,9 @@ data class OutboxMessage(
     val createdAt: Long,
     val retryCount: Int = 0,
     val nextRetryAt: Long = 0,
-    val status: Int = STATUS_PENDING
+    val status: Int = STATUS_PENDING,
+    val fallbackOnion: String? = null,  // Recipient's mailbox .onion for DEPOSIT fallback
+    val messageLocalId: String? = null  // Links back to MessageLocal for delivery status updates
 ) {
     companion object {
         const val STATUS_PENDING = 0

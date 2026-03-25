@@ -60,6 +60,36 @@
 
     </com.google.android.material.appbar.MaterialToolbar>
 
+    <!-- Mailbox fetch banner -->
+    <LinearLayout
+        android:id="@+id/fetchBanner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="#1A1A2E"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingVertical="10dp"
+        android:paddingHorizontal="16dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
+
+        <ProgressBar
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginEnd="8dp"
+            android:indeterminateTint="#7B68EE"
+            style="?android:attr/progressBarStyleSmall" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Récupération depuis la mailbox…"
+            android:textColor="#9E9BB0"
+            android:textSize="13sp" />
+    </LinearLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvMessages"
         android:layout_width="0dp"
@@ -71,7 +101,7 @@
         app:layout_constraintBottom_toTopOf="@id/inputBar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintTop_toBottomOf="@id/fetchBanner"
         app:stackFromEnd="true" />
 
     <TextView

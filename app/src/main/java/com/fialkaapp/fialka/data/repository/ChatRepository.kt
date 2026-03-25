@@ -23,14 +23,11 @@ import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.DoubleRatchet
 import com.fialkaapp.fialka.data.local.FialkaDatabase
 import com.fialkaapp.fialka.data.model.*
-import com.fialkaapp.fialka.data.remote.FirebaseRelay
 import com.fialkaapp.fialka.tor.OutboxManager
+import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.tor.TorTransport
 import com.fialkaapp.fialka.util.EphemeralManager
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
@@ -40,12 +37,12 @@ import java.util.UUID
  *
  * Coordinates between:
  *  - Room (local storage)
- *  - Firebase (remote relay)
+ *  - Tor P2P transport (.onion direct + mailbox fallback)
  *  - CryptoManager (encryption/decryption)
  *  - DoubleRatchet (X25519 DH ratchet + KDF chains — Perfect Forward Secrecy)
  *
  * Thread safety: ratchet operations are serialized per-conversation via Mutex
- * to prevent race conditions when multiple Firebase messages arrive simultaneously.
+ * to prevent race conditions when multiple P2P messages arrive simultaneously.
  */
 class ChatRepository(private val appContext: Context) {
 
@@ -55,6 +52,7 @@ class ChatRepository(private val appContext: Context) {
     private val conversationDao = db.conversationDao()
     private val messageDao = db.messageLocalDao()
     private val ratchetDao = db.ratchetStateDao()
+    private val outboxDao = db.outboxDao()
 
     companion object {
         // Shared across all ChatRepository instances so that the global listener
@@ -80,15 +78,6 @@ class ChatRepository(private val appContext: Context) {
         internal fun clearMutexes() {
             synchronized(ratchetMutexes) { ratchetMutexes.clear() }
         }
-
-        /**
-         * Tracks Firebase keys already processed by any listener to prevent
-         * double-processing when both ConversationsViewModel (global) and
-         * ChatViewModel (per-chat) listeners receive the same message.
-         */
-        private val processedFirebaseKeys: java.util.concurrent.ConcurrentHashMap<String, Boolean> =
-            java.util.concurrent.ConcurrentHashMap()
-        private const val MAX_PROCESSED_KEYS = 500
 
         /** The conversation currently being viewed. Unread count won't increment for it. */
         @Volatile
@@ -143,7 +132,8 @@ class ChatRepository(private val appContext: Context) {
         displayName: String,
         publicKey: String,
         signingPublicKey: String? = null,
-        mlkemPublicKey: String? = null
+        mlkemPublicKey: String? = null,
+        mldsaPublicKey: String? = null
     ): Contact {
         // Check for duplicate contact by public key
         val existing = contactDao.getContactByPublicKey(publicKey)
@@ -156,9 +146,17 @@ class ChatRepository(private val appContext: Context) {
             if (existing.mlkemPublicKey == null && mlkemPublicKey != null) {
                 updated = updated.copy(mlkemPublicKey = mlkemPublicKey)
             }
-            if (existing.mldsaPublicKey == null) {
-                val mldsaKey = try { FirebaseRelay.fetchMlDsaPublicKeyByIdentity(publicKey) } catch (_: Exception) { null }
-                if (mldsaKey != null) updated = updated.copy(mldsaPublicKey = mldsaKey)
+            if (existing.mldsaPublicKey == null && mldsaPublicKey != null) {
+                updated = updated.copy(mldsaPublicKey = mldsaPublicKey)
+            }
+            // Compute .onion if we now have signing key but didn't have onion
+            if (existing.onionAddress == null && (updated.signingPublicKey ?: signingPublicKey) != null) {
+                val sk = updated.signingPublicKey ?: signingPublicKey
+                val onion = try {
+                    val ed25519Bytes = android.util.Base64.decode(sk, android.util.Base64.NO_WRAP)
+                    CryptoManager.computeOnionFromEd25519(ed25519Bytes)
+                } catch (_: Exception) { null }
+                if (onion != null) updated = updated.copy(onionAddress = onion)
             }
             if (updated !== existing) {
                 contactDao.insertContact(updated)
@@ -167,35 +165,47 @@ class ChatRepository(private val appContext: Context) {
             return existing
         }
 
-        // If no signing key provided, try to fetch from Firebase
-        val finalSigningKey = signingPublicKey ?: try {
-            FirebaseRelay.fetchSigningPublicKeyByIdentity(publicKey)
-        } catch (_: Exception) { null }
-
-        // If no ML-KEM key provided, try to fetch from Firebase
-        val finalMlkemKey = mlkemPublicKey ?: try {
-            FirebaseRelay.fetchMLKEMPublicKeyByIdentity(publicKey)
-        } catch (_: Exception) { null }
-
-        // Fetch ML-DSA-44 public key for PQ handshake authentication
-        val finalMldsaKey = try {
-            FirebaseRelay.fetchMlDsaPublicKeyByIdentity(publicKey)
-        } catch (_: Exception) { null }
+        // Keys (ML-KEM, ML-DSA, signing) arrive via TYPE_KEY_BUNDLE in-band
+        val onionAddress = if (signingPublicKey != null) {
+            try {
+                val ed25519Bytes = android.util.Base64.decode(signingPublicKey, android.util.Base64.NO_WRAP)
+                CryptoManager.computeOnionFromEd25519(ed25519Bytes)
+            } catch (_: Exception) { null }
+        } else null
 
         val contact = Contact(
             contactId = UUID.randomUUID().toString(),
             displayName = displayName,
             publicKey = publicKey,
-            signingPublicKey = finalSigningKey,
-            mlkemPublicKey = finalMlkemKey,
-            mldsaPublicKey = finalMldsaKey
+            signingPublicKey = signingPublicKey,
+            mlkemPublicKey = mlkemPublicKey,
+            mldsaPublicKey = mldsaPublicKey,
+            onionAddress = onionAddress
         )
         contactDao.insertContact(contact)
         return contact
     }
 
+    /** Update an existing contact (used by P2PServer when KEY_BUNDLE arrives). */
+    suspend fun updateContact(contact: Contact) {
+        contactDao.insertContact(contact)  // REPLACE strategy
+    }
+
     suspend fun getContactByPublicKey(publicKey: String): Contact? =
         contactDao.getContactByPublicKey(publicKey)
+
+    /** Update a contact's mailbox onion address (called when received via handshake). */
+    suspend fun updateContactMailbox(publicKey: String, mailboxOnion: String) {
+        val contact = contactDao.getContactByPublicKey(publicKey) ?: return
+        if (contact.mailboxOnion != mailboxOnion) {
+            contactDao.insertContact(contact.copy(mailboxOnion = mailboxOnion))
+            // Also update any existing conversations with this contact
+            val conv = conversationDao.getConversationByParticipantPublicKey(publicKey)
+            if (conv != null && conv.participantMailboxOnion != mailboxOnion) {
+                conversationDao.updateConversation(conv.copy(participantMailboxOnion = mailboxOnion))
+            }
+        }
+    }
 
     // ========================================================================
     // CONVERSATIONS
@@ -230,22 +240,21 @@ class ChatRepository(private val appContext: Context) {
         // Compute shared emoji fingerprint (96-bit, same on both sides)
         val sharedFingerprint = CryptoManager.getSharedFingerprint(myPublicKey, contactPublicKey)
 
+        // Resolve contact's .onion address for P2P delivery
+        val contact = contactDao.getContactByPublicKey(contactPublicKey)
+        val onionAddress = contact?.onionAddress ?: ""
+        val mailboxOnion = contact?.mailboxOnion ?: ""
+
         val conversation = Conversation(
             conversationId = finalConversationId,
             participantPublicKey = contactPublicKey,
             contactDisplayName = contactName,
             accepted = accepted,
-            sharedFingerprint = sharedFingerprint
+            sharedFingerprint = sharedFingerprint,
+            participantOnionAddress = onionAddress,
+            participantMailboxOnion = mailboxOnion
         )
         conversationDao.insertConversation(conversation)
-
-        // Register as participant on Firebase (required for security rules)
-        try {
-            if (!FirebaseRelay.isAuthenticated()) {
-                FirebaseRelay.signInAnonymously()
-            }
-            FirebaseRelay.registerParticipant(finalConversationId)
-        } catch (_: Exception) { }
 
         // Initialize ratchet state for this conversation
         initializeRatchet(finalConversationId, myPublicKey, contactPublicKey)
@@ -379,7 +388,7 @@ class ChatRepository(private val appContext: Context) {
      * Order of operations (atomic w.r.t. ratchet state):
      * 1. Advance send chain → get unique message key
      * 2. Encrypt with AES-256-GCM
-     * 3. Send via Tor P2P (.onion) or Firebase fallback
+     * 3. Send via Tor P2P (.onion direct or mailbox store-and-forward)
      * 4. ONLY on success: persist new ratchet state + save message locally
      */
     suspend fun sendMessage(conversationId: String, plaintext: String): MessageLocal {
@@ -441,7 +450,7 @@ class ChatRepository(private val appContext: Context) {
                 CryptoManager.signMessage(encryptedData.ciphertext, conversationId, createdAt)
             } catch (_: Exception) { "" }
 
-            // 6. Send to Firebase — include ephemeral DH public key for Double Ratchet
+            // 6. Build wire message — include ephemeral DH public key for Double Ratchet
             //    and KEM ciphertext on first message (PQXDH initiator) or SPQR re-key
             //    ML-DSA-44 signature on handshake message for PQ authentication
             val kemToSend = ratchetState.pendingKemCiphertext.ifEmpty { spqrKemCiphertext }
@@ -453,44 +462,50 @@ class ChatRepository(private val appContext: Context) {
                 } catch (_: Exception) { "" }
             } else ""
 
-            val firebaseMessage = FirebaseMessage(
-                ciphertext = encryptedData.ciphertext,
-                iv = encryptedData.iv,
-                createdAt = createdAt,
-                senderUid = CryptoManager.hashSenderUid(conversationId, FirebaseRelay.getCurrentUid() ?: ""),
-                ephemeralKey = ratchetState.localDhPublic,
-                signature = signature,
-                kemCiphertext = kemToSend,
-                mldsaSignature = mldsaSignature
+            // ── Send via Tor P2P (.onion direct or mailbox fallback) ──
+            var recipientOnion = conversation.participantOnionAddress
+            if (recipientOnion.isEmpty()) {
+                // Conversation was created before we had the .onion — look it up now
+                val contact = contactDao.getContactByPublicKey(conversation.participantPublicKey)
+                recipientOnion = contact?.onionAddress ?: ""
+                if (recipientOnion.isNotEmpty()) {
+                    conversationDao.updateConversation(conversation.copy(participantOnionAddress = recipientOnion))
+                }
+            }
+            val messageJson = org.json.JSONObject().apply {
+                put("ciphertext", encryptedData.ciphertext)
+                put("iv", encryptedData.iv)
+                put("createdAt", createdAt)
+                put("ephemeralKey", ratchetState.localDhPublic)
+                put("signature", signature)
+                put("kemCiphertext", kemToSend)
+                put("mldsaSignature", mldsaSignature)
+                put("conversationId", conversationId)
+                // Inclure notre mailboxOnion pour que le destinataire puisse nous joindre
+                // même si on est offline, et mettre à jour sa DB si on a changé de mailbox
+                val myMailbox = com.fialkaapp.fialka.tor.MailboxClientManager.getMailboxOnion()
+                if (myMailbox != null) put("senderMailboxOnion", myMailbox)
+            }
+            val frame = TorTransport.Frame(
+                TorTransport.TYPE_MESSAGE,
+                messageJson.toString().toByteArray(Charsets.UTF_8)
             )
 
-            // ── Send via Tor P2P if recipient has .onion, else Firebase fallback ──
-            val recipientOnion = conversation.participantOnionAddress
-            if (recipientOnion.isNotEmpty()) {
-                val messageJson = org.json.JSONObject().apply {
-                    put("ciphertext", encryptedData.ciphertext)
-                    put("iv", encryptedData.iv)
-                    put("createdAt", createdAt)
-                    put("ephemeralKey", ratchetState.localDhPublic)
-                    put("signature", signature)
-                    put("kemCiphertext", kemToSend)
-                    put("mldsaSignature", mldsaSignature)
-                    put("conversationId", conversationId)
-                }
-                val frame = TorTransport.Frame(
-                    TorTransport.TYPE_MESSAGE,
-                    messageJson.toString().toByteArray(Charsets.UTF_8)
-                )
-                OutboxManager.sendOrQueue(recipientOnion, frame)
-            } else {
-                // Firebase fallback for contacts without .onion
-                if (!FirebaseRelay.isAuthenticated()) {
-                    FirebaseRelay.signInAnonymously()
-                }
-                FirebaseRelay.sendMessage(conversationId, firebaseMessage)
+            // Generate localId now so OutboxManager can link back to it
+            val localId = UUID.randomUUID().toString()
+            val mailboxOnion = conversation.participantMailboxOnion.ifEmpty { null }
+            val deliveryResult = OutboxManager.sendOrQueue(
+                recipientOnion, frame, mailboxOnion, localId
+            )
+
+            // Map delivery result to MessageLocal status
+            val deliveryStatus = when (deliveryResult) {
+                OutboxManager.DeliveryResult.DIRECT -> MessageLocal.DELIVERY_SENT
+                OutboxManager.DeliveryResult.MAILBOX -> MessageLocal.DELIVERY_MAILBOX
+                OutboxManager.DeliveryResult.QUEUED -> MessageLocal.DELIVERY_PENDING
             }
 
-            // 7. Firebase succeeded → persist ratchet state; clear pendingKemCiphertext
+            // 7. Send succeeded → persist ratchet state; clear pendingKemCiphertext
             //    If this was the first message carrying kemCiphertext (PQXDH initiator),
             //    also upgrade the rootKey to the combined (classic+PQ) secret. Only the
             //    rootKey changes — current send/recv chains stay intact so in-flight
@@ -537,14 +552,15 @@ class ChatRepository(private val appContext: Context) {
             val ephDuration = conversation.ephemeralDuration
             val expiresAt = if (ephDuration > 0) System.currentTimeMillis() + ephDuration else 0L
             val localMessage = MessageLocal(
-                localId = UUID.randomUUID().toString(),
+                localId = localId,
                 conversationId = conversationId,
                 senderPublicKey = user.publicKey,
                 plaintext = plaintext,
                 isMine = true,
                 ephemeralDuration = ephDuration,
                 expiresAt = expiresAt,
-                signatureValid = true  // Own messages are implicitly valid
+                signatureValid = true,  // Own messages are implicitly valid
+                deliveryStatus = deliveryStatus
             )
             messageDao.insertMessage(localMessage)
             updateConversationLastMessage(conversationId, plaintext)
@@ -581,12 +597,12 @@ class ChatRepository(private val appContext: Context) {
     }
 
     /**
-     * Send a file with E2E encryption.
+     * Send a file with E2E encryption via Tor P2P.
      * 1. Encrypt file locally with a random AES-256-GCM key
-     * 2. Upload ciphertext to Firebase Storage
-     * 3. Send metadata (URL + key + IV + filename + size) as a ratcheted message
+     * 2. Send metadata (key + IV + filename + size) as a ratcheted message
+     * 3. Send encrypted file bytes via TYPE_FILE_CHUNK frames
      *
-     * The receiver downloads, decrypts locally, and stores the plaintext file.
+     * The receiver decrypts locally and stores the plaintext file.
      */
     suspend fun sendFile(
         conversationId: String,
@@ -597,16 +613,28 @@ class ChatRepository(private val appContext: Context) {
         // 1. Encrypt file client-side
         val encResult = CryptoManager.encryptFile(fileBytes)
 
-        // 2. Upload encrypted bytes to Firebase Storage
-        val ext = fileName.substringAfterLast('.', "bin")
-        val downloadUrl = FirebaseRelay.uploadEncryptedFile(conversationId, encResult.encryptedBytes, ext)
-
-        // 3. Build metadata plaintext: FILE|url|key|iv|filename|size|oneshot
+        // 2. Build metadata plaintext: FILE|inline|key|iv|filename|size|oneshot
         val oneShotFlag = if (isOneShot) "1" else "0"
-        val metadata = "${FILE_PREFIX}${downloadUrl}|${encResult.keyBase64}|${encResult.ivBase64}|${fileName}|${fileBytes.size}|${oneShotFlag}"
+        val metadata = "${FILE_PREFIX}inline|${encResult.keyBase64}|${encResult.ivBase64}|${fileName}|${fileBytes.size}|${oneShotFlag}"
 
-        // 4. Send via the normal ratchet pipeline (E2E encrypted metadata)
+        // 3. Send metadata via the normal ratchet pipeline (E2E encrypted)
         val sentMessage = sendMessage(conversationId, metadata)
+
+        // 4. Send encrypted file bytes via Tor P2P
+        val conversation = conversationDao.getConversationById(conversationId)
+        if (conversation != null) {
+            val recipientOnion = conversation.participantOnionAddress
+            val fileJson = org.json.JSONObject().apply {
+                put("conversationId", conversationId)
+                put("fileName", fileName)
+                put("data", android.util.Base64.encodeToString(encResult.encryptedBytes, android.util.Base64.NO_WRAP))
+            }
+            val frame = TorTransport.Frame(
+                TorTransport.TYPE_FILE_CHUNK,
+                fileJson.toString().toByteArray(Charsets.UTF_8)
+            )
+            OutboxManager.sendOrQueue(recipientOnion, frame, conversation.participantMailboxOnion.ifEmpty { null })
+        }
 
         // 5. Save the decrypted file locally
         val localFile = saveFileLocally(conversationId, fileName, fileBytes)
@@ -646,8 +674,8 @@ class ChatRepository(private val appContext: Context) {
 
     /**
      * Parse and process a received file attachment message.
-     * Downloads encrypted file from Firebase Storage, decrypts locally, saves to disk.
-     * Format: FILE|downloadUrl|keyBase64|ivBase64|fileName|fileSize
+     * File data arrives via TYPE_FILE_CHUNK (stored in pendingFileChunks by P2PServer).
+     * Format: FILE|inline|keyBase64|ivBase64|fileName|fileSize
      *
      * Two-phase insert:
      * 1. Insert a placeholder immediately (shows download progress in UI).
@@ -665,7 +693,7 @@ class ChatRepository(private val appContext: Context) {
         val parts = payload.split("|", limit = 6)
         if (parts.size < 5) return null
 
-        val downloadUrl = parts[0]
+        val source = parts[0]      // "inline" for P2P
         val keyBase64 = parts[1]
         val ivBase64 = parts[2]
         val fileName = parts[3]
@@ -700,25 +728,38 @@ class ChatRepository(private val appContext: Context) {
             conversationDao.incrementUnreadCount(conversationId)
         }
 
-        // Phase 2: Download, decrypt, save
+        // Phase 2: Decrypt file data from P2PServer pending chunks
         return try {
-            val encryptedBytes = FirebaseRelay.downloadEncryptedFile(downloadUrl)
-            val decryptedBytes = CryptoManager.decryptFile(encryptedBytes, keyBase64, ivBase64)
-            val localFile = saveFileLocally(conversationId, fileName, decryptedBytes)
-            FirebaseRelay.deleteEncryptedFile(downloadUrl)
+            val encryptedBytes = P2PServer.consumePendingFileChunk(conversationId, fileName)
+            if (encryptedBytes != null) {
+                val decryptedBytes = CryptoManager.decryptFile(encryptedBytes, keyBase64, ivBase64)
+                val localFile = saveFileLocally(conversationId, fileName, decryptedBytes)
 
-            val displayPrefix = if (isOneShot) "\uD83D\uDD25" else "\uD83D\uDCCE"
-            val finalMessage = placeholder.copy(
-                plaintext = "$displayPrefix $fileName",
-                localFilePath = localFile.absolutePath
-            )
-            messageDao.insertMessage(finalMessage)  // REPLACE by same localId
-            updateConversationLastMessage(conversationId, finalMessage.plaintext)
-            finalMessage
+                val displayPrefix = if (isOneShot) "\uD83D\uDD25" else "\uD83D\uDCCE"
+                val finalMessage = placeholder.copy(
+                    plaintext = "$displayPrefix $fileName",
+                    localFilePath = localFile.absolutePath
+                )
+                messageDao.insertMessage(finalMessage)  // REPLACE by same localId
+                updateConversationLastMessage(conversationId, finalMessage.plaintext)
+                finalMessage
+            } else {
+                // File chunk not arrived yet — register metadata so P2PServer auto-finalizes when chunk arrives
+                P2PServer.registerPendingFileMetadata(
+                    P2PServer.PendingFileMeta(
+                        messageLocalId = localId,
+                        conversationId = conversationId,
+                        fileName = fileName,
+                        keyBase64 = keyBase64,
+                        ivBase64 = ivBase64,
+                        isOneShot = isOneShot
+                    )
+                )
+                placeholder
+            }
         } catch (e: Exception) {
-            // Store retry metadata in plaintext: ⚠️|url|key|iv|fileName|fileSize
             val errorMessage = placeholder.copy(
-                plaintext = "⚠️|$downloadUrl|$keyBase64|$ivBase64|$fileName|$fileSize"
+                plaintext = "⚠️ Échec : $fileName"
             )
             messageDao.insertMessage(errorMessage)  // REPLACE by same localId
             updateConversationLastMessage(conversationId, "⚠️ Échec : $fileName")
@@ -728,44 +769,68 @@ class ChatRepository(private val appContext: Context) {
 
     /**
      * Retry a failed file download.
-     * Reads the retry metadata from the message's plaintext, re-downloads and decrypts.
+     * In P2P mode, files are received inline — retry asks P2PServer for pending chunk.
      */
     suspend fun retryFileDownload(messageId: String) {
         val message = messageDao.getMessageById(messageId) ?: return
-        if (!message.plaintext.startsWith("⚠️|")) return
-
-        val parts = message.plaintext.removePrefix("⚠️|").split("|", limit = 5)
-        if (parts.size < 5) return
-
-        val downloadUrl = parts[0]
-        val keyBase64 = parts[1]
-        val ivBase64 = parts[2]
-        val fileName = parts[3]
-        val fileSize = parts[4].toLongOrNull() ?: 0L
+        val fileName = message.fileName ?: return
+        if (!message.plaintext.startsWith("⚠️")) return
 
         // Update to downloading state
-        val downloading = message.copy(plaintext = "⏳ $fileName", fileName = fileName, fileSize = fileSize)
+        val downloading = message.copy(plaintext = "⏳ $fileName")
         messageDao.insertMessage(downloading)
 
         try {
-            val encryptedBytes = FirebaseRelay.downloadEncryptedFile(downloadUrl)
-            val decryptedBytes = CryptoManager.decryptFile(encryptedBytes, keyBase64, ivBase64)
-            val localFile = saveFileLocally(message.conversationId, fileName, decryptedBytes)
-            FirebaseRelay.deleteEncryptedFile(downloadUrl)
+            val encryptedBytes = P2PServer.consumePendingFileChunk(message.conversationId, fileName)
+            if (encryptedBytes != null) {
+                // For retry, the file chunk is already available — save directly
+                val localFile = saveFileLocally(message.conversationId, fileName, encryptedBytes)
 
+                val finalMessage = message.copy(
+                    plaintext = "\uD83D\uDCCE $fileName",
+                    localFilePath = localFile.absolutePath
+                )
+                messageDao.insertMessage(finalMessage)
+                updateConversationLastMessage(message.conversationId, finalMessage.plaintext)
+            } else {
+                // No pending chunk — leave as error
+                val errorMessage = message.copy(plaintext = "⚠️ Échec : $fileName")
+                messageDao.insertMessage(errorMessage)
+            }
+        } catch (e: Exception) {
+            val errorMessage = message.copy(plaintext = "⚠️ Échec : $fileName")
+            messageDao.insertMessage(errorMessage)
+        }
+    }
+
+    /**
+     * Called by P2PServer when a file chunk arrives AFTER the metadata placeholder was already created.
+     * Decrypts the file, saves it locally, and updates the placeholder message.
+     */
+    suspend fun finalizeFileMessage(
+        messageLocalId: String,
+        conversationId: String,
+        fileName: String,
+        encryptedBytes: ByteArray,
+        keyBase64: String,
+        ivBase64: String,
+        isOneShot: Boolean
+    ) {
+        val message = messageDao.getMessageById(messageLocalId) ?: return
+        try {
+            val decryptedBytes = CryptoManager.decryptFile(encryptedBytes, keyBase64, ivBase64)
+            val localFile = saveFileLocally(conversationId, fileName, decryptedBytes)
+            val displayPrefix = if (isOneShot) "\uD83D\uDD25" else "\uD83D\uDCCE"
             val finalMessage = message.copy(
-                plaintext = "\uD83D\uDCCE $fileName",
-                fileName = fileName,
-                fileSize = fileSize,
+                plaintext = "$displayPrefix $fileName",
                 localFilePath = localFile.absolutePath
             )
             messageDao.insertMessage(finalMessage)
-            updateConversationLastMessage(message.conversationId, finalMessage.plaintext)
-        } catch (e: Exception) {
-            val errorMessage = message.copy(
-                plaintext = "⚠️|$downloadUrl|$keyBase64|$ivBase64|$fileName|$fileSize"
-            )
+            updateConversationLastMessage(conversationId, finalMessage.plaintext)
+        } catch (_: Exception) {
+            val errorMessage = message.copy(plaintext = "⚠️ Échec : $fileName")
             messageDao.insertMessage(errorMessage)
+            updateConversationLastMessage(conversationId, "⚠️ Échec : $fileName")
         }
     }
 
@@ -788,37 +853,27 @@ class ChatRepository(private val appContext: Context) {
     }
 
     /**
+     * Resend a failed message — reset outbox retry and mark as pending.
+     */
+    suspend fun resendMessage(messageId: String) {
+        messageDao.updateDeliveryStatus(messageId, MessageLocal.DELIVERY_PENDING)
+        outboxDao.resetRetryForMessage(messageId)
+    }
+
+    /**
      * Decrypt a received message with Perfect Forward Secrecy.
      * Uses trial decryption since messageIndex is embedded in the ciphertext
-     * (metadata hardening — Firebase cannot see ratchet position).
+     * (metadata hardening — observer cannot see ratchet position).
      *
      * Protected by a per-conversation Mutex to prevent ratchet desynchronization
-     * when multiple Firebase messages arrive simultaneously.
+     * when multiple P2P messages arrive simultaneously.
      */
     suspend fun receiveMessage(
         conversationId: String,
         firebaseMessage: FirebaseMessage
     ): MessageLocal? {
-        val myUid = FirebaseRelay.getCurrentUid() ?: ""
-
-        // Skip own messages — compare hashed UID (matches what we send)
-        val myHashedUid = CryptoManager.hashSenderUid(conversationId, myUid)
-        if (myUid.isNotEmpty() && firebaseMessage.senderUid == myHashedUid) return null
 
         return getMutex(conversationId).withLock {
-            // Guard against double-processing by parallel listeners (global + per-chat)
-            // putIfAbsent is atomic on ConcurrentHashMap — no race window
-            if (firebaseMessage.firebaseKey.isNotEmpty() &&
-                processedFirebaseKeys.putIfAbsent(firebaseMessage.firebaseKey, true) != null
-            ) {
-                return@withLock null
-            }
-            // LRU-style eviction: keep only the most recent keys (never mid-processing)
-            if (processedFirebaseKeys.size > MAX_PROCESSED_KEYS) {
-                val keysToRemove = processedFirebaseKeys.keys().toList()
-                    .take(processedFirebaseKeys.size - MAX_PROCESSED_KEYS / 2)
-                keysToRemove.forEach { processedFirebaseKeys.remove(it) }
-            }
 
             // Skip duplicates — check by conversationId + timestamp (received only)
             val exists = messageDao.receivedMessageExists(
@@ -947,28 +1002,13 @@ class ChatRepository(private val appContext: Context) {
                     }
                 }
 
-                // Delete-after-delivery: remove ciphertext from Firebase
-                FirebaseRelay.deleteMessage(conversationId, firebaseMessage.firebaseKey)
-                // Track the latest successfully delivered timestamp so the listener
-                // lower-bound stays fresh across app restarts (prevents re-processing
-                // undecryptable stale messages that were never deleted from Firebase).
-                conversationDao.updateLastDeliveredAt(conversationId, firebaseMessage.createdAt)
-            } else if (firebaseMessage.firebaseKey.isNotEmpty()) {
-                // Decryption failed — delete from Firebase anyway so the ciphertext
-                // doesn't block the ratchet indefinitely on every restart.
-                FirebaseRelay.deleteMessage(conversationId, firebaseMessage.firebaseKey)
+                // Delete-after-delivery not needed — P2P messages are ephemeral on the wire
             }
 
             // Verify ML-DSA-44 handshake signature (PQ authentication on first PQXDH message)
             if (firebaseMessage.mldsaSignature.isNotEmpty() && firebaseMessage.kemCiphertext.isNotEmpty()) {
                 val contact0 = contactDao.getContactByPublicKey(conversation.participantPublicKey)
-                var mldsaKey = contact0?.mldsaPublicKey
-                if (mldsaKey == null) {
-                    mldsaKey = try { FirebaseRelay.fetchMlDsaPublicKeyByIdentity(conversation.participantPublicKey) } catch (_: Exception) { null }
-                    if (mldsaKey != null && contact0 != null) {
-                        contactDao.insertContact(contact0.copy(mldsaPublicKey = mldsaKey))
-                    }
-                }
+                val mldsaKey = contact0?.mldsaPublicKey
                 if (mldsaKey != null) {
                     val handshakeData = (firebaseMessage.kemCiphertext + firebaseMessage.ephemeralKey)
                         .toByteArray(Charsets.UTF_8)
@@ -981,16 +1021,8 @@ class ChatRepository(private val appContext: Context) {
             // Verify Ed25519 signature (after ratchet advance — ratchet must ALWAYS progress)
             val contact = contactDao.getContactByPublicKey(conversation.participantPublicKey)
 
-            // Lazy-fetch signing key if we don't have it yet
-            var signingKey = contact?.signingPublicKey
-            if (signingKey == null && firebaseMessage.signature.isNotEmpty() && contact != null) {
-                signingKey = try {
-                    FirebaseRelay.fetchSigningPublicKeyByIdentity(conversation.participantPublicKey)
-                } catch (_: Exception) { null }
-                if (signingKey != null) {
-                    contactDao.insertContact(contact.copy(signingPublicKey = signingKey))
-                }
-            }
+            // Keys arrive via TYPE_KEY_BUNDLE in-band — no remote fetch
+            val signingKey = contact?.signingPublicKey
             val signatureValid: Boolean? = if (firebaseMessage.signature.isNotEmpty() && signingKey != null) {
                 CryptoManager.verifySignature(
                     signingKey,
@@ -1050,11 +1082,8 @@ class ChatRepository(private val appContext: Context) {
     }
 
     // ========================================================================
-    // FIREBASE LISTENERS
+    // MESSAGE LISTENING (Tor P2P — handled by P2PServer)
     // ========================================================================
-
-    fun listenForMessages(conversationId: String, sinceTimestamp: Long = 0): Flow<FirebaseMessage> =
-        FirebaseRelay.listenForMessages(conversationId, sinceTimestamp)
 
     /**
      * Mark a conversation as read (reset unread count to 0).
@@ -1064,161 +1093,76 @@ class ChatRepository(private val appContext: Context) {
         conversationDao.resetUnreadCount(conversationId)
     }
 
-    /**
-     * Start listening for new messages on ALL accepted conversations.
-     * Used by the conversation list screen to update lastMessage in real-time
-     * even when no individual chat is open.
-     *
-     * @param scope The CoroutineScope to launch listeners in (typically viewModelScope).
-     * @param activeListeners A mutable set tracking which conversations already have listeners,
-     *                        to avoid launching duplicate listeners.
-     */
-    suspend fun startListeningAllConversations(
-        scope: kotlinx.coroutines.CoroutineScope,
-        activeListeners: MutableSet<String>
-    ) {
-        val conversations = conversationDao.getAcceptedConversations()
-        for (conv in conversations) {
-            if (conv.conversationId in activeListeners) continue
-            activeListeners.add(conv.conversationId)
-
-            // Use lastDeliveredAt as lower-bound (same as ChatViewModel) so the
-            // global listener doesn't re-fetch messages that were already decrypted.
-            // Falls back to createdAt only for brand-new conversations with no deliveries yet.
-            val since = if (conv.lastDeliveredAt > 0L) conv.lastDeliveredAt else conv.createdAt
-            listenForMessages(conv.conversationId, since)
-                .onEach { firebaseMessage ->
-                    receiveMessage(conv.conversationId, firebaseMessage)
-                }
-                .catch { /* Silently handle Firebase errors */ }
-                .launchIn(scope)
-        }
-    }
-
     // ========================================================================
-    // CONTACT REQUESTS (INBOX)
+    // CONTACT REQUESTS (via Tor P2P)
     // ========================================================================
 
     /**
-     * Store the user's display name on Firebase (used by Cloud Function for push).
+     * Send a contact request to the recipient via Tor P2P.
      */
-    suspend fun storeDisplayNameOnFirebase(displayName: String) {
-        FirebaseRelay.storeDisplayName(displayName)
-    }
-
     /**
-     * Publish the ML-KEM-1024 public key on Firebase.
-     * Should be called once after account creation or BIP-39 restore.
+     * Envoie une demande de contact vers le pair distant via Tor P2P.
+     * @return true si la demande a été envoyée, false si les prérequis manquent.
+     * @throws IllegalStateException si l'utilisateur local n'est pas initialisé.
      */
-    suspend fun publishMLKEMPublicKey() {
-        val publicKey = CryptoManager.getPublicKey()
-        if (publicKey == null) {
-            return
-        }
-        val mlkemPubKey = CryptoManager.getMLKEMPublicKey()
-        if (mlkemPubKey == null) {
-            return
-        }
-        FirebaseRelay.registerMLKEMPublicKey(mlkemPubKey)
-        FirebaseRelay.storeMLKEMPublicKeyByIdentity(publicKey, mlkemPubKey)
-    }
+    suspend fun sendContactRequest(contactPublicKey: String): Boolean {
+        val user = userDao.getUser()
+            ?: throw IllegalStateException("Utilisateur non initialisé — impossible d'envoyer la demande de contact")
 
-    /**
-     * Publish the ML-DSA-44 public key on Firebase (by identity public key hash).
-     * Should be called once after account creation or BIP-39 restore.
-     */
-    suspend fun publishMlDsaPublicKey() {
-        val publicKey = CryptoManager.getPublicKey()
-        if (publicKey == null) {
-            return
-        }
-        val mldsaPubKey = CryptoManager.getMlDsaPublicKey()
-        if (mldsaPubKey == null) {
-            return
-        }
-        FirebaseRelay.storeMlDsaPublicKeyByIdentity(publicKey, mldsaPubKey)
-    }
+        val conversationId = conversationDao.getConversationByParticipantPublicKey(contactPublicKey)?.conversationId
+            ?: run {
+                android.util.Log.w("ChatRepository", "sendContactRequest: conversation introuvable pour $contactPublicKey")
+                return false
+            }
 
-    /**
-     * Publish the Ed25519 signing public key on Firebase (by identity public key hash).
-     * Should be called once after account creation or BIP-39 restore.
-     */
-    suspend fun publishSigningPublicKey() {
-        val publicKey = CryptoManager.getPublicKey()
-        if (publicKey == null) {
-            return
-        }
-        val signingPubKey = try {
+        val signingPublicKey = try {
             CryptoManager.getSigningPublicKeyBase64()
         } catch (e: Exception) {
-            return
+            android.util.Log.w("ChatRepository", "sendContactRequest: clé de signature indisponible: ${e.message}")
+            null
         }
-        FirebaseRelay.storeSigningPublicKey(signingPubKey)
-        FirebaseRelay.storeSigningPublicKeyByIdentity(publicKey, signingPubKey)
-    }
 
-    /**
-     * Store FCM token on Firebase (opt-in push notifications).
-     */
-    suspend fun storeFcmToken(token: String) {
-        FirebaseRelay.storeFcmToken(token)
-    }
+        val contact = contactDao.getContactByPublicKey(contactPublicKey)
+        val recipientOnion = contact?.onionAddress
 
-    /**
-     * Delete FCM token from Firebase (opt-out push notifications).
-     */
-    suspend fun deleteFcmToken() {
-        FirebaseRelay.deleteFcmToken()
-    }
-
-    /**
-     * Send a contact request to the recipient's inbox on Firebase.
-     * Called automatically when sending the first message to a new contact.
-     */
-    suspend fun sendContactRequest(contactPublicKey: String) {
-        val user = userDao.getUser() ?: return
-        // Use stored conversationId — never re-derive from public keys
-        val conversationId = conversationDao.getConversationByParticipantPublicKey(contactPublicKey)?.conversationId
-            ?: return  // No conversation found for this contact
-        val signingPublicKey = try { CryptoManager.getSigningPublicKeyBase64() } catch (_: Exception) { null }
-
-        try {
-            FirebaseRelay.sendContactRequest(
-                recipientPublicKey = contactPublicKey,
-                senderPublicKey = user.publicKey,
-                senderDisplayName = user.displayName,
-                conversationId = conversationId,
-                senderSigningPublicKey = signingPublicKey
-            )
-        } catch (_: Exception) {
-            // Best effort — message will still be on Firebase
+        if (recipientOnion.isNullOrEmpty()) {
+            android.util.Log.e("ChatRepository",
+                "sendContactRequest: onionAddress manquant pour $contactPublicKey — " +
+                "contact trouvé: ${contact != null}, signingKey présente: ${contact?.signingPublicKey != null}")
+            return false
         }
+
+        P2PServer.sendContactRequest(
+            recipientOnion = recipientOnion,
+            senderPublicKey = user.publicKey,
+            senderDisplayName = user.displayName,
+            conversationId = conversationId,
+            senderSigningPublicKey = signingPublicKey
+        )
+        return true
     }
 
     /**
-     * Listen for incoming contact requests in the user's inbox.
+     * Incoming contact requests arrive via P2PServer.incomingRequests SharedFlow.
+     * ViewModel collects that flow directly — no repository wrapper needed.
      */
-    fun listenForContactRequests(): Flow<FirebaseRelay.ContactRequest> {
-        val publicKey = CryptoManager.getPublicKey() ?: return kotlinx.coroutines.flow.emptyFlow()
-        return FirebaseRelay.listenForContactRequests(publicKey)
-    }
 
     /**
      * Accept an incoming contact request:
      * 1. Add the sender as a contact
      * 2. Create the conversation + initialize ratchet (accepted = true)
-     * 3. Notify the sender via Firebase that the request was accepted
-     * 4. Remove the request from Firebase inbox
+     * 3. Notify the sender via Tor P2P that the request was accepted
+     * 4. Send our key bundle so they get our ML-KEM / ML-DSA / signing keys
      * Returns the created Conversation.
      */
-    suspend fun acceptContactRequest(request: FirebaseRelay.ContactRequest): Conversation {
-        // Ensure Firebase auth before any write operations
-        if (!FirebaseRelay.isAuthenticated()) {
-            FirebaseRelay.signInAnonymously()
-        }
-
+    suspend fun acceptContactRequest(request: ContactRequest): Conversation {
         // Add contact (with signing key from the request if available)
         addContact(request.senderDisplayName, request.senderPublicKey, request.senderSigningPublicKey)
+
+        // Save sender's mailbox onion if provided
+        if (request.senderMailboxOnion != null) {
+            updateContactMailbox(request.senderPublicKey, request.senderMailboxOnion)
+        }
 
         // Create conversation using the ID sent by the initiator
         val conversation = createConversation(
@@ -1228,42 +1172,27 @@ class ChatRepository(private val appContext: Context) {
             conversationId = request.conversationId
         )
 
-        // Sync any messages Bob sent before we accepted — critically, this picks up
-        // his first message which carries the PQXDH kemCiphertext. Without this step,
-        // the real-time listener (started later with sinceTimestamp = now) would miss
-        // that message and Alice's PQXDH upgrade would never run, causing all of Bob's
-        // messages to show [Échec du déchiffrement].
-        syncExistingMessages(conversation.conversationId)
+        // Notify sender that we accepted (via Tor P2P)
+        val contact = contactDao.getContactByPublicKey(request.senderPublicKey)
+        val recipientOnion = contact?.onionAddress
+        val myPublicKey = getUser()?.publicKey ?: ""
+        if (recipientOnion != null) {
+            P2PServer.sendAcceptance(recipientOnion, conversation.conversationId, myPublicKey)
 
-        // Notify sender that we accepted
-        val myPublicKey = userDao.getUser()?.publicKey
-        if (myPublicKey != null) {
-            try {
-                FirebaseRelay.notifyRequestAccepted(request.conversationId, myPublicKey)
-            } catch (_: Exception) { }
-
-            // Remove from inbox
-            try {
-                FirebaseRelay.removeContactRequest(myPublicKey, request.conversationId)
-            } catch (_: Exception) { }
+            // Send our key bundle so the initiator gets ML-KEM + ML-DSA + signing keys
+            val mySigningKey = CryptoManager.getSigningPublicKeyBase64()
+            val myMlkemKey = CryptoManager.getMLKEMPublicKey()
+            val myMldsaKey = CryptoManager.getMlDsaPublicKey()
+            P2PServer.sendKeyBundle(
+                recipientOnion,
+                senderPublicKey = myPublicKey,
+                mlkemPublicKey = myMlkemKey,
+                mldsaPublicKey = myMldsaKey,
+                signingPublicKey = mySigningKey
+            )
         }
 
         return conversation
-    }
-
-    /**
-     * Fetch and decrypt all existing messages from Firebase for a conversation.
-     * Used after accepting a contact request to retrieve messages sent before acceptance.
-     */
-    private suspend fun syncExistingMessages(conversationId: String) {
-        try {
-            val firebaseMessages = FirebaseRelay.fetchExistingMessages(conversationId)
-            for (message in firebaseMessages) {
-                receiveMessage(conversationId, message)
-            }
-        } catch (_: Exception) {
-            // Best effort — messages will be picked up by the real-time listener later
-        }
     }
 
     /**
@@ -1274,37 +1203,19 @@ class ChatRepository(private val appContext: Context) {
     }
 
     /**
-     * Listen for an acceptance notification for ONE specific pending conversation.
-     * This targets /accepted/{conversationId} directly so Firebase rules (per-participant
-     * read) are satisfied — fixing the PERMISSION_DENIED the global listener had.
-     */
-    fun listenForAcceptance(conversationId: String): Flow<String> =
-        FirebaseRelay.listenForAcceptance(conversationId)
-
-    /**
      * Return all conversationIds where accepted = false (outgoing pending invites).
      */
     suspend fun getPendingConversationIds(): List<String> =
         conversationDao.getPendingConversationIds()
 
     /**
-     * Listen for acceptance notifications from Firebase.
-     * When a contact accepts our invitation, we update the local conversation.
-     */
-    fun listenForAcceptances(): Flow<String> = FirebaseRelay.listenForAcceptances()
-
-    /**
      * Mark a conversation as accepted locally.
-     * Called when we receive an acceptance notification from Firebase.
+     * Called when we receive an acceptance notification via P2PServer.incomingAcceptances.
      */
     suspend fun markConversationAccepted(conversationId: String) {
         val conversation = conversationDao.getConversationById(conversationId) ?: return
         if (!conversation.accepted) {
             conversationDao.updateConversation(conversation.copy(accepted = true))
-            // Clean up the acceptance notification from Firebase
-            try {
-                FirebaseRelay.removeAcceptanceNotification(conversationId)
-            } catch (_: Exception) { }
         }
     }
 
@@ -1315,24 +1226,23 @@ class ChatRepository(private val appContext: Context) {
     /**
      * Mark a conversation's fingerprint as verified/unverified.
      * Verification state is LOCAL-ONLY — each participant decides independently.
-     * A notification event is pushed to Firebase so the other side sees a message.
+     * A notification event is sent via Tor P2P so the other side sees a message.
      */
     suspend fun verifyFingerprint(conversationId: String, verified: Boolean) {
         conversationDao.updateFingerprintVerified(conversationId, verified)
         insertFingerprintInfoMessage(conversationId, verified, isLocal = true)
         val ts = System.currentTimeMillis()
         lastFingerprintPushTimestamp = ts
-        val event = "${if (verified) "verified" else "unverified"}:$ts"
-        try {
-            FirebaseRelay.pushFingerprintEvent(conversationId, event)
-        } catch (_: Exception) { }
-    }
 
-    /**
-     * Listen for remote fingerprint verification events from Firebase.
-     */
-    fun listenForFingerprintEvent(conversationId: String): Flow<String> =
-        FirebaseRelay.listenForFingerprintEvent(conversationId)
+        // Notify remote via Tor P2P
+        val conversation = conversationDao.getConversationById(conversationId) ?: return
+        val contact = contactDao.getContactByPublicKey(conversation.participantPublicKey)
+        val recipientOnion = contact?.onionAddress
+        if (recipientOnion != null) {
+            val event = "${if (verified) "verified" else "unverified"}:$ts"
+            P2PServer.sendFingerprintEvent(recipientOnion, conversationId, event)
+        }
+    }
 
     /**
      * Insert a local-only info message when fingerprint verification changes.
@@ -1368,19 +1278,8 @@ class ChatRepository(private val appContext: Context) {
         conversationDao.deleteConversation(conversation)
     }
 
-    /**
-     * Check if a conversation still exists on Firebase (not deleted by other user).
-     */
     suspend fun getConversationIdByContactPublicKey(publicKey: String): String? =
         conversationDao.getConversationByParticipantPublicKey(publicKey)?.conversationId
-
-    suspend fun isConversationAliveOnFirebase(conversationId: String): Boolean {
-        return try {
-            FirebaseRelay.conversationExists(conversationId)
-        } catch (_: Exception) {
-            false // Any error (permission denied, network) = treat as dead
-        }
-    }
 
     /**
      * Delete a stale conversation, its messages, ratchet state, and the contact.
@@ -1400,36 +1299,25 @@ class ChatRepository(private val appContext: Context) {
     }
 
     // ========================================================================
-    // FIREBASE CLEANUP
-    // ========================================================================
-
-    /**
-     * Delete messages older than 7 days from Firebase for a conversation.
-     * Called periodically to prevent unlimited accumulation.
-     */
-    suspend fun cleanupOldFirebaseMessages(conversationId: String) {
-        try {
-            FirebaseRelay.deleteOldMessages(conversationId)
-        } catch (_: Exception) {
-            // Cleanup is best-effort, don't crash
-        }
-    }
-
-    // ========================================================================
     // EPHEMERAL MESSAGES
     // ========================================================================
 
     /**
      * Set ephemeral duration for a conversation.
-     * Writes to BOTH local DB and Firebase so the other participant sees it too.
+     * Writes to local DB and notifies the remote participant via Tor P2P.
      * Also inserts a local info message visible in the chat.
      */
     suspend fun setEphemeralDuration(conversationId: String, durationMs: Long) {
         conversationDao.updateEphemeralDuration(conversationId, durationMs)
         insertEphemeralInfoMessage(conversationId, durationMs)
-        try {
-            FirebaseRelay.setEphemeralDuration(conversationId, durationMs)
-        } catch (_: Exception) { }
+
+        // Notify remote via Tor P2P
+        val conversation = conversationDao.getConversationById(conversationId) ?: return
+        val contact = contactDao.getContactByPublicKey(conversation.participantPublicKey)
+        val recipientOnion = contact?.onionAddress
+        if (recipientOnion != null) {
+            P2PServer.sendEphemeralDuration(recipientOnion, conversationId, durationMs)
+        }
     }
 
     suspend fun setDummyTraffic(conversationId: String, enabled: Boolean) {
@@ -1440,14 +1328,8 @@ class ChatRepository(private val appContext: Context) {
         conversationDao.getConversationsWithDummyTraffic()
 
     /**
-     * Listen for remote changes to ephemeral duration (set by the other participant).
-     */
-    fun listenForEphemeralDuration(conversationId: String): Flow<Long> =
-        FirebaseRelay.listenForEphemeralDuration(conversationId)
-
-    /**
-     * Sync ephemeral duration to local DB only (no Firebase write).
-     * Used when receiving a remote change to avoid infinite write loop.
+     * Sync ephemeral duration to local DB only (no remote write).
+     * Used when receiving a remote change via P2PServer to avoid infinite write loop.
      */
     suspend fun syncEphemeralDurationLocally(conversationId: String, durationMs: Long) {
         conversationDao.updateEphemeralDuration(conversationId, durationMs)
@@ -1500,39 +1382,13 @@ class ChatRepository(private val appContext: Context) {
 
     /**
      * Delete all local data and cryptographic material:
-     * 1. Delete user profile + conversations + inbox from Firebase
-     * 2. Clear all Room tables (user, contacts, conversations, messages, ratchet state)
-     * 3. Delete the identity key pair from EncryptedSharedPreferences
-     * 4. Sign out from Firebase
+     * 1. Clear all Room tables (user, contacts, conversations, messages, ratchet state)
+     * 2. Delete the identity key pair from EncryptedSharedPreferences
      */
     suspend fun resetAccount() {
-        // Gather data needed for Firebase cleanup BEFORE clearing local DB
-        val publicKey = CryptoManager.getPublicKey()
-        val conversations = conversationDao.getAllConversationsList()
-
-        // Clean Firebase
-        try {
-            FirebaseRelay.deleteUserProfile()
-            if (publicKey != null) {
-                FirebaseRelay.deleteInbox(publicKey)
-                FirebaseRelay.deleteSigningKey(publicKey)
-                FirebaseRelay.deleteMLKEMKey(publicKey)       // was missing
-            }
-            for (convo in conversations) {
-                FirebaseRelay.deleteConversation(convo.conversationId)
-                // Remove any pending /accepted/{id} node we may have written
-                if (!convo.accepted) {
-                    try { FirebaseRelay.removeAcceptanceNotification(convo.conversationId) } catch (_: Exception) {}
-                }
-            }
-        } catch (_: Exception) {
-            // Best-effort cleanup — don\'t block account deletion
-        }
-
         // Clear local data
         clearMutexes()
         db.clearAllTables()
         CryptoManager.deleteIdentityKey()
-        FirebaseRelay.signOut()
     }
 }

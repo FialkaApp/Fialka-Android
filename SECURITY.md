@@ -14,7 +14,7 @@
 
 | Version | Supported |
 |---------|-----------|
-| V3.5.x  | ✅ Current |
+| V4.0.x  | ✅ Current |
 | V3.4.x  | ✅ Security fixes |
 | < V3.4  | ❌ Unsupported |
 
@@ -203,7 +203,7 @@ Every 10 messages (SPQR):
 
 | Version | Classic Signature | PQ Signature | Where | Size |
 |---------|---|---|---|---|
-| **V3.5** (current) | Ed25519 / every msg | ❌ None | — | 64 B |
+| **V4.0** (current) | Ed25519 / every msg | ❌ None | — | 64 B |
 | **V3.6b** | Ed25519 / every msg | **ML-DSA-44** | **Handshake only** | +2 420 B (one-time) |
 | **V5.0** (2028+) | Ed25519 / every msg | **FN-DSA Falcon-512** | **Every message** | +666 B / msg |
 
@@ -292,7 +292,7 @@ Falcon-512 = **~666 bytes** → 10x smaller than ML-DSA-44. Viable per message. 
 |-----------|----------------|-------|
 | Signal | ~90% | Audited, battle-tested, millions of users |
 | Session | ~73% | Decentralized but limited crypto |
-| **Fialka V3.5** (transitional) | **~70%** | Strong crypto, but Firebase = metadata leak |
+| **Fialka V4.0** (current) | **~85%** | Strong crypto, P2P .onion transport, no Firebase metadata leak |
 | **Fialka V4.0** (target, pre-audit) | **~93%** | Zero Google, full Tor P2P, hybrid PQ |
 | **Fialka V5.0** (post-audit, Falcon) | **~95%** | Full PQ signatures, audited, mesh fallback |
 

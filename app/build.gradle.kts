@@ -5,7 +5,6 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
-    id("com.google.gms.google-services")
 }
 
 val localProps = Properties()
@@ -22,8 +21,8 @@ android {
         applicationId = "com.fialkaapp.fialka"
         minSdk = 33
         targetSdk = 35
-        versionCode = 7
-        versionName = "3.5"
+        versionCode = 8
+        versionName = "4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -100,13 +99,6 @@ dependencies {
     // SQLCipher (encrypted Room database)
     implementation("net.zetetic:android-database-sqlcipher:4.5.4")
     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
-
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
-    implementation("com.google.firebase:firebase-database")
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-messaging")
-    implementation("com.google.firebase:firebase-storage")
 
     // Security / Crypto
     implementation("androidx.security:security-crypto:1.1.0-alpha06")

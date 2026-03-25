@@ -41,10 +41,8 @@ import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.MnemonicManager
-import com.fialkaapp.fialka.data.remote.FirebaseRelay
 import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.tor.TorManager
-import com.fialkaapp.fialka.ui.conversations.ConversationsViewModel
 import com.fialkaapp.fialka.databinding.FragmentRestoreBinding
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
@@ -276,25 +274,8 @@ class RestoreFragment : Fragment() {
                     val publicKey = CryptoManager.restoreFromSeed(seed)
                     seed.fill(0)
 
-                    if (!FirebaseRelay.isAuthenticated()) {
-                        FirebaseRelay.signInAnonymously()
-                    }
-
-                    // Remove old orphaned Firebase profile with same publicKey
-                    FirebaseRelay.removeOldUserByPublicKey(publicKey)
-
                     val repository = ChatRepository(requireContext())
                     repository.createUserWithKey(displayName, publicKey)
-
-                    FirebaseRelay.registerPublicKey(publicKey)
-                    FirebaseRelay.storeDisplayName(displayName)
-
-                    // Publish Ed25519 signing public key (derived from restored identity)
-                    repository.publishSigningPublicKey()
-                    // Publish ML-KEM-1024 + ML-DSA-44 public keys
-                    repository.publishMLKEMPublicKey()
-                    repository.publishMlDsaPublicKey()
-                    ConversationsViewModel.markSigningKeyPublished()
 
                     // Identity restored — publish .onion (Tor is already connected)
                     TorManager.publishOnionIfReady()

@@ -35,6 +35,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.databinding.FragmentProfileBinding
 import com.fialkaapp.fialka.util.QrCodeGenerator
 
@@ -92,11 +93,22 @@ class ProfileFragment : Fragment() {
                 }
 
                 // Link WITHOUT name — used by Copy / Share buttons (don't leak pseudo in shared URL)
-                val inviteLink = QrCodeGenerator.buildDeepLink(user.publicKey, null, null)
+                val ed25519Base64 = try {
+                    android.util.Base64.encodeToString(CryptoManager.getEd25519PublicKeyRaw(), android.util.Base64.NO_WRAP)
+                } catch (_: Exception) { null }
+                val inviteLink = if (ed25519Base64 != null) {
+                    QrCodeGenerator.buildDeepLinkV3(ed25519Base64, null)
+                } else {
+                    QrCodeGenerator.buildDeepLink(user.publicKey, null, null)
+                }
                 binding.tvPublicKey.text = inviteLink
 
                 // Link WITH name — embedded only in the QR so the recipient's form auto-fills on scan
-                val inviteLinkWithName = QrCodeGenerator.buildDeepLink(user.publicKey, null, user.displayName)
+                val inviteLinkWithName = if (ed25519Base64 != null) {
+                    QrCodeGenerator.buildDeepLinkV3(ed25519Base64, user.displayName)
+                } else {
+                    QrCodeGenerator.buildDeepLink(user.publicKey, null, user.displayName)
+                }
 
                 try {
                     val qrBitmap = QrCodeGenerator.generate(inviteLinkWithName, 512)

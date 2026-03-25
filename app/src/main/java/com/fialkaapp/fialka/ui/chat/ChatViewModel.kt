@@ -20,14 +20,11 @@ package com.fialkaapp.fialka.ui.chat
 import android.app.Application
 import androidx.lifecycle.*
 import com.fialkaapp.fialka.data.model.MessageLocal
-import com.fialkaapp.fialka.data.remote.FirebaseRelay
 import com.fialkaapp.fialka.data.repository.ChatRepository
+import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.util.DummyTrafficManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
@@ -102,8 +99,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Initialize the ViewModel with a conversation ID.
-     * Ensures Firebase auth is active, then starts listening for messages.
-     * Only listens for messages created after the conversation was established.
+     * Messages arrive via P2PServer (Tor P2P) — no Firebase polling needed.
      */
     fun init(conversationId: String) {
         if (this.conversationId == conversationId) return
@@ -132,62 +128,25 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             // Listen for remote fingerprint verification changes
             listenForFingerprintChanges(conversationId)
 
-            // Ensure Firebase auth is still active (can expire after app kill)
-            if (!FirebaseRelay.isAuthenticated()) {
-                try {
-                    FirebaseRelay.signInAnonymously()
-                } catch (e: Exception) {
-                    _sendError.value = "Erreur d'authentification Firebase"
-                    return@launch
-                }
-            }
-
             // Check if conversation is accepted
             _isAccepted.value = conversation?.accepted ?: true
 
-            if (conversation?.accepted == true) {
-                // Use lastDeliveredAt as lower-bound when known — this skips all messages
-                // we already processed (or failed to process) so the ratchet isn't
-                // re-exposed to stale ciphertexts that remain on Firebase.
-                val since = if ((conversation.lastDeliveredAt) > 0L)
-                    conversation.lastDeliveredAt
-                else
-                    conversation.createdAt
-                startListening(conversationId, since)
-            } else {
-                // Listen directly on /accepted/{conversationId} — avoids PERMISSION_DENIED
-                // that the global /accepted listener would hit
-                repository.listenForAcceptance(conversationId)
-                    .onEach { acceptedId ->
+            if (conversation?.accepted != true) {
+                // Listen for acceptance via P2PServer SharedFlow
+                viewModelScope.launch {
+                    P2PServer.incomingAcceptances.collect { acceptedId ->
                         if (acceptedId == conversationId) {
                             repository.markConversationAccepted(conversationId)
                             _isAccepted.postValue(true)
-                            val conv = repository.getConversation(conversationId)
-                            startListening(conversationId, conv?.createdAt ?: 0L)
                         }
                     }
-                    .catch { }
-                    .launchIn(viewModelScope)
-            }
-        }
-    }
-
-    private fun startListening(conversationId: String, sinceTimestamp: Long) {
-        viewModelScope.launch {
-            // Cleanup old Firebase messages (best-effort, >7 days)
-            repository.cleanupOldFirebaseMessages(conversationId)
-
-            repository.listenForMessages(conversationId, sinceTimestamp)
-                .onEach { firebaseMessage ->
-                    repository.receiveMessage(conversationId, firebaseMessage)
                 }
-                .catch { /* Silently handle Firebase errors */ }
-                .launchIn(viewModelScope)
+            }
         }
     }
 
     /**
-     * Send a message: encrypt → Firebase → save locally.
+     * Send a message: encrypt → Tor P2P → save locally.
      */
     fun sendMessage(plaintext: String) {
         if (plaintext.isBlank() || conversationId.isEmpty()) return
@@ -203,20 +162,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 DummyTrafficManager.onRealMessageSent()
                 _sendError.value = null
             } catch (e: Exception) {
-                // Check if conversation was deleted on Firebase
-                val alive = repository.isConversationAliveOnFirebase(conversationId)
-                if (!alive) {
-                    _conversationDead.postValue(true)
-                } else {
-                    _sendError.value = e.message ?: "Échec de l'envoi"
-                }
+                _sendError.value = e.message ?: "Échec de l'envoi"
             }
         }
     }
 
     /**
      * Send a file with E2E encryption.
-     * The file is encrypted locally, uploaded to Firebase Storage as ciphertext,
+     * The file is encrypted locally, sent via Tor P2P as ciphertext,
      * and the decryption key is sent via the Double Ratchet.
      */
     fun sendFile(fileBytes: ByteArray, fileName: String, isOneShot: Boolean = false) {
@@ -260,18 +213,30 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Resend a failed message — resets the outbox retry so it gets picked up again.
+     */
+    fun resendMessage(messageId: String) {
+        viewModelScope.launch {
+            try {
+                repository.resendMessage(messageId)
+            } catch (_: Exception) { }
+        }
+    }
+
     /** Ephemeral duration LiveData — updated when either user changes the setting. */
     private val _ephemeralDuration = MutableLiveData<Long>(0L)
     val ephemeralDuration: LiveData<Long> = _ephemeralDuration
 
     /**
-     * Listen for remote ephemeral duration changes from Firebase.
+     * Listen for remote ephemeral duration changes via P2PServer SharedFlow.
      * When the OTHER user changes ephemeral setting, we update our local DB
      * so both sides stay in sync, and insert an info message in the chat.
      */
     private fun listenForEphemeralChanges(conversationId: String) {
-        repository.listenForEphemeralDuration(conversationId)
-            .onEach { duration ->
+        viewModelScope.launch {
+            P2PServer.ephemeralEvents.collect { (convId, duration) ->
+                if (convId != conversationId) return@collect
                 _ephemeralDuration.postValue(duration)
                 // Sync remote → local DB + insert info message if changed
                 val currentConv = repository.getConversation(conversationId)
@@ -280,37 +245,30 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     repository.insertEphemeralInfoMessage(conversationId, duration)
                 }
             }
-            .catch { /* Silently handle */ }
-            .launchIn(viewModelScope)
+        }
     }
 
     /**
-     * Listen for remote fingerprint verification events from Firebase.
+     * Listen for remote fingerprint verification events via P2PServer SharedFlow.
      * Each user's verification state is independent — this only shows
      * an info message when the OTHER user verifies/unverifies.
      * Self-echo is filtered using the timestamp embedded in the event.
      */
     private fun listenForFingerprintChanges(conversationId: String) {
-        var isFirstEmission = true
-        repository.listenForFingerprintEvent(conversationId)
-            .onEach { event ->
-                // Skip initial Firebase snapshot (stale event from last session)
-                if (isFirstEmission) {
-                    isFirstEmission = false
-                    return@onEach
-                }
+        viewModelScope.launch {
+            P2PServer.fingerprintEvents.collect { (convId, event) ->
+                if (convId != conversationId) return@collect
                 // Parse event: "verified:1679000000000" or "unverified:1679000000000"
                 val parts = event.split(":")
-                if (parts.size != 2) return@onEach
+                if (parts.size != 2) return@collect
                 val verified = parts[0] == "verified"
-                val timestamp = parts[1].toLongOrNull() ?: return@onEach
+                val timestamp = parts[1].toLongOrNull() ?: return@collect
                 // Skip self-echo (our own push)
-                if (timestamp == ChatRepository.lastFingerprintPushTimestamp) return@onEach
+                if (timestamp == ChatRepository.lastFingerprintPushTimestamp) return@collect
                 // This is from the other participant — show info message
                 repository.insertFingerprintInfoMessage(conversationId, verified, isLocal = false)
             }
-            .catch { /* Silently handle */ }
-            .launchIn(viewModelScope)
+        }
     }
 
     /**

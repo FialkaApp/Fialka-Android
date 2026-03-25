@@ -19,6 +19,7 @@ package com.fialkaapp.fialka.tor
 
 import android.content.Context
 import com.fialkaapp.fialka.data.local.FialkaDatabase
+import com.fialkaapp.fialka.data.model.MessageLocal
 import com.fialkaapp.fialka.data.model.OutboxMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +41,9 @@ object OutboxManager {
     private const val RETRY_INTERVAL_MS = 60_000L
     private const val MAX_RETRY_DELAY_MS = 30 * 60_000L
 
+    /** Result of a send attempt */
+    enum class DeliveryResult { DIRECT, MAILBOX, QUEUED }
+
     private var retryJob: Job? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var appContext: Context
@@ -52,7 +56,9 @@ object OutboxManager {
         if (retryJob != null) return
         retryJob = scope.launch {
             while (isActive) {
-                try { processOutbox() } catch (_: Exception) {}
+                try { processOutbox() } catch (e: Exception) {
+                    android.util.Log.e("OutboxManager", "processOutbox failed: ${e.message}", e)
+                }
                 delay(RETRY_INTERVAL_MS)
             }
         }
@@ -69,7 +75,9 @@ object OutboxManager {
     suspend fun enqueue(
         destinationOnion: String,
         frameType: Byte,
-        payload: ByteArray
+        payload: ByteArray,
+        fallbackOnion: String? = null,
+        messageLocalId: String? = null
     ) {
         val dao = FialkaDatabase.getInstance(appContext).outboxDao()
         val msg = OutboxMessage(
@@ -77,39 +85,61 @@ object OutboxManager {
             destinationOnion = destinationOnion,
             frameType = frameType.toInt(),
             payload = payload,
-            createdAt = System.currentTimeMillis()
+            createdAt = System.currentTimeMillis(),
+            fallbackOnion = fallbackOnion,
+            messageLocalId = messageLocalId
         )
         dao.insert(msg)
     }
 
     /**
-     * Send a frame immediately, falling back to outbox if delivery fails.
-     * @return true if delivered now, false if queued for retry.
+     * Send a frame immediately via direct P2P, then try DEPOSIT on mailbox, then queue.
+     * @return the delivery result: DIRECT, MAILBOX, or QUEUED.
      */
     suspend fun sendOrQueue(
         onionAddress: String,
-        frame: TorTransport.Frame
-    ): Boolean {
+        frame: TorTransport.Frame,
+        fallbackOnion: String? = null,
+        messageLocalId: String? = null
+    ): DeliveryResult {
+        // 1. Try direct P2P
         val response = TorTransport.sendFrame(onionAddress, frame = frame)
         if (response != null &&
             response.type == TorTransport.TYPE_ACK &&
             response.payload.isNotEmpty() &&
             response.payload[0] == TorTransport.ACK_OK
         ) {
-            return true
+            return DeliveryResult.DIRECT
         }
-        enqueue(onionAddress, frame.type, frame.payload)
-        return false
+
+        // 2. Try DEPOSIT on recipient's mailbox immediately
+        if (!fallbackOnion.isNullOrEmpty()) {
+            try {
+                val recipientEd25519 = resolveRecipientEd25519(onionAddress)
+                if (recipientEd25519 != null) {
+                    val deposited = MailboxClientManager.depositToMailbox(
+                        fallbackOnion, recipientEd25519, frame.type, frame.payload
+                    )
+                    if (deposited) return DeliveryResult.MAILBOX
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 3. Both failed — queue for background retry
+        enqueue(onionAddress, frame.type, frame.payload, fallbackOnion, messageLocalId)
+        return DeliveryResult.QUEUED
     }
 
     private suspend fun processOutbox() {
         val dao = FialkaDatabase.getInstance(appContext).outboxDao()
+        val messageDao = FialkaDatabase.getInstance(appContext).messageLocalDao()
         dao.deleteExhaustedRetries()
 
         val pending = dao.getPendingMessages()
         for (msg in pending) {
-            dao.updateStatus(msg.id, OutboxMessage.STATUS_SENDING)
+            // ✅ Plus de STATUS_SENDING — évite les messages orphelins après crash
 
+            // Try direct P2P delivery first
             val frame = TorTransport.Frame(msg.frameType.toByte(), msg.payload)
             val response = TorTransport.sendFrame(msg.destinationOnion, frame = frame)
 
@@ -119,17 +149,70 @@ object OutboxManager {
                 response.payload[0] == TorTransport.ACK_OK
             ) {
                 dao.deleteById(msg.id)
-            } else {
-                val backoff = min(
-                    RETRY_INTERVAL_MS * (1L shl min(msg.retryCount, 10)),
-                    MAX_RETRY_DELAY_MS
-                )
-                dao.updateRetry(
-                    msg.id,
-                    OutboxMessage.STATUS_PENDING,
-                    System.currentTimeMillis() + backoff
-                )
+                // Update linked message status to SENT (direct)
+                msg.messageLocalId?.let {
+                    try { messageDao.updateDeliveryStatus(it, MessageLocal.DELIVERY_SENT) } catch (_: Exception) {}
+                }
+                continue
             }
+
+            // Direct P2P failed — try DEPOSIT on recipient's mailbox if available
+            if (!msg.fallbackOnion.isNullOrEmpty()) {
+                try {
+                    val recipientEd25519 = resolveRecipientEd25519(msg.destinationOnion)
+                    if (recipientEd25519 != null) {
+                        val deposited = MailboxClientManager.depositToMailbox(
+                            msg.fallbackOnion,
+                            recipientEd25519,
+                            msg.frameType.toByte(),
+                            msg.payload
+                        )
+                        if (deposited) {
+                            dao.deleteById(msg.id)
+                            // Update linked message status to MAILBOX
+                            msg.messageLocalId?.let {
+                                try { messageDao.updateDeliveryStatus(it, MessageLocal.DELIVERY_MAILBOX) } catch (_: Exception) {}
+                            }
+                            continue
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("OutboxManager", "Mailbox deposit failed for ${msg.id}: ${e.message}")
+                }
+            }
+
+            // Both failed — schedule retry with backoff
+            val backoff = min(
+                RETRY_INTERVAL_MS * (1L shl min(msg.retryCount, 10)),
+                MAX_RETRY_DELAY_MS
+            )
+            dao.updateRetry(
+                msg.id,
+                OutboxMessage.STATUS_PENDING,
+                System.currentTimeMillis() + backoff
+            )
+        }
+    }
+
+    /**
+     * Resolve the Ed25519 public key (raw 32 bytes) for a recipient identified by .onion address.
+     * Falls back to publicKey (X25519) if signingPublicKey is absent.
+     */
+    private suspend fun resolveRecipientEd25519(onionAddress: String): ByteArray? {
+        return try {
+            val db = FialkaDatabase.getInstance(appContext)
+            val contact = db.contactDao().getContactByOnionAddress(onionAddress) ?: run {
+                android.util.Log.w("OutboxManager", "resolveRecipientEd25519: contact introuvable pour $onionAddress")
+                return null
+            }
+            val keyB64 = contact.signingPublicKey ?: contact.publicKey ?: run {
+                android.util.Log.e("OutboxManager", "resolveRecipientEd25519: aucune clé publique pour contact ${contact.displayName}")
+                return null
+            }
+            android.util.Base64.decode(keyB64, android.util.Base64.NO_WRAP)
+        } catch (e: Exception) {
+            android.util.Log.e("OutboxManager", "resolveRecipientEd25519 failed: ${e.message}")
+            null
         }
     }
 }

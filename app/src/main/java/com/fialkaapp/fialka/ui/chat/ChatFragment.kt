@@ -47,7 +47,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.databinding.FragmentChatBinding
+import com.fialkaapp.fialka.tor.MailboxClientManager
 import com.fialkaapp.fialka.util.EphemeralManager
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -57,9 +59,9 @@ import java.io.File
  * Flow:
  *  1. User types a message and taps send.
  *  2. ChatViewModel encrypts the message using CryptoManager (ECDH + AES-256-GCM).
- *  3. Encrypted message is sent to Firebase via FirebaseRelay.
+ *  3. Encrypted message is sent via Tor P2P (OutboxManager).
  *  4. Plaintext is saved locally in Room.
- *  5. Incoming messages from Firebase are decrypted and displayed.
+ *  5. Incoming messages from P2PServer are decrypted and displayed.
  */
 class ChatFragment : Fragment() {
 
@@ -202,12 +204,26 @@ class ChatFragment : Fragment() {
             },
             onOneShotOpen = { messageId ->
                 viewModel.markOneShotOpened(messageId)
+            },
+            onResend = { messageId ->
+                viewModel.resendMessage(messageId)
             }
         )
         binding.rvMessages.adapter = adapter
 
         // Initialize ViewModel with conversation ID
         viewModel.init(conversationId)
+
+        // Observe mailbox fetch state — block input while fetching
+        viewLifecycleOwner.lifecycleScope.launch {
+            MailboxClientManager.fetching.collectLatest { isFetching ->
+                if (_binding == null) return@collectLatest
+                binding.fetchBanner.visibility = if (isFetching) View.VISIBLE else View.GONE
+                binding.etMessage.isEnabled = !isFetching
+                binding.btnSend.isEnabled = !isFetching
+                binding.btnSend.alpha = if (isFetching) 0.4f else 1f
+            }
+        }
 
         // Observe chat items (messages + optional unread divider)
         viewModel.chatItems.observe(viewLifecycleOwner) { items ->

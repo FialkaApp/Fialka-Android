@@ -294,6 +294,7 @@ cd Fialka-Android
 | **V3.4** | PQXDH + Security — Post-quantum ML-KEM-1024, deep link v2, DeviceSecurityManager StrongBox, fingerprint verification | ✅ Done |
 | **V3.4.1** | One-Shot + Security Audit — Ephemeral photos, BIP-39 grid, **comprehensive security audit (42+ fixes)** | ✅ Done |
 | **V3.5** | SPQR + ChaCha20 — PQ Triple Ratchet (ML-KEM re-encapsulation), ChaCha20-Poly1305 alternative, documented threat model | ✅ Done |
+| **V4.0** | Kill Firebase — P2P .onion + Mailbox store-and-forward, invite QR, deep links | ✅ Done |
 | **V3.6a** | UX — App disguise, cover screen, Dual PIN, panic button, E2E voice messages, reply/quote | 🔜 |
 | **V3.6b** | Crypto — **ML-DSA-44** PQ handshake signature, Sealed Sender via Tor | 🔜 |
 | **V4.0** | **Zero Google** — Firebase removal, **Tor Hidden Services** P2P, **Fialka Mailbox** (4 modes), **UnifiedPush + ntfy.sh**, 1 Seed → Everything identity | 🔜 |
@@ -330,7 +331,7 @@ cd Fialka-Android
 | [**Crypto Protocol**](docs/en/CRYPTO.md) | X25519, Double Ratchet, fingerprint, threat model |
 | [**Setup**](docs/en/SETUP.md) | Prerequisites, build, dependencies |
 | [**Structure**](docs/en/STRUCTURE.md) | Full project tree |
-| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V3.5 history |
+| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V4.0 history |
 | [**Security**](SECURITY.md) | Full audit, known limitations |
 
 </div>
@@ -351,7 +352,7 @@ This project is licensed under [GPLv3](LICENSE). See the [Terms of Service](TERM
 
 <br/>
 
-<img src="https://img.shields.io/badge/Fialka-V3.5-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/Fialka-V4.0-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

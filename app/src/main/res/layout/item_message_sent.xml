@@ -135,6 +135,46 @@
                     android:layout_marginStart="3dp"
                     android:src="@drawable/ic_sent_check"
                     android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/tvDeliveryBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="2dp"
+                    android:textSize="10sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Failed / Resend row -->
+            <LinearLayout
+                android:id="@+id/failedRowSent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvFailedLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Échec"
+                    android:textColor="#FF4444"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/btnResend"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Renvoyer"
+                    android:textColor="#7B68EE"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:background="?attr/selectableItemBackgroundBorderless" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
