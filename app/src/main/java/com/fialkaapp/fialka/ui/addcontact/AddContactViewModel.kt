@@ -115,7 +115,11 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
                 val conversation = repository.createConversation(trimmedKey, displayName.trim(), accepted = false)
 
                 // Notify the contact via Tor P2P
-                repository.sendContactRequest(trimmedKey)
+                val sent = repository.sendContactRequest(trimmedKey)
+                if (!sent) {
+                    android.util.Log.w("AddContactViewModel",
+                        "sendContactRequest: demande non envoyée (onion manquant) — sera retentée au prochain démarrage")
+                }
 
                 _state.value = AddContactState.Success(conversation)
             } catch (e: Exception) {

@@ -1096,16 +1096,37 @@ class ChatRepository(private val appContext: Context) {
     /**
      * Send a contact request to the recipient via Tor P2P.
      */
-    suspend fun sendContactRequest(contactPublicKey: String) {
-        val user = userDao.getUser() ?: return
-        val conversationId = conversationDao.getConversationByParticipantPublicKey(contactPublicKey)?.conversationId
-            ?: return
-        val signingPublicKey = try { CryptoManager.getSigningPublicKeyBase64() } catch (_: Exception) { null }
+    /**
+     * Envoie une demande de contact vers le pair distant via Tor P2P.
+     * @return true si la demande a été envoyée, false si les prérequis manquent.
+     * @throws IllegalStateException si l'utilisateur local n'est pas initialisé.
+     */
+    suspend fun sendContactRequest(contactPublicKey: String): Boolean {
+        val user = userDao.getUser()
+            ?: throw IllegalStateException("Utilisateur non initialisé — impossible d'envoyer la demande de contact")
 
-        // Compute recipient .onion from their X25519 public key → Ed25519 → .onion
+        val conversationId = conversationDao.getConversationByParticipantPublicKey(contactPublicKey)?.conversationId
+            ?: run {
+                android.util.Log.w("ChatRepository", "sendContactRequest: conversation introuvable pour $contactPublicKey")
+                return false
+            }
+
+        val signingPublicKey = try {
+            CryptoManager.getSigningPublicKeyBase64()
+        } catch (e: Exception) {
+            android.util.Log.w("ChatRepository", "sendContactRequest: clé de signature indisponible: ${e.message}")
+            null
+        }
+
         val contact = contactDao.getContactByPublicKey(contactPublicKey)
         val recipientOnion = contact?.onionAddress
-        if (recipientOnion.isNullOrEmpty()) return
+
+        if (recipientOnion.isNullOrEmpty()) {
+            android.util.Log.e("ChatRepository",
+                "sendContactRequest: onionAddress manquant pour $contactPublicKey — " +
+                "contact trouvé: ${contact != null}, signingKey présente: ${contact?.signingPublicKey != null}")
+            return false
+        }
 
         P2PServer.sendContactRequest(
             recipientOnion = recipientOnion,
@@ -1114,6 +1135,7 @@ class ChatRepository(private val appContext: Context) {
             conversationId = conversationId,
             senderSigningPublicKey = signingPublicKey
         )
+        return true
     }
 
     /**

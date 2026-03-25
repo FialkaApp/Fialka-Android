@@ -56,7 +56,9 @@ object OutboxManager {
         if (retryJob != null) return
         retryJob = scope.launch {
             while (isActive) {
-                try { processOutbox() } catch (_: Exception) {}
+                try { processOutbox() } catch (e: Exception) {
+                    android.util.Log.e("OutboxManager", "processOutbox failed: ${e.message}", e)
+                }
                 delay(RETRY_INTERVAL_MS)
             }
         }
@@ -135,7 +137,7 @@ object OutboxManager {
 
         val pending = dao.getPendingMessages()
         for (msg in pending) {
-            dao.updateStatus(msg.id, OutboxMessage.STATUS_SENDING)
+            // ✅ Plus de STATUS_SENDING — évite les messages orphelins après crash
 
             // Try direct P2P delivery first
             val frame = TorTransport.Frame(msg.frameType.toByte(), msg.payload)
@@ -174,7 +176,9 @@ object OutboxManager {
                             continue
                         }
                     }
-                } catch (_: Exception) {}
+                } catch (e: Exception) {
+                    android.util.Log.w("OutboxManager", "Mailbox deposit failed for ${msg.id}: ${e.message}")
+                }
             }
 
             // Both failed — schedule retry with backoff
@@ -192,13 +196,23 @@ object OutboxManager {
 
     /**
      * Resolve the Ed25519 public key (raw 32 bytes) for a recipient identified by .onion address.
+     * Falls back to publicKey (X25519) if signingPublicKey is absent.
      */
     private suspend fun resolveRecipientEd25519(onionAddress: String): ByteArray? {
         return try {
             val db = FialkaDatabase.getInstance(appContext)
-            val contact = db.contactDao().getContactByOnionAddress(onionAddress) ?: return null
-            val signingKey = contact.signingPublicKey ?: return null
-            android.util.Base64.decode(signingKey, android.util.Base64.NO_WRAP)
-        } catch (_: Exception) { null }
+            val contact = db.contactDao().getContactByOnionAddress(onionAddress) ?: run {
+                android.util.Log.w("OutboxManager", "resolveRecipientEd25519: contact introuvable pour $onionAddress")
+                return null
+            }
+            val keyB64 = contact.signingPublicKey ?: contact.publicKey ?: run {
+                android.util.Log.e("OutboxManager", "resolveRecipientEd25519: aucune clé publique pour contact ${contact.displayName}")
+                return null
+            }
+            android.util.Base64.decode(keyB64, android.util.Base64.NO_WRAP)
+        } catch (e: Exception) {
+            android.util.Log.e("OutboxManager", "resolveRecipientEd25519 failed: ${e.message}")
+            null
+        }
     }
 }

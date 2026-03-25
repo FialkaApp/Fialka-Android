@@ -201,11 +201,9 @@ object TorManager {
         val torBinary = getTorBinary()
         val cookieFile = File(dataDir, "control_auth_cookie")
 
-        // Delete stale cookie from previous run
-        cookieFile.delete()
-
-        // Kill any orphaned Tor process bound to ports
-        killOrphanedTor()
+        // Kill any orphaned Tor process — must happen BEFORE deleting the cookie
+        // (killOrphanedTor reads the old cookie then deletes it)
+        killOrphanedTor(cookieFile)
 
         // Write torrc with cookie authentication for control port security
         val torrc = File(torDir, "torrc")
@@ -312,16 +310,40 @@ object TorManager {
      * Kill any orphaned Tor daemon from a previous run by checking if
      * our control or SOCKS ports are still occupied.
      */
-    private fun killOrphanedTor() {
+    private fun killOrphanedTor(cookieFile: File) {
+        // Lire le cookie de l'ancienne session AVANT de le supprimer
+        val oldCookie: ByteArray? = if (cookieFile.exists()) {
+            try { cookieFile.readBytes() } catch (_: Exception) { null }
+        } else null
+
+        // Supprimer le cookie stale maintenant
+        cookieFile.delete()
+
+        if (oldCookie == null || oldCookie.isEmpty()) {
+            android.util.Log.d("TorManager", "killOrphanedTor: pas de cookie précédent, skip")
+            return
+        }
+
         try {
-            // Try connecting to old control port and sending SHUTDOWN
             Socket().use { s ->
                 s.connect(InetSocketAddress("127.0.0.1", TOR_CONTROL_PORT), 500)
-                s.getOutputStream().write("AUTHENTICATE\r\nSIGNAL SHUTDOWN\r\n".toByteArray())
+                s.soTimeout = 2_000
+                val out = s.getOutputStream()
+                val cookieHex = oldCookie.joinToString("") { "%02x".format(it) }
+                // Authentification correcte avec le cookie hex de l'ancienne session
+                out.write("AUTHENTICATE $cookieHex\r\nSIGNAL SHUTDOWN\r\n".toByteArray(Charsets.US_ASCII))
+                out.flush()
+                val reader = s.getInputStream().bufferedReader()
+                val authResp = reader.readLine()
+                android.util.Log.d("TorManager", "killOrphanedTor: auth=$authResp")
+                if (authResp?.startsWith("250") == true) {
+                    val shutdownResp = reader.readLine()
+                    android.util.Log.i("TorManager", "killOrphanedTor: shutdown=$shutdownResp — orphelin Tor arrêté")
+                }
             }
-            Thread.sleep(500)
-        } catch (_: Exception) {
-            // No orphan or can't connect — that's fine
+            Thread.sleep(800)
+        } catch (e: Exception) {
+            android.util.Log.d("TorManager", "killOrphanedTor: pas d'orphelin (${e.message})")
         }
     }
 

@@ -29,9 +29,14 @@ interface OutboxDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(message: OutboxMessage)
 
-    @Query("SELECT * FROM outbox WHERE status = :status AND nextRetryAt <= :now ORDER BY createdAt ASC")
+    @Query("""
+        SELECT * FROM outbox
+        WHERE (status = ${OutboxMessage.STATUS_PENDING} OR status = ${OutboxMessage.STATUS_SENDING})
+        AND nextRetryAt <= :now
+        AND retryCount < 50
+        ORDER BY createdAt ASC
+    """)
     suspend fun getPendingMessages(
-        status: Int = OutboxMessage.STATUS_PENDING,
         now: Long = System.currentTimeMillis()
     ): List<OutboxMessage>
 
