@@ -205,10 +205,7 @@ object OutboxManager {
                 android.util.Log.w("OutboxManager", "resolveRecipientEd25519: contact introuvable pour $onionAddress")
                 return null
             }
-            val keyB64 = contact.signingPublicKey ?: contact.publicKey ?: run {
-                android.util.Log.e("OutboxManager", "resolveRecipientEd25519: aucune clé publique pour contact ${contact.displayName}")
-                return null
-            }
+            val keyB64 = contact.signingPublicKey ?: contact.publicKey
             android.util.Base64.decode(keyB64, android.util.Base64.NO_WRAP)
         } catch (e: Exception) {
             android.util.Log.e("OutboxManager", "resolveRecipientEd25519 failed: ${e.message}")
