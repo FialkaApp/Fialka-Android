@@ -5,21 +5,32 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
-    android:paddingHorizontal="16dp"
-    android:paddingVertical="14dp">
+    android:paddingEnd="16dp"
+    android:paddingVertical="13dp">
+
+    <View
+        android:id="@+id/accentStrip"
+        android:layout_width="3dp"
+        android:layout_height="0dp"
+        android:background="?attr/colorPrimary"
+        android:alpha="0.7"
+        app:layout_constraintBottom_toBottomOf="@id/tvContactInitial"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/tvContactInitial" />
 
     <TextView
         android:id="@+id/tvContactInitial"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginStart="14dp"
         android:background="@drawable/bg_circle"
         android:backgroundTint="?attr/colorAvatarBackground"
         android:gravity="center"
         android:textColor="@color/white"
-        android:textSize="22sp"
+        android:textSize="20sp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@id/accentStrip"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
@@ -30,7 +41,7 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="?attr/colorTextPrimary"
-        android:textSize="17sp"
+        android:textSize="16sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@id/tvTimestamp"
         app:layout_constraintStart_toEndOf="@id/tvContactInitial"
@@ -43,12 +54,12 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"
-        android:layout_marginTop="3dp"
+        android:layout_marginTop="4dp"
         android:layout_marginEnd="8dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="?attr/colorTextSecondary"
-        android:textSize="14sp"
+        android:textSize="13sp"
         app:layout_constraintBottom_toBottomOf="@id/tvContactInitial"
         app:layout_constraintEnd_toStartOf="@id/tvUnreadBadge"
         app:layout_constraintStart_toEndOf="@id/tvContactInitial"
@@ -60,23 +71,23 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:textColor="?attr/colorTextSecondary"
-        android:textSize="12sp"
+        android:textSize="11sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/tvContactName" />
 
     <TextView
         android:id="@+id/tvUnreadBadge"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
         android:background="@drawable/bg_circle"
         android:backgroundTint="?attr/colorBadge"
         android:gravity="center"
         android:textColor="@color/white"
-        android:textSize="12sp"
+        android:textSize="11sp"
         android:textStyle="bold"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTimestamp"
+        app:layout_constraintTop_toTopOf="@id/tvLastMessage"
         app:layout_constraintBottom_toBottomOf="@id/tvLastMessage" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

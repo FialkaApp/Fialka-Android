@@ -34,35 +34,51 @@
                 android:background="?attr/colorSurface"
                 android:gravity="center_horizontal"
                 android:orientation="vertical"
-                android:paddingTop="24dp"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="32dp"
                 android:paddingBottom="28dp">
 
                 <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.18"
+                    android:text="NODE INFO"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
                     android:id="@+id/tvContactInitial"
-                    android:layout_width="88dp"
-                    android:layout_height="88dp"
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:layout_marginTop="16dp"
                     android:background="@drawable/bg_avatar_ring"
                     android:gravity="center"
                     android:textColor="?attr/colorPrimary"
-                    android:textSize="36sp"
+                    android:textSize="38sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvContactName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:textColor="?android:attr/textColorPrimary"
+                    android:layout_marginTop="14dp"
+                    android:textColor="?attr/colorTextPrimary"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="🔒 Chiffré de bout en bout"
-                    android:textColor="?attr/colorTextSecondary"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_key_box"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="4dp"
+                    android:text="\uD83D\uDD12 Chiffr\u00e9 de bout en bout"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <!-- ===== SECTION : CONVERSATION ===== -->

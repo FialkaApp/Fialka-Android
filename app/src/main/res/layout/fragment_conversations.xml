@@ -13,18 +13,65 @@
         android:background="?attr/colorToolbarBackground"
         app:elevation="0dp">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:background="?attr/colorToolbarBackground"
-            android:elevation="0dp"
-            app:layout_scrollFlags="scroll|enterAlways|snap"
-            app:subtitle="chiffr\u00e9e de bout en bout \uD83D\uDD12"
-            app:subtitleTextColor="?attr/colorTextSecondary"
-            app:title="@string/conversations_title"
-            app:titleTextColor="?attr/colorToolbarTitle"
-            app:menu="@menu/menu_conversations" />
+            app:layout_scrollFlags="scroll|enterAlways|snap">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="20dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="18dp"
+                android:paddingBottom="6dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:letterSpacing="0.18"
+                        android:text="MESSAGERIE CHIFFR\u00c9E"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="9sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/conversations_title"
+                        android:textColor="?attr/colorToolbarTitle"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="?attr/colorToolbarBackground"
+                android:elevation="0dp"
+                app:subtitle="chiffr\u00e9e de bout en bout \uD83D\uDD12"
+                app:subtitleTextColor="?attr/colorTextSecondary"
+                app:title=""
+                app:titleTextColor="?attr/colorToolbarTitle"
+                app:menu="@menu/menu_conversations" />
+
+        </LinearLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -73,9 +120,9 @@
                 android:layout_gravity="center"
                 android:gravity="center"
                 android:text="@string/no_conversations"
-                android:textColor="@color/text_secondary"
-                android:textSize="16sp"
-                android:lineSpacingExtra="4dp"
+                android:textColor="?attr/colorTextSecondary"
+                android:textSize="15sp"
+                android:lineSpacingExtra="6dp"
                 android:visibility="gone" />
 
         </FrameLayout>
