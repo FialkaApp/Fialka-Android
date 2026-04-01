@@ -295,11 +295,9 @@ cd Fialka-Android
 | **V3.4.1** | One-Shot + Security Audit — Ephemeral photos, BIP-39 grid, **comprehensive security audit (42+ fixes)** | ✅ Done |
 | **V3.5** | SPQR + ChaCha20 — PQ Triple Ratchet (ML-KEM re-encapsulation), ChaCha20-Poly1305 alternative, documented threat model | ✅ Done |
 | **V4.0** | Kill Firebase — P2P .onion + Mailbox store-and-forward, invite QR, deep links | ✅ Done |
-| **V3.6a** | UX — App disguise, cover screen, Dual PIN, panic button, E2E voice messages, reply/quote | 🔜 |
-| **V3.6b** | Crypto — **ML-DSA-44** PQ handshake signature, Sealed Sender via Tor | 🔜 |
-| **V4.0** | **Zero Google** — Firebase removal, **Tor Hidden Services** P2P, **Fialka Mailbox** (4 modes), **UnifiedPush + ntfy.sh**, 1 Seed → Everything identity | � |
-| **V4.1** | Audit — Third-party professional security audit | 🔜 |
-| **V5.0** | **Falcon-512** — Per-message PQ signatures (666 bytes), final target | 🔜 |
+| **V4.1** | UX — App disguise (icon + cover screen), Dual PIN + Panic Button, E2E voice messages (Opus), reply/quote | 🔜 |
+| **V4.2** | Sealed Sender (VXEdDSA), multi-device Sesame, **third-party security audit** (Cure53 / Trail of Bits) | 🔜 |
+| **V5.0** | Long-term — **Falcon-512** per-message PQ signatures, decentralized Mailbox network, Bluetooth/WiFi fallback | 🔮 |
 
 > 📖 **Details** — [Full Changelog](docs/en/CHANGELOG.md)
 

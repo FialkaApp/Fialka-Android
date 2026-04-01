@@ -291,10 +291,8 @@ cd Fialka-Android
 | **V3.4.1** | One-Shot + Security Audit — Photos éphémères, grille BIP-39, QR fingerprint, **audit sécurité (42+ fixes)** | ✅ Done |
 | **V3.5** | SPQR + ChaCha20 — Triple Ratchet PQ (ML-KEM toutes les 10 msgs), ChaCha20-Poly1305 alternatif | ✅ Done |
 | **V4.0** | Kill Firebase — P2P .onion + Mailbox store-and-forward, invite QR, deep links | ✅ Done |
-| **V3.6a** | UX — Reply/Quote, messages vocaux E2E (Opus), Dual PIN + Panic Button | 🔜 |
-| **V3.6b** | Crypto — **ML-DSA-44 handshake hybride**, app disguise + faux écran | 🔜 |
-| **V4.0** | **Zéro Google** — Account ID Ed25519, Tor Hidden Services P2P, **suppression totale de Firebase**, Fialka Mailbox, UnifiedPush + ntfy.sh | 🔜 |
-| **V4.1** | Polish — Sealed Sender réel (VXEdDSA), multi-device Sesame, **audit externe** (Cure53 / Trail of Bits) | 🔜 |
+| **V4.1** | UX — App disguise (icône + faux écran), Dual PIN + Panic Button, messages vocaux E2E (Opus), reply/quote | 🔜 |
+| **V4.2** | Sealed Sender réel (VXEdDSA), multi-device Sesame, **audit externe** (Cure53 / Trail of Bits) | 🔜 |
 | **V5.0** | Long terme — **FN-DSA Falcon-512** signatures PQ par message, réseau Mailbox décentralisé, Bluetooth/WiFi fallback | 🔮 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
