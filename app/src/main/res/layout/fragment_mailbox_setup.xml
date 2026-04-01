@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/splash_background">
+    android:background="?android:attr/colorBackground">
 
     <!-- ===== STEP 1 : Choose type ===== -->
     <LinearLayout
@@ -25,7 +25,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/mailbox_setup_title"
-            android:textColor="#FFFFFF"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="26sp"
             android:textStyle="bold" />
 
@@ -37,7 +37,7 @@
             android:layout_marginHorizontal="16dp"
             android:gravity="center"
             android:text="@string/mailbox_setup_subtitle"
-            android:textColor="#9E9BB0"
+            android:textColor="?android:attr/textColorSecondary"
             android:textSize="14sp" />
 
         <!-- PERSONAL card -->
@@ -46,9 +46,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
-            app:cardBackgroundColor="#1A1A2E"
             app:cardCornerRadius="16dp"
-            app:strokeColor="#7B68EE"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorPrimary"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -61,7 +61,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/mailbox_personal_title"
-                    android:textColor="#7B68EE"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -70,7 +70,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:text="@string/mailbox_personal_desc"
-                    android:textColor="#8B8B9E"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp"
                     android:lineSpacingExtra="3dp" />
             </LinearLayout>
@@ -82,9 +82,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            app:cardBackgroundColor="#1A1A2E"
             app:cardCornerRadius="16dp"
-            app:strokeColor="#FF9800"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorTertiary"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -97,7 +97,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/mailbox_private_title"
-                    android:textColor="#FF9800"
+                    android:textColor="?attr/colorTertiary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -106,7 +106,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:text="@string/mailbox_private_desc"
-                    android:textColor="#8B8B9E"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp"
                     android:lineSpacingExtra="3dp" />
             </LinearLayout>
@@ -118,9 +118,9 @@
             android:layout_height="56dp"
             android:layout_marginTop="32dp"
             android:enabled="false"
-            android:backgroundTint="#7B68EE"
+            android:backgroundTint="?attr/colorPrimary"
             android:text="@string/mailbox_btn_start"
-            android:textColor="#FFFFFF"
+            android:textColor="?android:attr/textColorPrimaryInverse"
             android:textSize="16sp"
             android:textStyle="bold"
             app:cornerRadius="16dp" />
@@ -143,7 +143,7 @@
         <ProgressBar
             android:layout_width="64dp"
             android:layout_height="64dp"
-            android:indeterminateTint="#7B68EE" />
+            android:indeterminateTint="?attr/colorPrimary" />
 
         <TextView
             android:id="@+id/tvLoadingStatus"
@@ -151,7 +151,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="@string/mailbox_loading_tor"
-            android:textColor="#FFFFFF"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -161,7 +161,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="@string/mailbox_loading_detail"
-            android:textColor="#9E9BB0"
+            android:textColor="?android:attr/textColorSecondary"
             android:textSize="13sp" />
 
     </LinearLayout>
@@ -190,7 +190,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/mailbox_owner_qr_title"
-                android:textColor="#4CAF50"
+                android:textColor="@color/green_500"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
@@ -200,7 +200,7 @@
                 android:layout_marginTop="8dp"
                 android:gravity="center"
                 android:text="@string/mailbox_owner_qr_subtitle"
-                android:textColor="#9E9BB0"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="14sp" />
 
             <ImageView
@@ -208,7 +208,7 @@
                 android:layout_width="260dp"
                 android:layout_height="260dp"
                 android:layout_marginTop="32dp"
-                android:background="#FFFFFF"
+                android:background="?attr/colorSurface"
                 android:padding="12dp"
                 android:contentDescription="@string/mailbox_qr_label" />
 
@@ -218,7 +218,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:gravity="center"
-                android:textColor="#7B68EE"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="11sp"
                 android:fontFamily="monospace"
                 android:textIsSelectable="true" />
@@ -229,7 +229,7 @@
                 android:layout_marginTop="24dp"
                 android:gravity="center"
                 android:text="@string/mailbox_owner_qr_warning"
-                android:textColor="#FF9800"
+                android:textColor="?attr/colorTertiary"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
@@ -238,9 +238,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="24dp"
-                android:backgroundTint="#4CAF50"
+                android:backgroundTint="@color/green_500"
                 android:text="@string/mailbox_btn_validate"
-                android:textColor="#FFFFFF"
+                android:textColor="?android:attr/textColorPrimaryInverse"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 app:cornerRadius="16dp" />

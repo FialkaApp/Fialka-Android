@@ -1,68 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/splash_background">
+    android:background="?android:attr/colorBackground">
 
-    <!-- App logo -->
-    <ImageView
-        android:id="@+id/ivLogo"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:src="@mipmap/ic_launcher"
-        android:contentDescription="@string/app_name"
+    <View
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:layout_marginTop="-72dp"
+        android:layout_marginEnd="-60dp"
+        android:background="@drawable/bg_brand_orb_primary"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/tvTitle"
-        app:layout_constraintVertical_chainStyle="packed"
-        app:layout_constraintVertical_bias="0.2" />
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Fialka"
-        android:textColor="#FFFFFF"
-        android:textSize="32sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.05"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/ivLogo" />
+    <View
+        android:layout_width="190dp"
+        android:layout_height="190dp"
+        android:layout_marginStart="-56dp"
+        android:layout_marginBottom="48dp"
+        android:background="@drawable/bg_brand_orb_secondary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
-    <TextView
-        android:id="@+id/tvSubtitle"
+    <LinearLayout
+        android:id="@+id/headerBlock"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginHorizontal="48dp"
-        android:gravity="center"
-        android:text="@string/mode_choice_subtitle"
-        android:textColor="#9E9BB0"
-        android:textSize="14sp"
-        android:lineSpacingExtra="4dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="24dp"
+        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <!-- NORMAL MODE button -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_crypto_badge"
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/mode_choice_eyebrow"
+            android:textAllCaps="true"
+            android:textColor="?attr/colorTertiary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/ivLogo"
+            android:layout_width="92dp"
+            android:layout_height="92dp"
+            android:layout_marginTop="20dp"
+            android:contentDescription="@string/app_name"
+            android:src="@mipmap/ic_launcher" />
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="@string/mode_choice_title"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="30sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:maxWidth="320dp"
+            android:text="@string/mode_choice_subtitle"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="14sp" />
+    </LinearLayout>
+
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardNormal"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="40dp"
-        app:cardBackgroundColor="#1A1A2E"
-        app:cardCornerRadius="16dp"
-        app:strokeColor="#7B68EE"
-        app:strokeWidth="1dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="28dp"
+        android:layout_marginEnd="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        app:cardBackgroundColor="?attr/colorSurfaceContainer"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvSubtitle">
+        app:layout_constraintTop_toBottomOf="@id/headerBlock"
+        app:strokeColor="?attr/colorPrimary"
+        app:strokeWidth="1dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -73,39 +106,53 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_crypto_badge"
+                android:paddingStart="12dp"
+                android:paddingTop="7dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="7dp"
+                android:text="@string/mode_choice_tag_normal"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
                 android:text="@string/mode_normal_title"
-                android:textColor="#7B68EE"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:drawableStart="@android:drawable/ic_dialog_email"
-                android:drawablePadding="12dp"
-                android:drawableTint="#7B68EE" />
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="@string/mode_normal_desc"
-                android:textColor="#8B8B9E"
-                android:textSize="13sp"
-                android:lineSpacingExtra="3dp" />
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- MAILBOX MODE button -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardMailbox"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="16dp"
-        app:cardBackgroundColor="#1A1A2E"
-        app:cardCornerRadius="16dp"
-        app:strokeColor="#4CAF50"
-        app:strokeWidth="1dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="24dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
+        app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/cardNormal">
+        app:layout_constraintTop_toBottomOf="@id/cardNormal"
+        app:strokeColor="?attr/colorOutline"
+        app:strokeWidth="1dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -116,35 +163,45 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_crypto_badge"
+                android:paddingStart="12dp"
+                android:paddingTop="7dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="7dp"
+                android:text="@string/mode_choice_tag_mailbox"
+                android:textColor="?attr/colorTertiary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
                 android:text="@string/mode_mailbox_title"
-                android:textColor="#4CAF50"
-                android:textSize="20sp"
-                android:textStyle="bold"
-                android:drawableStart="@android:drawable/ic_menu_save"
-                android:drawablePadding="12dp"
-                android:drawableTint="#4CAF50" />
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="@string/mode_mailbox_desc"
-                android:textColor="#8B8B9E"
-                android:textSize="13sp"
-                android:lineSpacingExtra="3dp" />
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Warning -->
     <TextView
         android:id="@+id/tvWarning"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="48dp"
-        android:layout_marginTop="24dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="18dp"
+        android:layout_marginEnd="32dp"
         android:gravity="center"
         android:text="@string/mode_choice_warning"
-        android:textColor="#FF6B6B"
+        android:textColor="?attr/colorTertiary"
         android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

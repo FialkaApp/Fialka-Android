@@ -356,7 +356,7 @@ class MailboxDashboardFragment : Fragment() {
         _binding = null
     }
 
-    // ── Simple member list adapter ──
+    // ── Modern member list adapter with MaterialCardView ──
 
     private class MemberAdapter(
         private val onMemberClick: (MailboxMember) -> Unit
@@ -369,48 +369,32 @@ class MailboxDashboardFragment : Fragment() {
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-            val row = LinearLayout(parent.context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = android.view.Gravity.CENTER_VERTICAL
-                setPadding(32, 16, 32, 16)
-                layoutParams = RecyclerView.LayoutParams(
-                    RecyclerView.LayoutParams.MATCH_PARENT,
-                    RecyclerView.LayoutParams.WRAP_CONTENT
-                )
-                isClickable = true
-                isFocusable = true
-                setBackgroundResource(android.R.color.transparent)
-            }
-            val tv = TextView(parent.context).apply {
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                textSize = 12f
-                setTextColor(0xFF9E9BB0.toInt())
-                fontFeatureSettings = "tnum"
-                typeface = android.graphics.Typeface.MONOSPACE
-            }
-            val roleTv = TextView(parent.context).apply {
-                textSize = 11f
-                setPadding(16, 4, 16, 4)
-            }
-            row.addView(tv)
-            row.addView(roleTv)
-            return VH(row, tv, roleTv)
+            val binding = com.fialkaapp.fialka.databinding.ItemMailboxMemberBinding.inflate(
+                android.view.LayoutInflater.from(parent.context), parent, false
+            )
+            return VH(binding)
         }
 
         override fun onBindViewHolder(holder: VH, position: Int) {
             val m = members[position]
-            val roleTag = if (m.role == "OWNER") " 👑" else ""
             val keyShort = m.pubKey.take(16) + "…"
-            holder.keyTv.text = "$keyShort$roleTag"
-            holder.roleTv.text = m.role
-            holder.roleTv.setTextColor(
-                if (m.role == "OWNER") 0xFFFF9800.toInt() else 0xFF7B68EE.toInt()
-            )
+            holder.binding.tvMemberKey.text = keyShort
+            holder.binding.tvMemberRole.text = if (m.role == "OWNER") "Propriétaire 👑" else "Membre"
+
+            // Color based on role
+            val roleColor = if (m.role == "OWNER") {
+                holder.itemView.context.getColor(com.fialkaapp.fialka.R.color.orange_500)
+            } else {
+                holder.itemView.context.getColor(com.fialkaapp.fialka.R.color.purple_500)
+            }
+            holder.binding.tvMemberRole.setTextColor(roleColor)
+
             holder.itemView.setOnClickListener { onMemberClick(m) }
         }
 
         override fun getItemCount() = members.size
 
-        class VH(view: View, val keyTv: TextView, val roleTv: TextView) : RecyclerView.ViewHolder(view)
+        class VH(val binding: com.fialkaapp.fialka.databinding.ItemMailboxMemberBinding) :
+            RecyclerView.ViewHolder(binding.root)
     }
 }

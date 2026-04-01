@@ -83,7 +83,9 @@
             android:layout_marginTop="20dp"
             android:text="@string/restore_button"
             android:textAllCaps="false"
+            android:textColor="?android:attr/textColorPrimaryInverse"
             android:textSize="16sp"
+            app:backgroundTint="?attr/colorPrimary"
             app:cornerRadius="28dp" />
 
         <!-- Progress -->

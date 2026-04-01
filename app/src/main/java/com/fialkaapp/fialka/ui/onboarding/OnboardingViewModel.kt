@@ -24,7 +24,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.fialkaapp.fialka.data.model.UserLocal
 import com.fialkaapp.fialka.data.repository.ChatRepository
-import com.fialkaapp.fialka.tor.TorManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 
@@ -59,8 +58,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                     val user = repository.createUser(displayName.trim())
 
                     // Identity now exists — publish .onion (Tor is already connected)
-                    TorManager.publishOnionIfReady()
-
                     _state.value = OnboardingState.Success(user)
                 }
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {

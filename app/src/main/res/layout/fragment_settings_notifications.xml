@@ -28,73 +28,81 @@
             android:paddingTop="16dp"
             android:paddingBottom="32dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginBottom="4dp"
-                android:text="Notifications push"
-                android:textColor="@color/primary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
-
-            <!-- Push toggle -->
-            <LinearLayout
+            <!-- Notifications Card -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="14dp">
+                android:layout_marginHorizontal="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Activer les notifications"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textSize="16sp" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
 
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Notifications push"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:text="Recevoir des notifications quand l'app est fermée"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="13sp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchPush"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+
+                    <!-- Status -->
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:id="@+id/tvPushStatus"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:text="Recevoir des notifications quand l'app est fermée"
+                        android:layout_marginTop="12dp"
+                        android:paddingHorizontal="8dp"
+                        android:text="🔒 Désactivé par défaut pour protéger votre vie privée"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
+
                 </LinearLayout>
 
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switchPush"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
-            </LinearLayout>
-
-            <!-- Status -->
-            <TextView
-                android:id="@+id/tvPushStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:paddingHorizontal="16dp"
-                android:text="🔒 Désactivé par défaut pour protéger votre vie privée"
-                android:textColor="?android:attr/textColorSecondary"
-                android:textSize="12sp" />
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Info card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="12dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="0dp"
-                app:strokeColor="@color/grey_medium"
+                app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="1dp">
 
                 <LinearLayout
@@ -120,6 +128,7 @@
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>
+
             </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>

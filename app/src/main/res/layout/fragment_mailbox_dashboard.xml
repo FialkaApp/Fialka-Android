@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/splash_background">
+    android:background="?android:attr/colorBackground">
 
     <!-- Header -->
     <TextView
@@ -13,24 +13,23 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:text="@string/mailbox_dashboard_title"
-        android:textColor="#FFFFFF"
-        android:textSize="24sp"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="28sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Refresh button -->
-    <ImageButton
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnRefreshDashboard"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:layout_marginTop="24dp"
         android:layout_marginEnd="16dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Refresh"
-        android:src="@android:drawable/stat_notify_sync"
-        app:tint="#7B68EE"
+        app:srcCompat="@android:drawable/stat_notify_sync"
+        app:tint="?attr/colorPrimary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -39,9 +38,9 @@
         android:id="@+id/tvStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:text="@string/mailbox_status_running"
-        android:textColor="#4CAF50"
+        android:textColor="@color/green_500"
         android:textSize="13sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -65,9 +64,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
-            app:cardBackgroundColor="#1A1A2E"
             app:cardCornerRadius="12dp"
-            app:strokeColor="#2A2A3E"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorOutline"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -82,7 +81,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#7B68EE"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="28sp"
                     android:textStyle="bold" />
 
@@ -90,7 +89,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Déposés"
-                    android:textColor="#8B8B9E"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -101,9 +100,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginHorizontal="4dp"
-            app:cardBackgroundColor="#1A1A2E"
             app:cardCornerRadius="12dp"
-            app:strokeColor="#2A2A3E"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorOutline"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -118,7 +117,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#4CAF50"
+                    android:textColor="@color/green_500"
                     android:textSize="28sp"
                     android:textStyle="bold" />
 
@@ -126,7 +125,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Récupérés"
-                    android:textColor="#8B8B9E"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -137,9 +136,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="4dp"
-            app:cardBackgroundColor="#1A1A2E"
             app:cardCornerRadius="12dp"
-            app:strokeColor="#2A2A3E"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorOutline"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -154,7 +153,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0 B"
-                    android:textColor="#FF9800"
+                    android:textColor="?attr/colorTertiary"
                     android:textSize="28sp"
                     android:textStyle="bold" />
 
@@ -162,7 +161,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Transféré"
-                    android:textColor="#8B8B9E"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -186,9 +185,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
-            app:cardBackgroundColor="#1A1A2E"
             app:cardCornerRadius="12dp"
-            app:strokeColor="#2A2A3E"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorOutline"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -203,7 +202,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#7B68EE"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
@@ -211,7 +210,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="En attente"
-                    android:textColor="#8B8B9E"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="11sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -222,9 +221,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginHorizontal="4dp"
-            app:cardBackgroundColor="#1A1A2E"
             app:cardCornerRadius="12dp"
-            app:strokeColor="#2A2A3E"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorOutline"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -239,7 +238,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="#4CAF50"
+                    android:textColor="@color/green_500"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
@@ -247,7 +246,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/mailbox_members"
-                    android:textColor="#8B8B9E"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="11sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -258,9 +257,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="4dp"
-            app:cardBackgroundColor="#1A1A2E"
             app:cardCornerRadius="12dp"
-            app:strokeColor="#2A2A3E"
+            app:cardElevation="0dp"
+            app:strokeColor="?attr/colorOutline"
             app:strokeWidth="1dp">
 
             <LinearLayout
@@ -275,7 +274,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0 B"
-                    android:textColor="#FF9800"
+                    android:textColor="?attr/colorTertiary"
                     android:textSize="22sp"
                     android:textStyle="bold" />
 
@@ -283,7 +282,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/mailbox_storage"
-                    android:textColor="#8B8B9E"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="11sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -296,9 +295,9 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="16dp"
-        app:cardBackgroundColor="#1A1A2E"
         app:cardCornerRadius="12dp"
-        app:strokeColor="#2A2A3E"
+        app:cardElevation="0dp"
+        app:strokeColor="?attr/colorOutline"
         app:strokeWidth="1dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -314,7 +313,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/mailbox_onion_label"
-                android:textColor="#9E9BB0"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="12sp" />
 
             <TextView
@@ -323,10 +322,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:fontFamily="monospace"
-                android:textColor="#7B68EE"
+                android:textColor="?attr/colorPrimary"
                 android:textSize="11sp"
                 android:textIsSelectable="true" />
         </LinearLayout>
+
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Members list (for PRIVATE mode) -->
@@ -337,7 +337,7 @@
         android:layout_marginStart="20dp"
         android:layout_marginTop="20dp"
         android:text="@string/mailbox_members_label"
-        android:textColor="#FFFFFF"
+        android:textColor="?android:attr/textColorPrimary"
         android:textSize="16sp"
         android:textStyle="bold"
         android:visibility="gone"
@@ -377,9 +377,8 @@
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
             android:text="@string/mailbox_purge"
-            android:textColor="#FF9800"
             app:cornerRadius="12dp"
-            app:strokeColor="#FF9800" />
+            app:strokeColor="?attr/colorTertiary" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnInvite"
@@ -387,9 +386,9 @@
             android:layout_height="48dp"
             android:layout_weight="1"
             android:layout_marginStart="4dp"
-            android:backgroundTint="#4CAF50"
+            android:backgroundTint="@color/green_500"
             android:text="@string/mailbox_invite"
-            android:textColor="#FFFFFF"
+            android:textColor="?android:attr/textColorPrimaryInverse"
             app:cornerRadius="12dp" />
     </LinearLayout>
 
@@ -402,9 +401,8 @@
         android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="8dp"
         android:text="@string/mailbox_dashboard_share_link"
-        android:textColor="#7B68EE"
         app:cornerRadius="12dp"
-        app:strokeColor="#7B68EE"
+        app:strokeColor="?attr/colorPrimary"
         app:layout_constraintBottom_toTopOf="@id/btnDeleteMailbox"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -418,11 +416,10 @@
         android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="24dp"
         android:text="@string/mailbox_delete"
-        android:textColor="#FF4444"
         app:cornerRadius="12dp"
-        app:strokeColor="#FF4444"
+        app:strokeColor="@color/red_500"
         app:icon="@android:drawable/ic_menu_delete"
-        app:iconTint="#FF4444"
+        app:iconTint="@color/red_500"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

@@ -42,7 +42,6 @@ import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.MnemonicManager
 import com.fialkaapp.fialka.data.repository.ChatRepository
-import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.databinding.FragmentRestoreBinding
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
@@ -278,8 +277,6 @@ class RestoreFragment : Fragment() {
                     repository.createUserWithKey(displayName, publicKey)
 
                     // Identity restored — publish .onion (Tor is already connected)
-                    TorManager.publishOnionIfReady()
-
                     findNavController().navigate(R.id.action_restore_to_torBootstrap)
                 }
             } catch (e: Exception) {

@@ -26,6 +26,12 @@
     <color name="info_box_stroke">#FF1A3A5C</color>
     <color name="info_message_background">#FF1A1A1A</color>
 
+    <!-- Semantic colors for Material 3 -->
+    <color name="green_500">#FF4CAF50</color>
+    <color name="red_500">#FFFF4444</color>
+    <color name="orange_500">#FFFF9800</color>
+    <color name="purple_500">#FF7B68EE</color>
+
     <!-- Toolbar: surface-based (modern flat) instead of green block -->
     <color name="toolbar_background">#FF161616</color>
     <color name="toolbar_title">#FFE8E8E8</color>

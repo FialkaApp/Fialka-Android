@@ -24,18 +24,20 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.biometric.BiometricManager
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.databinding.FragmentSettingsSecurityBinding
 import com.fialkaapp.fialka.tor.TorCircuit
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.tor.TorState
+import com.fialkaapp.fialka.ui.settings.DurationSelectorBottomSheet
 import com.fialkaapp.fialka.util.AppLockManager
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 class SecurityFragment : Fragment() {
@@ -63,21 +65,21 @@ class SecurityFragment : Fragment() {
 
     private fun setupAutoLock() {
         binding.layoutAutoLock.setOnClickListener {
-            val labels = AppLockManager.AUTO_LOCK_LABELS
-            val options = AppLockManager.AUTO_LOCK_OPTIONS
             val currentDelay = AppLockManager.getAutoLockDelay(requireContext())
-            val checkedIndex = options.indexOf(currentDelay).coerceAtLeast(0)
-
-            AlertDialog.Builder(requireContext())
-                .setTitle("Verrouillage automatique")
-                .setSingleChoiceItems(labels, checkedIndex) { dialog, which ->
-                    AppLockManager.setAutoLockDelay(requireContext(), options[which])
-                    binding.tvAutoLockSummary.text = "Après ${labels[which].lowercase()}"
-                    dialog.dismiss()
-                }
-                .setNegativeButton("Annuler", null)
-                .show()
+            DurationSelectorBottomSheet.show(
+                childFragmentManager,
+                DurationSelectorBottomSheet.Mode.AUTO_LOCK,
+                currentDelay
+            ) { selectedDelay ->
+                AppLockManager.setAutoLockDelay(requireContext(), selectedDelay)
+                updateAutoLockLabel()
+            }
         }
+    }
+
+    private fun updateAutoLockLabel() {
+        val label = AppLockManager.getAutoLockLabel(requireContext())
+        binding.tvAutoLockSummary.text = "Après ${label.lowercase()}"
     }
 
     private fun setupPin() {
@@ -89,17 +91,15 @@ class SecurityFragment : Fragment() {
             if (isChecked) {
                 showPinSetup(changing = false)
             } else {
-                AlertDialog.Builder(requireContext())
-                    .setTitle("Désactiver le code")
-                    .setMessage("Êtes-vous sûr de vouloir supprimer le code de verrouillage ?")
-                    .setPositiveButton("Supprimer") { _, _ ->
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.setting_security_disable_pin_title)
+                    .setMessage(R.string.setting_security_disable_pin_message)
+                    .setPositiveButton(R.string.action_remove) { _, _ ->
                         AppLockManager.removePin(requireContext())
                         updatePinUI(false)
                         Toast.makeText(requireContext(), "Code supprimé", Toast.LENGTH_SHORT).show()
                     }
-                    .setNegativeButton("Annuler") { _, _ ->
-                        binding.switchPin.isChecked = true
-                    }
+                    .setNegativeButton(R.string.action_cancel, null)
                     .setCancelable(false)
                     .show()
             }
@@ -145,9 +145,7 @@ class SecurityFragment : Fragment() {
 
     private fun updatePinUI(pinSet: Boolean) {
         binding.switchPin.isChecked = pinSet
-        binding.layoutChangePin.visibility = if (pinSet) View.VISIBLE else View.GONE
-        binding.layoutAutoLock.visibility = if (pinSet) View.VISIBLE else View.GONE
-        binding.dividerAutoLock.visibility = if (pinSet) View.VISIBLE else View.GONE
+        binding.layoutPinOptions.visibility = if (pinSet) View.VISIBLE else View.GONE
         binding.tvPinStatus.text = if (pinSet) {
             "✅ Code actif — demandé à chaque ouverture"
         } else {
@@ -155,25 +153,21 @@ class SecurityFragment : Fragment() {
         }
 
         if (pinSet) {
-            val label = AppLockManager.getAutoLockLabel(requireContext())
-            binding.tvAutoLockSummary.text = "Après ${label.lowercase()}"
+            updateAutoLockLabel()
             val bm = BiometricManager.from(requireContext())
             val canAuth = bm.canAuthenticate(
                 BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK
             )
             if (canAuth == BiometricManager.BIOMETRIC_SUCCESS || canAuth == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
-                binding.tvBiometricHeader.visibility = View.VISIBLE
-                binding.layoutBiometric.visibility = View.VISIBLE
+                binding.cardBiometric.visibility = View.VISIBLE
                 val bioEnabled = AppLockManager.isBiometricEnabled(requireContext())
                 binding.switchBiometric.isChecked = bioEnabled
                 updateBiometricStatus(bioEnabled)
             } else {
-                binding.tvBiometricHeader.visibility = View.GONE
-                binding.layoutBiometric.visibility = View.GONE
+                binding.cardBiometric.visibility = View.GONE
             }
         } else {
-            binding.tvBiometricHeader.visibility = View.GONE
-            binding.layoutBiometric.visibility = View.GONE
+            binding.cardBiometric.visibility = View.GONE
         }
     }
 
@@ -187,7 +181,7 @@ class SecurityFragment : Fragment() {
 
     private fun setupTor() {
         // Tor is mandatory — no toggle, just show status + reconnect
-        binding.layoutTorReconnect.setOnClickListener {
+        binding.btnReconnect.setOnClickListener {
             binding.torProgressIndicator.visibility = View.VISIBLE
             binding.torProgressIndicator.isIndeterminate = true
             TorManager.restart()

@@ -4,19 +4,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/splash_background">
+    android:background="?android:attr/colorBackground">
 
     <!-- Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@android:color/transparent"
+        android:background="?attr/colorToolbarBackground"
+        android:elevation="0dp"
         app:layout_constraintTop_toTopOf="parent"
         app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="#FFFFFF"
+        app:navigationIconTint="?attr/colorToolbarIcon"
         app:title="Mailbox"
-        app:titleTextColor="#FFFFFF" />
+        app:titleTextColor="?attr/colorToolbarTitle" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -42,7 +43,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/mailbox_client_no_connection"
-                    android:textColor="#9E9BB0"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="14sp"
                     android:gravity="center"
                     android:layout_marginBottom="24dp" />
@@ -53,28 +54,28 @@
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:text="@string/mailbox_client_scan_qr"
-                    android:textColor="#FFFFFF"
+                    android:textColor="?android:attr/textColorPrimaryInverse"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     app:icon="@drawable/ic_qr_scan"
                     app:iconGravity="textStart"
-                    app:iconTint="#FFFFFF"
+                    app:iconTint="?android:attr/textColorPrimaryInverse"
                     app:cornerRadius="16dp"
-                    app:backgroundTint="#7B68EE" />
+                    app:backgroundTint="?attr/colorPrimary" />
 
                 <!-- Paste link button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnPasteLink"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginTop="12dp"
                     android:text="@string/mailbox_client_paste_link"
-                    android:textColor="#7B68EE"
+                    android:textColor="?attr/colorPrimary"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     app:cornerRadius="16dp"
-                    app:strokeColor="#7B68EE"
+                    app:strokeColor="?attr/colorPrimary"
                     app:strokeWidth="1dp" />
 
             </LinearLayout>
@@ -108,7 +109,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/mailbox_status_checking"
-                        android:textColor="#9E9BB0"
+                        android:textColor="?android:attr/textColorSecondary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -116,28 +117,29 @@
                         android:id="@+id/progressPing"
                         android:layout_width="20dp"
                         android:layout_height="20dp"
-                        android:indeterminateTint="#7B68EE"
+                        android:indeterminateTint="?attr/colorPrimary"
                         android:visibility="visible" />
 
-                    <ImageButton
+                    <com.google.android.material.floatingactionbutton.FloatingActionButton
                         android:id="@+id/btnRefresh"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
                         android:layout_marginStart="8dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="Refresh"
-                        android:src="@android:drawable/stat_notify_sync"
-                        app:tint="#7B68EE"
-                        android:visibility="gone" />
+                        app:srcCompat="@android:drawable/stat_notify_sync"
+                        app:tint="?attr/colorPrimary"
+                        android:visibility="gone"
+                        app:backgroundTint="?attr/colorSurface"
+                        app:elevation="0dp" />
                 </LinearLayout>
 
                 <!-- Connected mailbox card -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:cardBackgroundColor="#1A1A2E"
                     app:cardCornerRadius="16dp"
-                    app:strokeColor="#4CAF50"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/green_500"
                     app:strokeWidth="1dp"
                     android:layout_marginBottom="16dp">
 
@@ -152,7 +154,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/mailbox_client_type_label"
-                            android:textColor="#9E9BB0"
+                            android:textColor="?android:attr/textColorSecondary"
                             android:textSize="12sp"
                             android:layout_marginBottom="4dp" />
 
@@ -160,7 +162,7 @@
                             android:id="@+id/tvMailboxType"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="#FFFFFF"
+                            android:textColor="?android:attr/textColorPrimary"
                             android:textSize="14sp"
                             android:textStyle="bold"
                             android:layout_marginBottom="16dp" />
@@ -170,7 +172,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/mailbox_client_role_label"
-                            android:textColor="#9E9BB0"
+                            android:textColor="?android:attr/textColorSecondary"
                             android:textSize="12sp"
                             android:layout_marginBottom="4dp" />
 
@@ -178,7 +180,7 @@
                             android:id="@+id/tvRole"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textColor="#7B68EE"
+                            android:textColor="?attr/colorPrimary"
                             android:textSize="14sp"
                             android:textStyle="bold"
                             android:layout_marginBottom="16dp" />
@@ -188,7 +190,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/mailbox_client_onion_label"
-                            android:textColor="#9E9BB0"
+                            android:textColor="?android:attr/textColorSecondary"
                             android:textSize="12sp"
                             android:layout_marginBottom="4dp" />
 
@@ -197,7 +199,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:fontFamily="monospace"
-                            android:textColor="#FFFFFF"
+                            android:textColor="?android:attr/textColorPrimary"
                             android:textSize="12sp"
                             android:textIsSelectable="true" />
 
@@ -218,7 +220,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/mailbox_members_label"
-                        android:textColor="#FFFFFF"
+                        android:textColor="?android:attr/textColorPrimary"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp" />
@@ -229,7 +231,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
-                        android:indeterminateTint="#7B68EE"
+                        android:indeterminateTint="?attr/colorPrimary"
                         android:visibility="gone" />
 
                     <!-- No members text -->
@@ -238,7 +240,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/mailbox_owner_no_members"
-                        android:textColor="#9E9BB0"
+                        android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp"
                         android:gravity="center"
                         android:visibility="gone"
@@ -265,24 +267,24 @@
                             android:layout_height="48dp"
                             android:layout_weight="1"
                             android:layout_marginEnd="6dp"
-                            android:backgroundTint="#4CAF50"
+                            android:backgroundTint="@color/green_500"
                             android:text="@string/mailbox_owner_invite_remote"
-                            android:textColor="#FFFFFF"
+                            android:textColor="?android:attr/textColorPrimaryInverse"
                             android:textSize="13sp"
                             app:cornerRadius="12dp" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnShareLink"
-                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
                             android:layout_width="0dp"
                             android:layout_height="48dp"
                             android:layout_weight="1"
                             android:layout_marginStart="6dp"
                             android:text="@string/mailbox_owner_share_link"
-                            android:textColor="#7B68EE"
+                            android:textColor="?attr/colorPrimary"
                             android:textSize="13sp"
                             app:cornerRadius="12dp"
-                            app:strokeColor="#7B68EE"
+                            app:strokeColor="?attr/colorPrimary"
                             app:strokeWidth="1dp" />
                     </LinearLayout>
 
@@ -291,15 +293,15 @@
                 <!-- Disconnect button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDisconnect"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:text="@string/mailbox_client_disconnect"
-                    android:textColor="#FF4444"
+                    android:textColor="@color/red_500"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     app:cornerRadius="16dp"
-                    app:strokeColor="#FF4444"
+                    app:strokeColor="@color/red_500"
                     app:strokeWidth="1dp"
                     android:layout_marginTop="8dp" />
 

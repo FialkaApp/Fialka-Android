@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/splash_background">
+    android:background="?android:attr/colorBackground">
 
-    <!-- Subtle gradient overlay -->
     <View
-        android:id="@+id/gradientOverlay"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="@drawable/bg_onboarding_gradient"
@@ -17,156 +14,169 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- App logo (sans texte) -->
-    <ImageView
-        android:id="@+id/ivLogo"
-        android:layout_width="140dp"
-        android:layout_height="140dp"
-        android:src="@mipmap/ic_launcher"
-        android:contentDescription="@string/app_name"
-        app:layout_constraintBottom_toTopOf="@id/tvTitle"
+    <View
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:layout_marginTop="-84dp"
+        android:layout_marginEnd="-48dp"
+        android:background="@drawable/bg_brand_orb_primary"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="packed"
-        app:layout_constraintVertical_bias="0.28" />
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Title -->
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:fontFamily="sans-serif-medium"
-        android:text="@string/onboarding_title"
-        android:textColor="#FFFFFF"
-        android:textSize="36sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.05"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/ivLogo" />
-
-    <!-- Russian name -->
-    <TextView
-        android:id="@+id/tvRussianName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="Фиалка"
-        android:textColor="#8B7EC8"
-        android:textSize="16sp"
-        android:letterSpacing="0.15"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle" />
-
-    <!-- Subtitle -->
-    <TextView
-        android:id="@+id/tvSubtitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center"
-        android:lineSpacingExtra="4dp"
-        android:text="@string/onboarding_subtitle"
-        android:textColor="#9E9BB0"
-        android:textSize="14sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvRussianName" />
-
-    <!-- Crypto badge -->
-    <TextView
-        android:id="@+id/tvCryptoBadge"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/bg_crypto_badge"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="6dp"
-        android:text="PQXDH · X25519 · ML-KEM-1024 · AES-256-GCM"
-        android:textColor="#6C63A0"
-        android:textSize="9sp"
-        android:letterSpacing="0.08"
-        android:fontFamily="monospace"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvSubtitle" />
-
-    <!-- Username Input -->
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilDisplayName"
+    <ScrollView
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="40dp"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-        app:boxStrokeColor="#7B68EE"
-        app:hintTextColor="#7B68EE"
-        app:boxCornerRadiusBottomEnd="16dp"
-        app:boxCornerRadiusBottomStart="16dp"
-        app:boxCornerRadiusTopEnd="16dp"
-        app:boxCornerRadiusTopStart="16dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingStart="24dp"
+        android:paddingTop="28dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvCryptoBadge">
+        app:layout_constraintTop_toTopOf="parent">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etDisplayName"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/enter_display_name"
-            android:inputType="textPersonName"
-            android:maxLength="30"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#6E6B80" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
 
-    <!-- Create Identity Button -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnCreateIdentity"
-        android:layout_width="0dp"
-        android:layout_height="56dp"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="20dp"
-        android:text="@string/create_identity"
-        android:textAllCaps="false"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:backgroundTint="#7B68EE"
-        app:cornerRadius="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tilDisplayName" />
+            <TextView
+                android:id="@+id/tvRussianName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_crypto_badge"
+                android:paddingStart="14dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="8dp"
+                android:text="@string/onboarding_eyebrow"
+                android:textAllCaps="true"
+                android:textColor="?attr/colorTertiary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
-    <!-- Restore Button -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnRestore"
-        style="@style/Widget.Material3.Button.TextButton"
-        android:layout_width="0dp"
-        android:layout_height="48dp"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="8dp"
-        android:text="@string/restore_identity"
-        android:textAllCaps="false"
-        android:textColor="#7B68EE"
-        android:textSize="14sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnCreateIdentity" />
+            <FrameLayout
+                android:layout_width="136dp"
+                android:layout_height="136dp"
+                android:layout_marginTop="22dp"
+                android:background="@drawable/bg_brand_panel">
 
-    <!-- Progress Bar -->
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:visibility="gone"
-        android:indeterminateTint="#7B68EE"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnRestore" />
+                <ImageView
+                    android:id="@+id/ivLogo"
+                    android:layout_width="84dp"
+                    android:layout_height="84dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@string/app_name"
+                    android:src="@mipmap/ic_launcher" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:gravity="center"
+                android:text="@string/onboarding_title_alt"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="30sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:text="@string/onboarding_subtitle_alt"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvCryptoBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/bg_crypto_badge"
+                android:fontFamily="monospace"
+                android:paddingStart="14dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="14dp"
+                android:paddingBottom="8dp"
+                android:text="PQXDH · X25519 · ML-KEM-1024 · AES-256-GCM"
+                android:textColor="?attr/colorTertiary"
+                android:textSize="10sp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilDisplayName"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:boxCornerRadiusBottomEnd="20dp"
+                        app:boxCornerRadiusBottomStart="20dp"
+                        app:boxCornerRadiusTopEnd="20dp"
+                        app:boxCornerRadiusTopStart="20dp"
+                        app:boxStrokeColor="?attr/colorPrimary"
+                        app:hintTextColor="?attr/colorPrimary">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etDisplayName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="@string/enter_display_name"
+                            android:inputType="textPersonName"
+                            android:maxLength="30" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnCreateIdentity"
+                        android:layout_width="match_parent"
+                        android:layout_height="56dp"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/create_identity"
+                        android:textAllCaps="false"
+                        android:textStyle="bold"
+                        app:backgroundTint="?attr/colorPrimary"
+                        app:cornerRadius="20dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRestore"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="6dp"
+                        android:text="@string/restore_identity"
+                        android:textAllCaps="false"
+                        android:textColor="?attr/colorPrimary" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:indeterminateTint="?attr/colorPrimary"
+                android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

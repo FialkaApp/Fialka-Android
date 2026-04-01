@@ -64,7 +64,7 @@ class BackupPhraseFragment : Fragment() {
         }
 
         binding.btnContinue.setOnClickListener {
-            findNavController().navigate(R.id.action_backup_to_torBootstrap)
+            findNavController().navigate(R.id.action_backup_to_seedVerification)
         }
     }
 

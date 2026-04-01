@@ -20,7 +20,6 @@ package com.fialkaapp.fialka.ui.mode
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
@@ -30,7 +29,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -147,7 +145,7 @@ class MailboxSettingsFragment : Fragment() {
         binding.progressPing.visibility = View.VISIBLE
         binding.btnRefresh.visibility = View.GONE
         binding.tvConnectionStatus.text = getString(R.string.mailbox_status_checking)
-        binding.tvConnectionStatus.setTextColor(Color.parseColor("#9E9BB0"))
+        binding.tvConnectionStatus.setTextColor(requireContext().getColor(com.fialkaapp.fialka.R.color.grey_medium))
 
         viewLifecycleOwner.lifecycleScope.launch {
             val online = MailboxClientManager.pingMailbox()
@@ -158,14 +156,14 @@ class MailboxSettingsFragment : Fragment() {
 
             if (online) {
                 binding.tvConnectionStatus.text = getString(R.string.mailbox_status_online)
-                binding.tvConnectionStatus.setTextColor(Color.parseColor("#4CAF50"))
+                binding.tvConnectionStatus.setTextColor(requireContext().getColor(com.fialkaapp.fialka.R.color.green_500))
                 val dot = binding.statusDot.background
-                if (dot is GradientDrawable) dot.setColor(Color.parseColor("#4CAF50"))
+                if (dot is GradientDrawable) dot.setColor(requireContext().getColor(com.fialkaapp.fialka.R.color.green_500))
             } else {
                 binding.tvConnectionStatus.text = getString(R.string.mailbox_status_offline)
-                binding.tvConnectionStatus.setTextColor(Color.parseColor("#FF4444"))
+                binding.tvConnectionStatus.setTextColor(requireContext().getColor(com.fialkaapp.fialka.R.color.red_500))
                 val dot = binding.statusDot.background
-                if (dot is GradientDrawable) dot.setColor(Color.parseColor("#FF4444"))
+                if (dot is GradientDrawable) dot.setColor(requireContext().getColor(com.fialkaapp.fialka.R.color.red_500))
             }
         }
     }
@@ -207,25 +205,27 @@ class MailboxSettingsFragment : Fragment() {
                 val label = TextView(requireContext()).apply {
                     text = "$roleEmoji$keyShort"
                     textSize = 13f
-                    setTextColor(Color.parseColor("#9E9BB0"))
+                    setTextColor(requireContext().getColor(com.fialkaapp.fialka.R.color.grey_medium))
                     typeface = Typeface.MONOSPACE
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 }
                 row.addView(label)
 
                 val roleTag = TextView(requireContext()).apply {
-                    text = role
+                    text = if (role == "OWNER") "Propriétaire" else "Membre"
                     textSize = 11f
-                    setTextColor(if (role == "OWNER") Color.parseColor("#FF9800") else Color.parseColor("#7B68EE"))
+                    setTextColor(if (role == "OWNER") 
+                        requireContext().getColor(com.fialkaapp.fialka.R.color.orange_500)
+                        else requireContext().getColor(com.fialkaapp.fialka.R.color.purple_500))
                     setPadding(12, 4, 12, 4)
                 }
                 row.addView(roleTag)
 
                 // Kick button — not for self
                 if (pubKeyB64 != myPubKey) {
-                    val kickBtn = ImageButton(requireContext()).apply {
+                    val kickBtn = android.widget.ImageButton(requireContext()).apply {
                         setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-                        setColorFilter(Color.parseColor("#FF4444"))
+                        setColorFilter(requireContext().getColor(com.fialkaapp.fialka.R.color.red_500))
                         setBackgroundResource(android.R.color.transparent)
                         setPadding(12, 8, 12, 8)
                         contentDescription = "Kick"
@@ -303,7 +303,7 @@ class MailboxSettingsFragment : Fragment() {
                 container.addView(iv)
                 val tvExpiry = android.widget.TextView(requireContext()).apply {
                     text = getString(R.string.mailbox_invite_qr_validity)
-                    setTextColor(Color.parseColor("#9E9BB0"))
+                    setTextColor(requireContext().getColor(com.fialkaapp.fialka.R.color.grey_medium))
                     textSize = 12f
                     setPadding(0, 16, 0, 0)
                 }
@@ -381,8 +381,8 @@ class MailboxSettingsFragment : Fragment() {
         val editText = EditText(requireContext()).apply {
             hint = getString(R.string.mailbox_client_paste_prompt)
             setPadding(48, 32, 48, 16)
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.parseColor("#9E9BB0"))
+            setTextColor(requireContext().getColor(com.fialkaapp.fialka.R.color.white))
+            setHintTextColor(requireContext().getColor(com.fialkaapp.fialka.R.color.grey_medium))
         }
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.mailbox_client_paste_link)

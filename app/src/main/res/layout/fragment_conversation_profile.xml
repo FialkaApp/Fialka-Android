@@ -133,7 +133,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="56dp"
-                android:background="@color/grey_medium" />
+                android:background="?attr/colorOutline" />
 
             <!-- Trafic factice -->
             <LinearLayout
@@ -250,7 +250,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="56dp"
-                android:background="@color/grey_medium" />
+                android:background="?attr/colorOutline" />
 
             <!-- Protocole -->
             <LinearLayout
@@ -300,7 +300,7 @@
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="4dp"
                 android:text="Zone danger"
-                android:textColor="#D32F2F"
+                android:textColor="?attr/colorError"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -321,14 +321,14 @@
                     android:layout_height="24dp"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_delete"
-                    app:tint="#D32F2F" />
+                    app:tint="?attr/colorError" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="16dp"
                     android:text="Supprimer la conversation"
-                    android:textColor="#D32F2F"
+                    android:textColor="?attr/colorError"
                     android:textSize="16sp" />
             </LinearLayout>
 

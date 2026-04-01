@@ -81,6 +81,13 @@
         android:label="Sauvegarde"
         tools:layout="@layout/fragment_backup_phrase">
         <action
+            android:id="@+id/action_backup_to_seedVerification"
+            app:destination="@id/seedVerificationFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
             android:id="@+id/action_backup_to_conversations"
             app:destination="@id/conversationsFragment"
             app:popUpTo="@id/backupPhraseFragment"
@@ -92,6 +99,19 @@
             app:destination="@id/torBootstrapFragment"
             app:popUpTo="@id/backupPhraseFragment"
             app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/seedVerificationFragment"
+        android:name="com.fialkaapp.fialka.ui.onboarding.SeedVerificationFragment"
+        android:label="Verification"
+        tools:layout="@layout/fragment_seed_verification">
+        <action
+            android:id="@+id/action_seedVerification_to_torBootstrap"
+            app:destination="@id/torBootstrapFragment"
+            app:popUpTo="@id/backupPhraseFragment"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out" />
     </fragment>

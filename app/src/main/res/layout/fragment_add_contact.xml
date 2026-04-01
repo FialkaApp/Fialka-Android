@@ -115,6 +115,8 @@
             android:layout_marginBottom="32dp"
             android:text="@string/create_conversation"
             android:textAllCaps="false"
+            android:textColor="?android:attr/textColorPrimaryInverse"
+            app:backgroundTint="?attr/colorPrimary"
             app:cornerRadius="28dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
