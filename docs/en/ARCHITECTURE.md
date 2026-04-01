@@ -52,7 +52,95 @@
 | **Invitation system** | QR scan → Tor contact request → accept → active P2P chat |
 
 ---
+## Operating Modes: User vs Mailbox
 
+Fialka supports **two distinct and mutually exclusive modes** on the same device :
+
+### User Mode (default)
+
+**Description** : The phone operates as a standard messaging client.
+
+**Features** :
+- Creation of a Fialka account (identity derived from BIP-39 seed)
+- Generation of a deterministic .onion address (Tor Hidden Service)
+- Sending and receiving E2E encrypted P2P messages
+- Contact and conversation management
+- Ability to accept offline messages via an external Mailbox (Personal, Private, or Public)
+
+**⚠️ Major constraint** : **Only ONE User Mode per phone** — impossible to have User Mode and Mailbox Mode active simultaneously on the same device. Requires 2 phones.
+
+---
+
+### Mailbox Mode (encrypted P2P server)
+
+**Description** : The phone becomes a storage and message transport service for other users.
+
+**Technical operation** :
+1. The Mailbox exposes a permanent .onion address (Tor Hidden Service)
+2. User-mode users send encrypted blobs to the Mailbox (via TorTransport)
+3. Mailbox stores them on disk (zero decryption, blob remains opaque)
+4. Upon TTL expiration (7 days) or after retrieval, blobs are auto-purged
+5. When the Mailbox owner's main phone wakes up, it retrieves messages from Mailbox
+
+**Three sharing models** :
+
+#### 1️⃣ Personal Mailbox
+- Used **solely** by the owner's User-mode phone
+- Each User account has ONE Personal Mailbox
+- Ex: "My Mailbox for when I'm offline"
+- Accessible only by the owner
+
+#### 2️⃣ Private Mailbox (whitelist)
+- Shared with a restricted group (family, friends, colleagues)
+- **OWNER alone** manages whitelist and permissions
+- Only authorized users can deposit messages
+- Granular control: add/remove access anytime
+
+#### 3️⃣ Public Mailbox
+- Accepts messages from **ALL** Fialka users
+- No whitelist, no authentication
+- Useful for: bots, open services, community relays
+
+**Security guarantees** :
+- ✅ **ZERO server-side decryption** — blob completely opaque and incomprehensible to Mailbox
+- ✅ **Raw blob** — no metadata extraction (recipient, timing, actual size, etc.)
+- ✅ **7-day max TTL** — automatic expiration
+- ✅ **Stats only** — cumulative counters only (totalDeposited, totalFetched)
+- ✅ **60s polling** — non-stop message check
+- ✅ **Full UI configuration** — parameters for mode, TTL, whitelist (access in Settings)
+
+**⚠️ Major constraint** : **Requires 2 devices** to function (or borrow from a friend)
+- Device A = User-mode phone (normal usage, messaging)
+- Device B = Mailbox-mode phone (server, stays plugged 24/7 on power + WiFi)
+
+**Real-world use case** :
+- Your main phone runs User Mode (Fialka, messaging)
+- You have an old tablet or spare phone plugged in permanently at home
+- You enable Mailbox Mode on the tablet
+- You configure "Personal Mailbox" on your main phone (Settings → Mailbox)
+- When you're offline, people send you messages → stored in your tablet Mailbox
+- When you come back online: tablet Mailbox delivers all messages, efficient retrieval
+
+---
+
+### Comparison table
+
+| Aspect | User Mode | Mailbox Mode |
+|--------|-----------|--------------|
+| **Role** | Messaging client | P2P transport server |
+| **Can chat** | ✅ Yes | ❌ No |
+| **Receives messages** | ✅ Yes (P2P or via Mailbox) | ✅ Yes (storage only) |
+| **Creates/manages contacts** | ✅ Yes | ❌ No |
+| **Access to local DB** | ✅ Yes (Room history) | ❌ No |
+| **Content confidentiality** | ✅ Room DB SQLCipher local | ✅ Opaque blob, zero decryption |
+| **Network requirements** | Internet + Tor (can be offline) | **Internet 24/7 + Power** |
+| **.onion address** | ✅ Yes (if configured) | ✅ Yes (mandatory) |
+| **Message TTL** | Unlimited (Room DB) | **7 days max** |
+| **Sharing possible** | ❌ No (1 account per phone) | ✅ Yes (Personal, Private, Public) |
+| **Max per phone** | **1 ONLY** | **1 ONLY** |
+| **Compatibility** | ❌ Exclusive (no Mailbox simultaneously) | ❌ Exclusive (no User simultaneously) |
+
+---
 ## Layers
 
 | Layer | Role | Key Files |

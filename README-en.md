@@ -114,7 +114,7 @@
 | 🔄 | **Perfect Forward Secrecy** | Double Ratchet (DH + KDF chains) |
 | 🔏 | **Fingerprint emojis + QR** | 96-bit, 16 emojis + QR code SHA-256, built-in scanner |
 | 🧅 | **Tor P2P** | .onion to .onion — zero relay, zero middleman |
-| 📬 | **Fialka Mailbox** | 4 modes for offline delivery (Direct, Personal, Private, Public) |
+| 📬 | **Fialka Mailbox** | Distinct server mode (requires 2 phones) — 4 modes (Personal, Private, Public) — E2E store/transit/purge — ZERO decryption |
 | 🛡️ | **DeviceSecurityManager** | StrongBox detection, MAXIMUM/STANDARD level |
 | 🕵️ | **Sealed Sender** | Tor Hidden Services — recipient cannot see sender IP |
 | 🔑 | **Keystore-backed** | Ed25519 seed in Android Keystore (StrongBox when available) |
@@ -143,7 +143,7 @@
 | ⏱️ | **Disappearing msgs** | 10 durations (30s → 1 mo) |
 | 📁 | **E2E file sharing** | AES-256-GCM encrypted, P2P via Tor |
 | 👻 | **Dummy traffic** | Indistinguishable cover messages to mask activity |
-| 📬 | **Fialka Mailbox** | Offline delivery: 4 modes (Direct, Personal, Private, Public) |
+| 📬 | **Fialka Mailbox** | Distinct server mode (requires 2 phones) — 4 modes — E2E store/transit/purge — ZERO decryption |
 | �💀 | **Dead convo detection** | Auto-detect + clean up + re-invite |
 
 </details>

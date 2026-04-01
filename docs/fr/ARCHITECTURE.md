@@ -53,6 +53,96 @@
 
 ---
 
+## Modes d'opération : User vs Mailbox
+
+Fialka supporte **deux modes distincts et mutuellement exclusifs** sur un même appareil :
+
+### Mode User (par défaut)
+
+**Description** : Le téléphone fonctionne comme un client de messagerie classique.
+
+**Fonctionnalités** :
+- Création d'un compte Fialka (dérive identité depuis BIP-39 seed)
+- Génération d'une adresse .onion déterministe (Tor Hidden Service)
+- Envoi et réception de messages P2P chiffré E2E
+- Gestion des contacts et conversations
+- Possibilité d'accepter des messages hors-ligne via un Mailbox externe (Personnel, Privé, ou Public)
+
+**⚠️ Contrainte majeure** : **Un SEUL Mode User par téléphone** — impossible d'avoir Mode User et Mode Mailbox activés simultanément sur le même appareil. Besoin de 2 téléphones.
+
+---
+
+### Mode Mailbox (serveur P2P chiffré)
+
+**Description** : Le téléphone devient un service de stockage et de transport de messages chiffrés pour d'autres utilisateurs.
+
+**Fonctionnement technique** :
+1. Le Mailbox expose une adresse .onion permanente (Tor Hidden Service)
+2. Les utilisateurs Mode User envoient des blobs chiffrés au Mailbox (via TorTransport)
+3. Le Mailbox les stocke sur disque (aucun déchiffrage, blob opaque)
+4. À l'expiration TTL (7 jours) ou après récupération, les blobs sont purgés automatiquement
+5. Le propriétaire du Mailbox récupère les messages lors du réveil de son téléphone principal
+
+**Trois modèles de partage** :
+
+#### 1️⃣ Mailbox Personnel
+- Utilisé **uniquement** par le propriétaire du téléphone Mode User
+- Chaque compte User dispose d'UN Mailbox Personnel
+- Ex: "Mon Mailbox pour quand je suis offline"
+- Accessible uniquement par le propriétaire
+
+#### 2️⃣ Mailbox Privé (liste blanche)
+- Partagé avec une liste restreinte (famille, amis, collaborateurs)
+- **OWNER seul** manage la liste blanche et autorisations
+- Seuls les utilisateurs autorisés peuvent déposer des messages
+- Contrôle granulaire : peut ajouter/retirer des accès à tout moment
+
+#### 3️⃣ Mailbox Public
+- Accepte les messages de **TOUS** les utilisateurs Fialka
+- Aucune liste blanche, aucune authentication
+- Utile pour : bots, services ouverts, relais communautaires
+
+**Garanties de sécurité** :
+- ✅ **ZÉRO déchiffrage côté serveur** — blob totalement opaque et incompréhensible au Mailbox
+- ✅ **Blob brut** — pas d'extraction de métadonnées (destinataire, timing pattern, taille réelle, etc.)
+- ✅ **TTL 7 jours max** — expiration automatique
+- ✅ **Statstics only** — seuls compteurs cumulatifs (totalDeposited, totalFetched)
+- ✅ **Polling 60s** — vérification non-stop des nouveaux messages
+- ✅ **Configuration UI complète** — paramètres pour mode, TTL, whitelist (accès dans Settings)
+
+**⚠️ Contrainte majeure** : **Nécessite 2 appareils** pour fonctionner (ou emprunter à un ami)
+- Appareil A = Téléphone Mode User (usage normal, chattage)
+- Appareil B = Téléphone Mode Mailbox (serveur, reste branché H24 sur secteur + WiFi)
+
+**Cas d'usage réel** :
+- Vous avez un téléphone principal Mode User (Fialka, messagerie)
+- Vous avez une vieille tablette ou second téléphone branché en permanence à la maison
+- Vous activez Mode Mailbox sur la tablette
+- Vous configurez "Mailbox Personnel" sur votre téléphone principal (Settings → Mailbox)
+- Quand vous êtes offline, les gens vous envoient des messages → stockés dans votre tablette Mailbox
+- À votre retour online : tablette Mailbox vous transmet tous les messages, récup efficace
+
+---
+
+### Tableau comparatif
+
+| Aspect | Mode User | Mode Mailbox |
+|--------|-----------|--------------|
+| **Rôle** | Client messaging | Serveur de transport P2P |
+| **Peut chatter** | ✅ Oui | ❌ Non |
+| **Reçoit messages** | ✅ Oui (P2P ou via Mailbox) | ✅ Oui (stockage uniquement) |
+| **Crée/gère contacts** | ✅ Oui | ❌ Non |
+| **Accès à DB locale** | ✅ Oui (historique Room) | ❌ Non |
+| **Confidentiel contenu** | ✅ Room DB SQLCipher local | ✅ Blob opaque, aucun déchiffrage |
+| **Besoins réseau** | Internet + Tor (peut être offline) | **Internet H24 + Secteur** |
+| **Adresse .onion** | ✅ Oui (uniquement si configuré) | ✅ Oui (mandatory) |
+| **TTL messages** | Illimité (Room DB) | **7 jours max** |
+| **Partage possible** | ❌ Non (1 compte par phone) | ✅ Oui (Personnel, Privé, Public) |
+| **Max par téléphone** | **1 SEUL** | **1 SEUL** |
+| **Compatibilité** | ❌ Exclusif (pas Mailbox simultanément) | ❌ Exclusif (pas User simultanément) |
+
+---
+
 ## Couches
 
 | Couche | Rôle | Fichiers clés |

@@ -114,7 +114,7 @@
 | 🔏 | **Fingerprint emojis + QR** | 96-bit, 16 emojis + QR code SHA-256, scanner intégré |
 | 🛡️ | **ML-DSA-44** | Signature post-quantique hybride sur le handshake |
 | 🌐 | **Tor P2P** | Zéro serveur central — .onion directe, IP jamais visible |
-| 📬 | **Fialka Mailbox** | Livraison offline (4 modes : P2P, perso, privé, public) |
+| 📬 | **Fialka Mailbox** | Mode serveur P2P distinct (nécessite 2 phones) — 4 modes (Personnel, Privé, Public) — store/transit/purge E2E — ZÉRO déchiffrage |
 | 🔑 | **Keystore-backed** | Seed dans Android Keystore (StrongBox si dispo) |
 | 🗄️ | **SQLCipher** | Base Room chiffrée AES-256 |
 | 🧹 | **Zeroing mémoire** | Clés intermédiaires remplies de zéros |
