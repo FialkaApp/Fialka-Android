@@ -6,9 +6,9 @@
 
 # 📂 Structure du projet
 
-<img src="https://img.shields.io/badge/Fragments-16-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Layouts-29-9C4DCC?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Animations-12-6A1B9A?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Fragments-21-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Layouts-43-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Animations-14-6A1B9A?style=for-the-badge" />
 
 </div>
 
@@ -59,7 +59,7 @@ Fialka/
 │       │   │
 │       │   ├── data/
 │       │   │   ├── local/
-│       │   │   │   ├── FialkaDatabase.kt # Room DB v14 (SQLCipher)
+│       │   │   │   ├── FialkaDatabase.kt # Room DB v24 (SQLCipher)
 │       │   │   │   ├── UserLocalDao.kt
 │       │   │   │   ├── ContactDao.kt
 │       │   │   │   ├── ConversationDao.kt
@@ -94,7 +94,8 @@ Fialka/
 │       │       │   ├── OnboardingFragment.kt
 │       │       │   ├── OnboardingViewModel.kt
 │       │       │   ├── BackupPhraseFragment.kt
-│       │       │   └── RestoreFragment.kt
+│       │       │   ├── RestoreFragment.kt
+│       │       │   └── SeedVerificationFragment.kt  # Confirmation 3 mots après backup
 │       │       ├── conversations/            # Liste des chats + demandes de contact
 │       │       │   ├── ConversationsFragment.kt
 │       │       │   ├── ConversationsViewModel.kt
@@ -113,19 +114,23 @@ Fialka/
 │       │       ├── profile/                  # QR code, copier/partager, supprimer
 │       │       └── settings/                 # Hub paramètres + sous-écrans
 │       │           ├── SettingsFragment.kt
+│       │           ├── SettingsAdapter.kt            # RecyclerView settings avec recherche + filtres catégorie
+│       │           ├── SettingsViewModel.kt          # StateFlow settings items
 │       │           ├── AppearanceFragment.kt
 │       │           ├── NotificationsFragment.kt
 │       │           ├── SecurityFragment.kt
 │       │           ├── PrivacyFragment.kt        # Sous-écran Confidentialité (dummy traffic, éphémère)
 │       │           ├── EphemeralSettingsFragment.kt
-│       │           └── PinSetupDialogFragment.kt
+│       │           ├── PinSetupDialogFragment.kt
+│       │           ├── ThemeSelectorBottomSheet.kt   # Sélecteur visuel 5 thèmes
+│       │           └── DurationSelectorBottomSheet.kt # Sélecteur durée messages éphémères
 │       │
 │       └── res/
-│           ├── anim/                         # 10 animations (slide, fade, bubble, cascade)
-│           ├── drawable/                     # Bulles, badges, icônes, backgrounds, ic_attach, ic_add
-│           ├── layout/                       # 29 layouts XML (fragments + items)
+│           ├── anim/                         # 14 animations (slide, fade, bubble, cascade, bottom sheet)
+│           ├── drawable/                     # Bulles, badges, icônes, backgrounds, brand orbs, panels
+│           ├── layout/                       # 43 layouts XML (fragments + items + bottom sheets)
 │           ├── menu/                         # Menu conversations
-│           ├── navigation/nav_graph.xml      # 16 destinations, transitions animées
+│           ├── navigation/nav_graph.xml      # 21 destinations, transitions animées
 │           ├── raw/bip39_english.txt         # Wordlist BIP-39 (2048 mots)
 │           ├── xml/file_paths.xml            # FileProvider paths (partage fichiers)
 │           ├── values/                       # Couleurs, strings, thèmes, 22 attrs custom

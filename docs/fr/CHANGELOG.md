@@ -1,4 +1,4 @@
-<div align="right">
+﻿<div align="right">
   🇫🇷 Français | <a href="../en/CHANGELOG.md">🇬🇧 English</a>
 </div>
 
@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V3.5-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3.6-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V4.0-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/versionCode-8-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -292,7 +292,7 @@
 
 ---
 
-<details open>
+<details>
 <summary><h2>✅ V3.4.1 — One-Shot Photos, Restore Redesign & QR Fingerprint</h2></summary>
 
 
@@ -368,7 +368,7 @@
 
 ---
 
-<details open>
+<details>
 <summary><h2>✅ V3.5 — SPQR, ChaCha20-Poly1305 & Threat Model</h2></summary>
 
 
@@ -404,7 +404,75 @@
 ---
 
 <details open>
-<summary><h2>🔜 V3.6 — Planned</h2></summary>
+<summary><h2>✅ V4.0 — Kill Firebase & P2P Pur via Tor</h2></summary>
+
+> Suppression totale de Firebase, infrastructure P2P pure via Tor Hidden Services, système Mailbox offline 4 modes, identité « 1 Seed → Tout », ML-DSA-44, pipeline de livraison avec statuts, refresh UI 2026.
+> `versionCode 8` · `versionName "4.0"` · Room v24
+
+### 🔥 Kill Firebase — P2P Pur
+- [x] **Suppression totale de Firebase** — Firebase BoM, Auth, RTDB, Storage, FCM, Cloud Functions entièrement retirés. Zéro dépendance serveur central.
+- [x] **TorTransport** — Protocole binaire de trames (magic `0xF1 0xA1`), 13 types de trames (P2P + commandes Mailbox), écriture/lecture avec timeout
+- [x] **P2PServer** — Listener de trames entrantes, dispatch `TYPE_MESSAGE`, `TYPE_CONTACT_REQ`, `TYPE_KEY_BUNDLE`, `TYPE_CONTACT_REQ_RESPONSE`, etc.
+- [x] **OutboxManager** — Boucle de retry avec backoff exponentiel (max 50 tentatives, plafond 30 min), `DeliveryResult` (DIRECT / MAILBOX / QUEUED)
+- [x] **UnifiedPush** — Notifications sans Firebase
+
+### 🆔 Identité « 1 Seed → Tout »
+- [x] **Seed Ed25519 unique** — Dérive : Account ID, adresse .onion, X25519, ML-KEM-1024, ML-DSA-44, fingerprint émoji
+- [x] **ML-DSA-44** — Signature post-quantique hybride au handshake de chaque session (Ed25519 + ML-DSA-44 simultanés)
+- [x] **AccountID** — `SHA3-256(pubkey Ed25519)` → Base58 (ex : `Fa3x...9Z`)
+- [x] **Adresse .onion déterministe** — Dérivée du seed, stable entre réinstallations
+- [x] **SeedVerificationFragment** — Confirmation de 3 mots après la sauvegarde du seed
+
+### 🌐 Tor V4
+- [x] **Guardian Project Tor** — `libtor.so` pour Tor v3 Hidden Services réels
+- [x] **Multi-circuit** — Circuits actifs affichés en temps réel dans l'interface
+- [x] **`killOrphanedTor()`** — Lit le cookie d'auth AVANT suppression (`AUTHENTICATE <hex>`), empêche les démons orphelins
+- [x] **Anti-orphan messages** — `getPendingMessages()` inclut les messages bloqués en `STATUS_SENDING`
+
+### 📬 Système Mailbox (4 modes)
+- [x] **Direct P2P** — Communication directe, pas de relais
+- [x] **Personal** — `.onion` personnel comme boîte aux lettres asynchrone
+- [x] **Private Node** — Nœud privé avec liste blanche membres
+- [x] **Public Node** — Nœud public ouvert
+- [x] **MailboxServer** — Stockage opaque de blobs chiffrés, jamais de déchiffrement serveur, contrôle OWNER, TTL 7 jours
+- [x] **MailboxClientManager** — Polling 60s, `_fetching: StateFlow<Boolean>` pour bloquer l'UI pendant le fetch
+- [x] **Propagation `mailboxOnion`** — `senderMailboxOnion` inclus dans tous les messages ; P2PServer met à jour `participantMailboxOnion` à la réception
+- [x] **Stats cumulatives** — `totalDeposited`, `totalFetched`, `totalDataProcessed` persistés en SharedPreferences (blobs supprimés après livraison)
+- [x] **Dashboard auto-refresh** — Toutes les 30s
+
+### 📦 Pipeline de livraison avec statuts
+- [x] **`MessageLocal.deliveryStatus`** — `SENT(0)` / `MAILBOX(1)` / `FAILED(2)` / `PENDING(3)`
+- [x] **`OutboxMessage.messageLocalId`** — Liaison retour vers `MessageLocal` pour mise à jour du statut
+- [x] **Badges de livraison** — ✓ Envoyé · 📬 Mailbox · ⏳ En attente · ❌ Échec
+- [x] **Bouton Renvoyer** — Messages `FAILED` → `OutboxDao.resetRetryForMessage()` relance la tentative
+- [x] **Bannière fetch** — `fetchBanner` + `ProgressBar` dans le chat, input désactivé pendant le fetch Mailbox
+
+### 🎨 Refresh UI 2026
+- [x] **Settings refactorisé** — `SettingsAdapter` + `SettingsViewModel`, recherche + filtres catégorie (Apparence, Notifications, Confidentialité, Sécurité, Réseau, À propos)
+- [x] **ThemeSelectorBottomSheet** — Sélecteur visuel 5 thèmes avec prévisualisation en temps réel
+- [x] **DurationSelectorBottomSheet** — Sélecteur de durée messages éphémères
+- [x] **Écran conversations** — Eyebrow « MESSAGERIE CHIFFRÉE » (monospace 9sp) + titre 24sp, bande accent gauche 3dp sur chaque item
+- [x] **Ajouter un contact** — Section hero « CONNEXION SÉCURISÉE », diviseur OR visuel, `ConstraintLayout` → `LinearLayout`
+- [x] **Profil** — Avatar 108dp, eyebrow « GHOST IDENTITY », caption `Ed25519 · ML-DSA-44 · ML-KEM-1024` en monospace
+- [x] **Profil contact** — Eyebrow « NODE INFO », badge E2E pill avec fond `bg_key_box`
+
+### 🔧 Corrections critiques pipeline P2P
+- [x] **Fix messages orphelins** — `getPendingMessages()` inclut `STATUS_SENDING` bloqués (récupération après crash/reboot)
+- [x] **Fix `resolveRecipientEd25519`** — Fallback sur `publicKey` si `signingPublicKey` absent
+- [x] **Fix `sendContactRequest`** — Retourne `Boolean`, logs complets
+- [x] **Fix `killOrphanedTor`** — Lecture du cookie auth AVANT suppression du fichier
+
+### 🗄️ Base de données
+- [x] **Room v24** — `deliveryStatus` sur `MessageLocal`, `messageLocalId` + `fallbackOnion` sur `OutboxMessage`, migrations v18→v24
+- [x] **MailboxDatabase v1** — Entités `MailboxBlob`, `MailboxMember`, `MailboxInvite` (mode MAILBOX uniquement)
+- [x] **Version 4.0** — `versionCode 8`, `versionName "4.0"`
+
+</details>
+
+---
+
+<details>
+<summary><h2>🔜 V3.6 — Planifié (partiellement livré dans V4.0)</h2></summary>
 
 
 > Camouflage avancé, plausible deniability, messages vocaux E2E, sealed sender, améliorations messagerie.

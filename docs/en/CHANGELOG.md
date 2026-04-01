@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V3.5-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Next-V3.6-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V4.0-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/versionCode-8-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -292,7 +292,7 @@
 
 ---
 
-<details open>
+<details>
 <summary><h2>✅ V3.4.1 — One-Shot Photos, Restore Redesign & QR Fingerprint</h2></summary>
 
 
@@ -368,7 +368,7 @@
 
 ---
 
-<details open>
+<details>
 <summary><h2>✅ V3.5 — SPQR, ChaCha20-Poly1305 & Threat Model</h2></summary>
 
 
@@ -404,7 +404,75 @@
 ---
 
 <details open>
-<summary><h2>🔜 V3.6 — Planned</h2></summary>
+<summary><h2>✅ V4.0 — Kill Firebase & Pure P2P via Tor</h2></summary>
+
+> Complete Firebase removal, pure P2P infrastructure via Tor Hidden Services, 4-mode offline Mailbox system, "1 Seed → Everything" identity, ML-DSA-44 hybrid post-quantum handshake, delivery pipeline with status badges, 2026 UI refresh.
+> `versionCode 8` · `versionName "4.0"` · Room v24
+
+### 🔥 Kill Firebase — Pure P2P
+- [x] **Complete Firebase removal** — Firebase BoM, Auth, RTDB, Storage, FCM, Cloud Functions fully removed. Zero central server dependency.
+- [x] **TorTransport** — Binary frame protocol (magic `0xF1 0xA1`), 13 frame types (P2P + Mailbox commands), read/write with timeout
+- [x] **P2PServer** — Incoming frame listener, dispatch for `TYPE_MESSAGE`, `TYPE_CONTACT_REQ`, `TYPE_KEY_BUNDLE`, `TYPE_CONTACT_REQ_RESPONSE`, etc.
+- [x] **OutboxManager** — Retry loop with exponential backoff (max 50 attempts, 30-min cap), `DeliveryResult` enum (DIRECT / MAILBOX / QUEUED)
+- [x] **UnifiedPush** — Notifications without Firebase dependency
+
+### 🆔 Identity "1 Seed → Everything"
+- [x] **Single Ed25519 seed** — Derives: Account ID, .onion address, X25519, ML-KEM-1024, ML-DSA-44, emoji fingerprint
+- [x] **ML-DSA-44** — Post-quantum hybrid signature at every session handshake (Ed25519 + ML-DSA-44 simultaneously)
+- [x] **AccountID** — `SHA3-256(Ed25519 pubkey)` → Base58 (e.g. `Fa3x...9Z`)
+- [x] **Deterministic .onion address** — Derived from seed, stable across reinstalls
+- [x] **SeedVerificationFragment** — 3-word confirmation after seed backup
+
+### 🌐 Tor V4
+- [x] **Guardian Project Tor** — `libtor.so` for real Tor v3 Hidden Services
+- [x] **Multi-circuit** — Active circuits shown in real-time in the UI
+- [x] **`killOrphanedTor()`** — Reads auth cookie BEFORE deletion (`AUTHENTICATE <hex>`), prevents orphaned daemons
+- [x] **Anti-orphan messages** — `getPendingMessages()` includes messages stuck in `STATUS_SENDING`
+
+### 📬 Mailbox System (4 modes)
+- [x] **Direct P2P** — Direct communication, no relay
+- [x] **Personal** — Personal `.onion` as async mailbox
+- [x] **Private Node** — Private node with member whitelist
+- [x] **Public Node** — Open public node
+- [x] **MailboxServer** — Opaque encrypted blob storage, zero server-side decryption, OWNER access control, 7-day TTL
+- [x] **MailboxClientManager** — 60s polling, `_fetching: StateFlow<Boolean>` to block UI during fetch
+- [x] **`mailboxOnion` propagation** — `senderMailboxOnion` included in all outgoing messages; P2PServer updates `participantMailboxOnion` on receipt
+- [x] **Cumulative stats** — `totalDeposited`, `totalFetched`, `totalDataProcessed` persisted in SharedPreferences (blobs deleted after delivery)
+- [x] **Dashboard auto-refresh** — Every 30 seconds
+
+### 📦 Delivery Pipeline with Status Badges
+- [x] **`MessageLocal.deliveryStatus`** — `SENT(0)` / `MAILBOX(1)` / `FAILED(2)` / `PENDING(3)`
+- [x] **`OutboxMessage.messageLocalId`** — Back-link to `MessageLocal` for status updates
+- [x] **Delivery badges** — ✓ Sent · 📬 Mailbox · ⏳ Pending · ❌ Failed — displayed in outgoing message bubbles
+- [x] **Resend button** — `FAILED` messages show a Resend button; `OutboxDao.resetRetryForMessage()` re-queues the attempt
+- [x] **Fetch banner** — `fetchBanner` + `ProgressBar` in chat, input disabled during Mailbox fetch
+
+### 🎨 2026 UI Refresh
+- [x] **Settings overhaul** — `SettingsAdapter` + `SettingsViewModel`, search bar + category filters (Appearance, Notifications, Privacy, Security, Network, About)
+- [x] **ThemeSelectorBottomSheet** — Visual 5-theme picker with live preview
+- [x] **DurationSelectorBottomSheet** — Ephemeral message duration selector
+- [x] **Conversations screen** — "MESSAGERIE CHIFFRÉE" eyebrow (9sp monospace) + 24sp bold title, 3dp colorPrimary accent strip on each item
+- [x] **Add contact** — "CONNEXION SÉCURISÉE" hero section, visual OR divider, `ConstraintLayout` → `LinearLayout`
+- [x] **Profile** — 108dp avatar ring, "GHOST IDENTITY" eyebrow, `Ed25519 · ML-DSA-44 · ML-KEM-1024` monospace caption
+- [x] **Contact profile** — "NODE INFO" eyebrow, E2E badge pill with `bg_key_box` background
+
+### 🔧 Critical P2P Pipeline Fixes
+- [x] **Orphan message fix** — `getPendingMessages()` includes `STATUS_SENDING` stuck messages (recovery after crash/reboot)
+- [x] **`resolveRecipientEd25519` fix** — Fallback to `publicKey` if `signingPublicKey` absent
+- [x] **`sendContactRequest` fix** — Returns `Boolean`, full logging
+- [x] **`killOrphanedTor` fix** — Reads auth cookie BEFORE deleting the file
+
+### 🗄️ Database
+- [x] **Room v24** — `deliveryStatus` on `MessageLocal`, `messageLocalId` + `fallbackOnion` on `OutboxMessage`, migrations v18→v24
+- [x] **MailboxDatabase v1** — `MailboxBlob`, `MailboxMember`, `MailboxInvite` entities (MAILBOX mode only)
+- [x] **Version 4.0** — `versionCode 8`, `versionName "4.0"`
+
+</details>
+
+---
+
+<details>
+<summary><h2>🔜 V3.6 — Planned (partially delivered in V4.0)</h2></summary>
 
 
 > Advanced camouflage, plausible deniability, E2E voice messages, sealed sender, messaging improvements.

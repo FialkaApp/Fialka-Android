@@ -13,7 +13,7 @@
 <br/>
 
 [![Android](https://img.shields.io/badge/Android-33%2B-a855f7?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7c3aed?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-7c3aed?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![E2E](https://img.shields.io/badge/PQXDH-X25519%20%2B%20ML--KEM--1024-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/en/CRYPTO.md)
 [![License](https://img.shields.io/badge/GPLv3-License-8b5cf6?style=for-the-badge)](LICENSE)
 [![Terms](https://img.shields.io/badge/Terms-Conditions-8b5cf6?style=for-the-badge)](TERMS.md)
@@ -297,7 +297,7 @@ cd Fialka-Android
 | **V4.0** | Kill Firebase — P2P .onion + Mailbox store-and-forward, invite QR, deep links | ✅ Done |
 | **V3.6a** | UX — App disguise, cover screen, Dual PIN, panic button, E2E voice messages, reply/quote | 🔜 |
 | **V3.6b** | Crypto — **ML-DSA-44** PQ handshake signature, Sealed Sender via Tor | 🔜 |
-| **V4.0** | **Zero Google** — Firebase removal, **Tor Hidden Services** P2P, **Fialka Mailbox** (4 modes), **UnifiedPush + ntfy.sh**, 1 Seed → Everything identity | 🔜 |
+| **V4.0** | **Zero Google** — Firebase removal, **Tor Hidden Services** P2P, **Fialka Mailbox** (4 modes), **UnifiedPush + ntfy.sh**, 1 Seed → Everything identity | � |
 | **V4.1** | Audit — Third-party professional security audit | 🔜 |
 | **V5.0** | **Falcon-512** — Per-message PQ signatures (666 bytes), final target | 🔜 |
 

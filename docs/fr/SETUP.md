@@ -57,7 +57,7 @@ Ou ouvrir dans Android Studio → **Run** sur un émulateur ou device physique.
 
 | Dépendance | Version | Usage |
 |------------|---------|-------|
-| Kotlin | 2.1.0 | Langage |
+| Kotlin | 2.3.0 | Langage |
 | AndroidX Core / AppCompat / Material | Latest | UI Material Design |
 | AndroidX Navigation | 2.8.9 | Navigation single-activity |
 | AndroidX Lifecycle | 2.8.7 | ViewModels, LiveData, coroutines |
