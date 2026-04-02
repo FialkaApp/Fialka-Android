@@ -40,6 +40,8 @@ fialka-relay/
 # --- Signing ---
 *.jks
 *.keystore
+fialka-release.p12
+*p12
 signing.properties
 
 # --- Logs ---
