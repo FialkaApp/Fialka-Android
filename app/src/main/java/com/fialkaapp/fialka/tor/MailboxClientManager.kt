@@ -20,8 +20,7 @@ package com.fialkaapp.fialka.tor
 import android.content.Context
 import android.net.Uri
 import android.util.Base64
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import com.fialkaapp.fialka.util.FialkaSecurePrefs
 import com.fialkaapp.fialka.crypto.CryptoManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -98,14 +97,9 @@ object MailboxClientManager {
         fetchJob = null
     }
 
-    private fun prefs() = EncryptedSharedPreferences.create(
+    private fun prefs() = FialkaSecurePrefs.open(
         appContext,
-        PREFS_NAME,
-        MasterKey.Builder(appContext)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build(),
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        PREFS_NAME
     )
 
     /** Save mailbox config (onion, pubkey, type) — does NOT mark as joined yet. */

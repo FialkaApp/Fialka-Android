@@ -23,7 +23,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -91,10 +90,10 @@ class ConversationProfileFragment : Fragment() {
         binding.rowFingerprint.setOnClickListener {
             findNavController().navigate(
                 R.id.action_conversationProfile_to_fingerprint,
-                bundleOf(
-                    "conversationId" to conversationId,
-                    "contactName" to contactName
-                )
+                Bundle().apply {
+                    putString("conversationId", conversationId)
+                    putString("contactName", contactName)
+                }
             )
         }
 

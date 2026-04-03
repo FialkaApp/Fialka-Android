@@ -15,12 +15,12 @@ if (localPropsFile.exists()) {
 
 android {
     namespace = "com.fialkaapp.fialka"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.fialkaapp.fialka"
         minSdk = 33
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 8
         versionName = "4.0"
 
@@ -105,7 +105,6 @@ dependencies {
     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
 
     // Security / Crypto
-    implementation("androidx.security:security-crypto:1.1.0")  // GA released Jul 2025
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("org.bouncycastle:bcprov-jdk18on:1.83")  // ML-KEM-1024, CVE fixes vs 1.80
 

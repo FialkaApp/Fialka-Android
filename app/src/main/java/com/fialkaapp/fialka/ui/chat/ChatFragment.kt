@@ -38,7 +38,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -169,10 +168,10 @@ class ChatFragment : Fragment() {
         val navigateToProfile = {
             findNavController().navigate(
                 R.id.action_chat_to_conversationProfile,
-                bundleOf(
-                    "conversationId" to conversationId,
-                    "contactName" to contactName
-                )
+                Bundle().apply {
+                    putString("conversationId", conversationId)
+                    putString("contactName", contactName)
+                }
             )
         }
         binding.toolbarContent.setOnClickListener { navigateToProfile() }
@@ -193,10 +192,10 @@ class ChatFragment : Fragment() {
             onFingerprintInfoClick = {
                 findNavController().navigate(
                     R.id.action_chat_to_fingerprint,
-                    bundleOf(
-                        "conversationId" to conversationId,
-                        "contactName" to contactName
-                    )
+                    Bundle().apply {
+                        putString("conversationId", conversationId)
+                        putString("contactName", contactName)
+                    }
                 )
             },
             onRetryDownload = { messageId ->

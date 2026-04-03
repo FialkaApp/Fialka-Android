@@ -22,8 +22,7 @@ import android.util.Base64
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import com.fialkaapp.fialka.util.FialkaSecurePrefs
 import com.fialkaapp.fialka.data.model.MailboxBlob
 import com.fialkaapp.fialka.data.model.MailboxInvite
 import com.fialkaapp.fialka.data.model.MailboxMember
@@ -92,15 +91,9 @@ abstract class MailboxDatabase : RoomDatabase() {
         }
 
         private fun getOrCreatePassphrase(context: Context): ByteArray {
-            val masterKey = MasterKey.Builder(context.applicationContext)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build()
-            val prefs = EncryptedSharedPreferences.create(
+            val prefs = FialkaSecurePrefs.open(
                 context.applicationContext,
-                PREFS_FILE,
-                masterKey,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                PREFS_FILE
             )
 
             val existing = prefs.getString(KEY_DB_PASSPHRASE, null)

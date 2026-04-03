@@ -18,8 +18,7 @@
 package com.fialkaapp.fialka
 
 import android.content.Context
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import com.fialkaapp.fialka.util.FialkaSecurePrefs
 
 enum class AppModeType { NOT_SET, NORMAL, MAILBOX }
 enum class MailboxType { NONE, PERSONAL, PRIVATE }
@@ -38,14 +37,9 @@ object AppMode {
     @Volatile private var cachedMode: AppModeType? = null
     @Volatile private var cachedMailboxType: MailboxType? = null
 
-    private fun prefs(context: Context) = EncryptedSharedPreferences.create(
+    private fun prefs(context: Context) = FialkaSecurePrefs.open(
         context.applicationContext,
-        PREFS_NAME,
-        MasterKey.Builder(context.applicationContext)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build(),
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        PREFS_NAME
     )
 
     fun getMode(context: Context): AppModeType {

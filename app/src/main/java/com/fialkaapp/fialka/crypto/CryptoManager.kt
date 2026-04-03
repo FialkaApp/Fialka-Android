@@ -20,9 +20,8 @@ package com.fialkaapp.fialka.crypto
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import com.fialkaapp.fialka.util.DeviceSecurityManager
+import com.fialkaapp.fialka.util.FialkaSecurePrefs
 import org.bouncycastle.crypto.digests.SHA3Digest
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
@@ -113,16 +112,10 @@ object CryptoManager {
      */
     fun init(context: Context) {
         val profile = DeviceSecurityManager.getSecurityProfile(context.applicationContext)
-        val masterKey = MasterKey.Builder(context.applicationContext)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .setRequestStrongBoxBacked(profile.isStrongBoxAvailable)
-            .build()
-        prefs = EncryptedSharedPreferences.create(
+        prefs = FialkaSecurePrefs.open(
             context.applicationContext,
             PREFS_FILE,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            strongBox = profile.isStrongBoxAvailable
         )
     }
 

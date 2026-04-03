@@ -19,8 +19,7 @@ package com.fialkaapp.fialka.util
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import com.fialkaapp.fialka.util.FialkaSecurePrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.security.SecureRandom
@@ -59,14 +58,9 @@ object AppLockManager {
 
     private fun getPrefs(context: Context): SharedPreferences {
         return cachedPrefs ?: synchronized(this) {
-            cachedPrefs ?: EncryptedSharedPreferences.create(
+            cachedPrefs ?: FialkaSecurePrefs.open(
                 context.applicationContext,
-                PREFS_NAME,
-                MasterKey.Builder(context.applicationContext)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build(),
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                PREFS_NAME
             ).also { cachedPrefs = it }
         }
     }
