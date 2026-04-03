@@ -142,6 +142,9 @@
     <string name="mailbox_client_invalid_qr">QR code invalide — ce n\'est pas un QR de mailbox</string>
     <string name="mailbox_client_joined">Rejoint en tant que %1$s</string>
     <string name="mailbox_client_join_failed">Échec : %1$s</string>
+    <string name="mailbox_client_join_failed_title">Connexion refusée</string>
+    <string name="mailbox_fix_clock">Régler la date/heure</string>
+    <string name="close">Fermer</string>
     <string name="mailbox_client_configured">Mailbox configurée ✓</string>
 
     <!-- Mailbox Status Check -->

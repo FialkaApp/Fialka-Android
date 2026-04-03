@@ -90,6 +90,9 @@ class MailboxSetupFragment : Fragment() {
         AppMode.setMailboxType(requireContext(), type)
         if (!CryptoManager.hasIdentity()) {
             CryptoManager.generateIdentity()
+            // MAILBOX mode: auto-mark seed as verified — server devices follow
+            // a different onboarding path; they can access backup from settings.
+            CryptoManager.markSeedVerified()
         }
 
         // ── Step 2: Show loading ──

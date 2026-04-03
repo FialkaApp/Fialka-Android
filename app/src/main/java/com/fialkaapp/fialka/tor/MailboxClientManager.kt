@@ -131,10 +131,14 @@ object MailboxClientManager {
     suspend fun joinMailbox(inviteCode: String = ""): Pair<Boolean, String> {
         val onion = getMailboxOnion() ?: return Pair(false, "No mailbox configured")
 
-        val authPayload = TorTransport.buildAuthenticatedPayload(
-            "JOIN",
-            if (inviteCode.isNotEmpty()) inviteCode.toByteArray(Charsets.UTF_8) else ByteArray(0)
-        )
+        val authPayload = try {
+            TorTransport.buildAuthenticatedPayload(
+                "JOIN",
+                if (inviteCode.isNotEmpty()) inviteCode.toByteArray(Charsets.UTF_8) else ByteArray(0)
+            )
+        } catch (_: IllegalStateException) {
+            return Pair(false, "Identité non configurée — configurez d'abord votre compte")
+        }
         val frame = TorTransport.Frame(TorTransport.TYPE_JOIN, authPayload)
         val response = TorTransport.sendFrame(onion, frame = frame)
             ?: return Pair(false, "Connection failed")
@@ -153,6 +157,7 @@ object MailboxClientManager {
                 startFetchLoop()
                 return Pair(true, role)
             } else {
+                // Simple format: [JOIN_REJECTED][reason_bytes...]
                 val msg = if (response.payload.size > 1)
                     String(response.payload, 1, response.payload.size - 1, Charsets.UTF_8)
                 else "Rejected"

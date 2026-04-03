@@ -98,7 +98,7 @@ object TorTransport {
     const val ROLE_MEMBER: Byte = 0x01
 
     // ── Anti-replay ──
-    private const val TIMESTAMP_WINDOW_MS = 5 * 60 * 1000L
+    private const val TIMESTAMP_WINDOW_MS = 30 * 60 * 1000L   // 30 min — tolerates cross-device clock skew
 
     /** A transport-level frame. */
     data class Frame(val type: Byte, val payload: ByteArray) {
@@ -318,6 +318,41 @@ object TorTransport {
 
         if (!valid) return null
         return Pair(pubKey, extra)
+    }
+
+    /**
+     * Same as [verifyAuthenticatedPayload] but returns a human-readable failure reason
+     * instead of null, for server-side diagnostic rejection messages.
+     * Returns null on success (= verified OK).
+     */
+    fun verifyAuthenticatedPayloadReason(
+        commandTag: String,
+        payload: ByteArray,
+        expectedPubKey: ByteArray? = null
+    ): String? {
+        if (payload.size < AUTH_HEADER_SIZE) return "payload trop court"
+
+        val buf = ByteBuffer.wrap(payload)
+        val pubKey = ByteArray(32).also { buf.get(it) }
+        val timestamp = buf.getLong()
+        val nonce = ByteArray(16).also { buf.get(it) }
+        val signature = ByteArray(64).also { buf.get(it) }
+        val extra = ByteArray(buf.remaining()).also { buf.get(it) }
+
+        val clockDiff = abs(System.currentTimeMillis() - timestamp)
+        if (clockDiff > TIMESTAMP_WINDOW_MS) {
+            val diffMin = clockDiff / 60_000
+            return "horloge désynchronisée (${diffMin}min) — vérifiez la date/heure de l'appareil"
+        }
+
+        if (expectedPubKey != null && !pubKey.contentEquals(expectedPubKey)) return "clé publique invalide"
+
+        val toVerify = buildSigningData(commandTag, timestamp, nonce, extra)
+        val valid = verifyEd25519(pubKey, toVerify, signature)
+        toVerify.fill(0)
+
+        if (!valid) return "signature invalide — identité corrompue ou incompatible"
+        return null  // success
     }
 
     private fun buildSigningData(

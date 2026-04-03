@@ -20,7 +20,9 @@ package com.fialkaapp.fialka.ui.mode
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.graphics.Typeface
+import android.provider.Settings
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
@@ -372,9 +374,24 @@ class MailboxSettingsFragment : Fragment() {
                 // JOIN was rejected — clear saved config and show error
                 MailboxClientManager.disconnect()
                 updateUi()
-                Toast.makeText(requireContext(), getString(R.string.mailbox_client_join_failed, message), Toast.LENGTH_SHORT).show()
+                showJoinError(message)
             }
         }
+    }
+
+    private fun showJoinError(message: String) {
+        val isClockError = message.contains("horloge", ignoreCase = true) ||
+                message.contains("désynchronisée", ignoreCase = true)
+        val builder = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.mailbox_client_join_failed_title)
+            .setMessage(message)
+            .setNegativeButton(R.string.close, null)
+        if (isClockError) {
+            builder.setPositiveButton(R.string.mailbox_fix_clock) { _, _ ->
+                startActivity(Intent(Settings.ACTION_DATE_SETTINGS))
+            }
+        }
+        builder.show()
     }
 
     private fun showPasteLinkDialog() {

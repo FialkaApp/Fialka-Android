@@ -78,7 +78,7 @@ object MailboxServer : TorTransport.FrameListener {
     private const val KEY_TOTAL_DATA = "total_data_processed"
 
     // ── Nonce replay protection (in-memory, auto-expiring) ──
-    private val seenNonces = LinkedHashMap<String, Long>(500, 0.75f, true)
+    private val seenNonces = LinkedHashMap<String, Long>(500, 0.75f, false)
     private val nonceLock = Any()
 
     fun init(context: Context) {
@@ -140,6 +140,8 @@ object MailboxServer : TorTransport.FrameListener {
     // ══════════════════════════════════════════
 
     private suspend fun handleJoin(payload: ByteArray): TorTransport.Frame {
+        val failReason = TorTransport.verifyAuthenticatedPayloadReason("JOIN", payload)
+        if (failReason != null) return rejectJoin(failReason)
         val verified = TorTransport.verifyAuthenticatedPayload("JOIN", payload)
             ?: return rejectJoin("auth failed")
 
@@ -208,10 +210,8 @@ object MailboxServer : TorTransport.FrameListener {
 
     private fun rejectJoin(reason: String): TorTransport.Frame {
         val reasonBytes = reason.toByteArray(Charsets.UTF_8)
-        val buf = ByteBuffer.allocate(1 + 1 + 2 + reasonBytes.size)
+        val buf = ByteBuffer.allocate(1 + reasonBytes.size)
         buf.put(TorTransport.JOIN_REJECTED)
-        buf.put(0.toByte())
-        buf.putShort(reasonBytes.size.toShort())
         buf.put(reasonBytes)
         return TorTransport.Frame(TorTransport.TYPE_JOIN_RESP, buf.array())
     }
