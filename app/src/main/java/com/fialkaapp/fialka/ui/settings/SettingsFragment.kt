@@ -206,24 +206,110 @@ class SettingsFragment : Fragment() {
     }
 
     private fun showAppInfoDialog() {
-        showSimpleDialog(
-            title = getString(R.string.settings_app_info_dialog_title),
-            message = buildVersionSummary(requireContext())
-        )
+        val info = try {
+            requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+        } catch (_: Exception) { null }
+        val version = info?.versionName ?: "?"
+        val build = info?.longVersionCode ?: 0
+        val content = buildString {
+            appendLine("Version : $version")
+            appendLine("Build   : $build")
+            appendLine()
+            appendLine("Identite crypto : Kyber-1024 + Dilithium-5")
+            appendLine("Chiffrement     : AES-256-GCM + ChaCha20-Poly1305")
+            appendLine("Transport       : Tor (SOCKS5)")
+            appendLine()
+            appendLine("Licence         : GPLv3")
+            appendLine("ECCN            : 5D002.C.1 (open source — exempt)")
+            appendLine("Controles UE    : Reglement UE 2021/821")
+            appendLine()
+            appendLine("Code source : github.com/FialkaApp/Fialka-Android")
+        }
+        showScrollableDialog(getString(R.string.settings_app_info_dialog_title), content)
     }
 
     private fun showLegalDialog() {
-        showSimpleDialog(
-            title = getString(R.string.settings_legal_dialog_title),
-            message = getString(R.string.settings_legal_subtitle)
-        )
+        val content = buildString {
+            appendLine("TERMES D'UTILISATION")
+            appendLine("Version 4 — Applicable depuis le 03/04/2026")
+            appendLine()
+            appendLine("1. OUTIL — PAS UN SERVICE")
+            appendLine("Fialka est un outil logiciel distribue sous GPLv3. Les developpeurs n'operent aucune infrastructure, ne stockent aucune donnee et ne peuvent acceder a aucun message.")
+            appendLine()
+            appendLine("2. RESPONSABILITE DE L'UTILISATEUR")
+            appendLine("Vous etes seul(e) et entierement responsable de toute utilisation. Les developpeurs declinent toute responsabilite, quelle que soit la nature de l'usage.")
+            appendLine()
+            appendLine("3. ELIGIBILITE")
+            appendLine("Vous devez avoir au moins 16 ans (ou l'age minimum legal de consentement numerique dans votre pays).")
+            appendLine()
+            appendLine("4. ABSENCE DE GARANTIE")
+            appendLine("Fialka est fourni EN L'ETAT, sans garantie. L'implementation cryptographique n'a pas ete auditee par un cabinet tiers.")
+            appendLine()
+            appendLine("5. CONTROLE DES EXPORTATIONS")
+            appendLine("Ce logiciel contient de la cryptographie soumise aux reglementations Wassenaar, ECCN 5D002.C.1 (US BIS) et UE 2021/821. En tant que logiciel open source GPLv3, il est exempte en France et dans l'UE. Verifiez les lois de votre pays.")
+            appendLine()
+            appendLine("POLITIQUE DE CONFIDENTIALITE")
+            appendLine("Fialka ne collecte, ne stocke ni ne transmet aucune donnee personnelle. Toutes les donnees restent sur votre appareil. Aucune telemetrie, aucun compte, aucun serveur central.")
+            appendLine()
+            appendLine("Texte complet : github.com/FialkaApp/Fialka-Android/blob/main/TERMS.md")
+        }
+        showScrollableDialog(getString(R.string.settings_legal_dialog_title), content)
     }
 
     private fun showLicensesDialog() {
-        showSimpleDialog(
-            title = getString(R.string.settings_licenses_dialog_title),
-            message = getString(R.string.settings_licenses_subtitle)
-        )
+        val content = buildString {
+            appendLine("LICENCE PRINCIPALE")
+            appendLine("Fialka — GNU General Public License v3 (GPLv3)")
+            appendLine("Copyright (C) 2024-2026 DevBot667")
+            appendLine("https://www.gnu.org/licenses/gpl-3.0.html")
+            appendLine()
+            appendLine("COMPOSANTS TIERS")
+            appendLine()
+            appendLine("Tor — The Tor Project")
+            appendLine("Licence : BSD modifiee")
+            appendLine("https://www.torproject.org")
+            appendLine()
+            appendLine("Bouncy Castle (cryptographie post-quantique)")
+            appendLine("Licence : MIT / Bouncy Castle")
+            appendLine("https://www.bouncycastle.org")
+            appendLine()
+            appendLine("AndroidX / Jetpack")
+            appendLine("Licence : Apache License 2.0")
+            appendLine("https://developer.android.com/jetpack")
+            appendLine()
+            appendLine("Material Components for Android")
+            appendLine("Licence : Apache License 2.0")
+            appendLine("https://github.com/material-components/material-components-android")
+            appendLine()
+            appendLine("Kotlin Standard Library")
+            appendLine("Licence : Apache License 2.0")
+            appendLine("https://kotlinlang.org")
+            appendLine()
+            appendLine("SQLCipher for Android")
+            appendLine("Licence : BSD")
+            appendLine("https://www.zetetic.net/sqlcipher/")
+            appendLine()
+            appendLine("Texte complet : github.com/FialkaApp/Fialka-Android/blob/main/LICENSE")
+        }
+        showScrollableDialog(getString(R.string.settings_licenses_dialog_title), content)
+    }
+
+    private fun showScrollableDialog(title: String, content: String) {
+        val scrollView = android.widget.ScrollView(requireContext())
+        val textView = android.widget.TextView(requireContext()).apply {
+            text = content
+            textSize = 13f
+            setPadding(48, 24, 48, 24)
+            setTextColor(androidx.core.content.ContextCompat.getColor(
+                requireContext(), android.R.color.darker_gray
+            ))
+        }
+        scrollView.addView(textView)
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(title)
+            .setView(scrollView)
+            .setPositiveButton(R.string.settings_action_ok, null)
+            .show()
     }
 
     private fun showSimpleDialog(title: String, message: String) {
@@ -271,16 +357,6 @@ class SettingsFragment : Fragment() {
             SettingsViewModel.CATEGORY_NETWORK -> getString(R.string.settings_network_category)
             SettingsViewModel.CATEGORY_ABOUT -> getString(R.string.settings_about_category)
             else -> getString(R.string.settings_all)
-        }
-    }
-
-    private fun buildVersionSummary(context: Context): String {
-        return try {
-            val info = context.packageManager.getPackageInfo(context.packageName, 0)
-            val version = info.versionName ?: "1.0"
-            "Version $version · build ${info.longVersionCode}"
-        } catch (_: Exception) {
-            "Version inconnue"
         }
     }
 

@@ -28,7 +28,7 @@ import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.MnemonicManager
 import com.fialkaapp.fialka.databinding.FragmentSeedVerificationBinding
-import kotlin.random.Random
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * Verifies that the user actually wrote down the 24-word recovery phrase.
@@ -46,9 +46,8 @@ class SeedVerificationFragment : Fragment() {
         val seed = CryptoManager.getIdentitySeed()
         words = MnemonicManager.seedToMnemonic(seed)
         seed.fill(0)
-
-        val restored = savedInstanceState?.getIntArray(KEY_PROMPTS)?.toList()
-        promptIndexes = restored ?: generatePromptIndexes()
+        // Always use the fixed indexes stored at identity creation — never reshuffled
+        promptIndexes = CryptoManager.getSeedPromptIndexes()
     }
 
     override fun onCreateView(
@@ -72,6 +71,9 @@ class SeedVerificationFragment : Fragment() {
         }
         binding.btnContinue.setOnClickListener {
             validateAndContinue()
+        }
+        binding.btnSkip.setOnClickListener {
+            showSkipWarning()
         }
 
         binding.etWordOne.doAfterTextChanged { clearError() }
@@ -103,7 +105,20 @@ class SeedVerificationFragment : Fragment() {
             return
         }
 
+        CryptoManager.markSeedVerified()
         findNavController().navigate(R.id.action_seedVerification_to_torBootstrap)
+    }
+
+    private fun showSkipWarning() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.seed_skip_warning_title))
+            .setMessage(getString(R.string.seed_skip_warning_message))
+            .setNegativeButton(getString(R.string.seed_skip_cancel), null)
+            .setPositiveButton(getString(R.string.seed_skip_confirm)) { _, _ ->
+                CryptoManager.markSeedVerified()
+                findNavController().navigate(R.id.action_seedVerification_to_torBootstrap)
+            }
+            .show()
     }
 
     private fun showError(message: String) {
@@ -115,13 +130,9 @@ class SeedVerificationFragment : Fragment() {
         binding.tvError.visibility = View.GONE
     }
 
-    private fun generatePromptIndexes(): List<Int> {
-        return (0 until 24).shuffled(Random(System.currentTimeMillis())).take(3).sorted()
-    }
-
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putIntArray(KEY_PROMPTS, promptIndexes.toIntArray())
+        // Prompt indexes are persisted in CryptoManager — no need to save here
     }
 
     override fun onDestroyView() {
@@ -130,6 +141,6 @@ class SeedVerificationFragment : Fragment() {
     }
 
     companion object {
-        private const val KEY_PROMPTS = "seed_prompt_indexes"
+        // KEY_PROMPTS removed — indexes are now stored in CryptoManager permanently
     }
 }

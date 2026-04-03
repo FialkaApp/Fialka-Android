@@ -84,6 +84,14 @@ object CryptoManager {
     private const val KEY_MLKEM_PRIVATE = "identity_mlkem_private_key"
     private const val KEY_MLDSA_PUBLIC  = "identity_mldsa_public_key"
     private const val KEY_MLDSA_PRIVATE = "identity_mldsa_private_key"
+    /**
+     * Set to true once the user successfully completes seed verification.
+     * hasIdentity() only returns true after this flag is set — prevents
+     * bypassing onboarding by killing the app before verification completes.
+     */
+    private const val KEY_SEED_VERIFIED      = "identity_seed_verified"
+    /** Three comma-separated word indexes (0-based) chosen at identity generation time. Fixed for life. */
+    private const val KEY_SEED_PROMPT_INDEXES = "identity_seed_prompt_indexes"
 
     private const val AES_GCM_TRANSFORMATION = "AES/GCM/NoPadding"
     private const val GCM_TAG_LENGTH_BITS = 128
@@ -154,7 +162,12 @@ object CryptoManager {
         val seed = ByteArray(32)
         secureRandom.nextBytes(seed)
         try {
-            return deriveAndStoreAllKeys(seed)
+            val publicKey = deriveAndStoreAllKeys(seed)
+            // Generate and persist the 3 fixed word positions used for verification.
+            // These never change — same words every time the screen is opened.
+            val indexes = (0 until 24).shuffled(secureRandom).take(3).sorted()
+            prefs.edit().putString(KEY_SEED_PROMPT_INDEXES, indexes.joinToString(",")).apply()
+            return publicKey
         } finally {
             seed.fill(0)
         }
@@ -167,10 +180,36 @@ object CryptoManager {
      */
     fun restoreFromSeed(seed: ByteArray): String {
         require(seed.size == 32) { "Ed25519 seed must be 32 bytes" }
-        return deriveAndStoreAllKeys(seed)
+        val key = deriveAndStoreAllKeys(seed)
+        // Restoring from seed proves knowledge — mark as verified immediately.
+        markSeedVerified()
+        return key
     }
 
-    fun hasIdentity(): Boolean = prefs.getString(KEY_ED25519_SEED, null) != null
+    /** True only when seed exists AND the user has completed seed verification. */
+    fun hasIdentity(): Boolean =
+        prefs.getString(KEY_ED25519_SEED, null) != null && isSeedVerified()
+
+    /** True when keys are generated but the user hasn't verified the seed phrase yet. */
+    fun hasPendingIdentity(): Boolean =
+        prefs.getString(KEY_ED25519_SEED, null) != null && !isSeedVerified()
+
+    fun isSeedVerified(): Boolean = prefs.getBoolean(KEY_SEED_VERIFIED, false)
+
+    /** Called after the user successfully enters the 3 verification words (or skips with warning). */
+    fun markSeedVerified() {
+        prefs.edit().putBoolean(KEY_SEED_VERIFIED, true).apply()
+    }
+
+    /**
+     * Returns the 3 fixed word positions (0-based) chosen at identity creation.
+     * Always returns the same indexes — never reshuffled — so the user always
+     * sees the same words when they return to the verification screen.
+     */
+    fun getSeedPromptIndexes(): List<Int> {
+        val stored = prefs.getString(KEY_SEED_PROMPT_INDEXES, null) ?: return emptyList()
+        return stored.split(",").mapNotNull { it.trim().toIntOrNull() }
+    }
 
     fun getPublicKey(): String? = prefs.getString(KEY_PUBLIC, null)
 

@@ -26,6 +26,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.databinding.FragmentOnboardingBinding
 
 /**
@@ -51,9 +52,9 @@ class OnboardingFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // If user already exists, skip onboarding
+        // Only skip onboarding if identity is fully verified
         viewModel.existingUser.observe(viewLifecycleOwner) { user ->
-            if (user != null) {
+            if (user != null && CryptoManager.hasIdentity()) {
                 findNavController().navigate(R.id.action_onboarding_to_conversations)
             }
         }

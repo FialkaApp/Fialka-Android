@@ -38,6 +38,7 @@ import com.fialkaapp.fialka.databinding.FragmentTorBootstrapBinding
 import com.fialkaapp.fialka.tor.TorCircuit
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.tor.TorState
+import com.fialkaapp.fialka.util.TermsManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -69,6 +70,23 @@ class TorBootstrapFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Reset navigation guard (handles returning from consent screen or backup phrase)
+        hasNavigated = false
+
+        // Terms consent check — must precede ALL other navigation
+        if (!TermsManager.isAccepted(requireContext())) {
+            hasNavigated = true
+            findNavController().navigate(R.id.action_torBootstrap_to_termsConsent)
+            return
+        }
+
+        // Pending identity check — user created identity but hasn't verified seed yet
+        if (CryptoManager.hasPendingIdentity()) {
+            hasNavigated = true
+            findNavController().navigate(R.id.action_torBootstrap_to_backup)
+            return
+        }
 
         // New user? Route based on app mode
         if (!CryptoManager.hasIdentity()) {

@@ -73,6 +73,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="fialka" android:host="mailbox" />
             </intent-filter>
+            <!-- Open .fialka seed backup files from any file manager -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/x-fialka-backup" />
+            </intent-filter>
         </activity>
 
         <!-- Tor Foreground Service — keeps Tor daemon alive -->

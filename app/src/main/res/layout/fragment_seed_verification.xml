@@ -153,6 +153,15 @@
                 android:text="@string/seed_verify_review_seed"
                 android:textAllCaps="false"
                 android:textColor="?attr/colorPrimary" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSkip"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="@string/seed_skip_button"
+                android:textAllCaps="false"
+                android:textColor="?attr/colorError" />
         </LinearLayout>
     </ScrollView>
 

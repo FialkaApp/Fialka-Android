@@ -45,6 +45,20 @@
             app:popUpToInclusive="true"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out" />
+        <action
+            android:id="@+id/action_torBootstrap_to_termsConsent"
+            app:destination="@id/termsConsentFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_torBootstrap_to_backup"
+            app:destination="@id/backupPhraseFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -111,7 +125,8 @@
         <action
             android:id="@+id/action_seedVerification_to_torBootstrap"
             app:destination="@id/torBootstrapFragment"
-            app:popUpTo="@id/backupPhraseFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out" />
     </fragment>
@@ -416,5 +431,11 @@
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out" />
     </fragment>
+
+    <fragment
+        android:id="@+id/termsConsentFragment"
+        android:name="com.fialkaapp.fialka.ui.onboarding.TermsConsentFragment"
+        android:label="Conditions d'utilisation"
+        tools:layout="@layout/fragment_terms_consent" />
 
 </navigation>

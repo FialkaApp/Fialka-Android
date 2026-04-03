@@ -308,4 +308,46 @@
     <string name="setting_backup_export_summary_clean">Exporter les cles et conversations.</string>
     <string name="setting_import_backup_title_clean">Importer une sauvegarde</string>
     <string name="setting_import_backup_summary_clean">Restaurer une identite existante.</string>
+
+    <!-- Terms Consent Screen -->
+    <string name="terms_consent_eyebrow">Avant de continuer</string>
+    <string name="terms_consent_title">Conditions d\'utilisation</string>
+    <string name="terms_consent_subtitle">Lisez et acceptez pour utiliser Fialka.</string>
+    <string name="terms_consent_tool_notice">⚠️ Fialka est un outil. Les developpeurs n\'operent aucune infrastructure, ne stockent aucune donnee utilisateur et ne peuvent acceder a aucun message. Toute la communication est pair-a-pair via Tor. Vous etes seul(e) responsable de votre utilisation.</string>
+    <string name="terms_section_eligibility_title">Eligibilite</string>
+    <string name="terms_section_eligibility_body">Vous devez avoir au moins 16 ans (ou l\'age minimum legal de consentement numerique dans votre pays). En utilisant Fialka, vous confirmez que vous remplissez cette condition.</string>
+    <string name="terms_section_responsibility_title">Responsabilite de l\'utilisateur</string>
+    <string name="terms_section_responsibility_body">Vous etes seul(e) et entierement responsable de toute utilisation que vous faites de Fialka. Les developpeurs declinent toute responsabilite pour tout usage, qu\'il soit licite ou illicite. En utilisant Fialka, vous reconnaissez avoir pris connaissance de ces conditions et acceptez la pleine responsabilite personnelle de toutes les consequences de votre utilisation.</string>
+    <string name="terms_section_warranty_title">Absence de garantie</string>
+    <string name="terms_section_warranty_body">Fialka est fourni « EN L\'ETAT », sans garantie d\'aucune sorte. L\'implementation cryptographique n\'a pas encore ete auditee par un cabinet tiers. Les developpeurs ne garantissent pas l\'absence de vulnerabilites.</string>
+    <string name="terms_section_export_title">Controle des exportations</string>
+    <string name="terms_section_export_body">Ce logiciel contient des elements cryptographiques soumis aux reglementations d\'exportation (Wassenaar, ECCN 5D002.C.1 — US BIS, Reglement UE 2021/821). En tant que logiciel open source GPLv3, il est exempte en France et dans l\'UE. Verifiez les lois de votre pays.</string>
+    <string name="terms_full_link">Texte complet : github.com/FialkaApp/Fialka-Android/blob/main/TERMS.md</string>
+    <string name="terms_consent_age_notice">Vous devez avoir 16 ans ou plus pour utiliser cette application.</string>
+    <string name="terms_consent_decline">Refuser</string>
+    <string name="terms_consent_accept">Accepter</string>
+
+    <!-- Seed verification — skip with warning -->
+    <string name="seed_skip_button">Passer cette etape</string>
+    <string name="seed_skip_warning_title">⚠️ Attention — risque de perte</string>
+    <string name="seed_skip_warning_message">Si vous ne verifiez pas votre phrase de recuperation maintenant, vous ne pourrez peut-etre pas restaurer votre compte en cas de perte de l\'appareil.\n\nEtes-vous certain(e) d\'avoir sauvegarde vos 24 mots en lieu sur ?</string>
+    <string name="seed_skip_cancel">Annuler</string>
+    <string name="seed_skip_confirm">Oui, passer quand meme</string>
+
+    <!-- Backup phrase export buttons -->
+    <string name="backup_btn_copy">Copier</string>
+    <string name="backup_btn_share">Partager</string>
+    <string name="backup_btn_export">Exporter</string>
+
+    <!-- Backup phrase — copy warning -->
+    <string name="backup_copy_warning_title">⚠️ Presse-papier non securise</string>
+    <string name="backup_copy_warning_message">Le presse-papier est accessible par d\'autres applications. La phrase sera effacee automatiquement apres 90 secondes, mais evitez de copier-coller dans une app non securisee.\n\nProceder quand meme ?</string>
+    <string name="backup_copy_cancel">Annuler</string>
+    <string name="backup_copy_confirm">Copier</string>
+    <string name="backup_copy_done">Phrase copiee — effacement automatique dans 90 secondes.</string>
+
+    <!-- Backup phrase — share / export -->
+    <string name="backup_share_chooser">Partager la phrase de recuperation</string>
+    <string name="backup_export_done">Fichier sauvegarde dans Telechargements.</string>
+    <string name="backup_export_failed">Erreur lors de l\'export du fichier.</string>
 </resources>
