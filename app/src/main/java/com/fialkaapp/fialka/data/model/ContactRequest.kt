@@ -18,8 +18,7 @@
 package com.fialkaapp.fialka.data.model
 
 /**
- * Incoming contact request — previously nested inside FirebaseRelay,
- * now a standalone model class for P2P (Tor) delivery.
+ * Incoming contact request — standalone model for P2P (Tor) delivery.
  */
 data class ContactRequest(
     val senderPublicKey: String,

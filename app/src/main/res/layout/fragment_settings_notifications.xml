@@ -124,7 +124,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="3dp"
-                        android:text="Les notifications utilisent Firebase Cloud Messaging (FCM).\n\n• Aucun contenu de message n'est envoyé\n• Seul le nom de l'expéditeur est inclus\n• Le token FCM est supprimé si vous désactivez les notifications\n• Votre vie privée est toujours protégée"
+                        android:text="Les notifications utilisent UnifiedPush (ntfy.sh ou auto-hébergé).\n\n• Aucun contenu de message n'est envoyé\n• Seul un signal de réveil est transmis\n• Zéro Google — aucun FCM, aucun token Google\n• Votre vie privée est toujours protégée"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>

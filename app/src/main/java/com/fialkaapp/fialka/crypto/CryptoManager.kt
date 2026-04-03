@@ -839,7 +839,7 @@ object CryptoManager {
     /**
      * Derive a per-conversation pseudonymous sender ID.
      * HMAC-SHA256(conversationId, uid) truncated to 32 hex chars.
-     * Prevents cross-conversation UID correlation on Firebase.
+     * Prevents cross-conversation UID correlation (metadata hardening).
      */
     fun hashSenderUid(conversationId: String, uid: String): String {
         val hash = hmacSha256(

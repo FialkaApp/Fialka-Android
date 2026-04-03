@@ -74,7 +74,7 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
 
     /**
      * Collect incoming contact requests from P2PServer SharedFlow.
-     * Requests arrive via Tor P2P — no Firebase polling needed.
+     * Requests arrive via Tor P2P.
      */
     private fun listenForIncomingRequests() {
         viewModelScope.launch {
@@ -121,7 +121,7 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun declineRequest(request: ContactRequest) {
-        // Just remove from pending list — no Firebase to clean up
+        // Just remove from pending list
         pendingList.removeAll { it.conversationId == request.conversationId }
         _pendingRequests.value = pendingList.toList()
     }

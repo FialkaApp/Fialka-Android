@@ -99,7 +99,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Initialize the ViewModel with a conversation ID.
-     * Messages arrive via P2PServer (Tor P2P) — no Firebase polling needed.
+     * Messages arrive via P2PServer (Tor P2P).
      */
     fun init(conversationId: String) {
         if (this.conversationId == conversationId) return

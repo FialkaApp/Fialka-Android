@@ -49,8 +49,7 @@ import java.net.URI
  * so the .onion address is deterministic (same seed = same .onion).
  *
  * SOCKS5 proxy at 127.0.0.1:9050 handles all outbound traffic via Tor.
- * Firebase/Google domains temporarily bypass Tor (they block exit nodes)
- * until Firebase is replaced by .onion P2P in a future release.
+ * All traffic routed through Tor SOCKS5 proxy.
  */
 object TorManager {
 
@@ -566,20 +565,6 @@ object TorManager {
     }
 
     // ── SOCKS5 Proxy ──
-    // Firebase/Google bypass Tor temporarily — they block Tor exit nodes.
-    // This will be removed when Firebase is replaced by .onion P2P transport.
-
-    private val FIREBASE_BYPASS_DOMAINS = setOf(
-        "googleapis.com",
-        "firebaseio.com",
-        "firebase.com",
-        "cloudfunctions.net",
-        "google.com",
-        "gstatic.com",
-        "android.com",
-        "google-analytics.com",
-        "googleusercontent.com"
-    )
 
     private var originalProxySelector: ProxySelector? = null
 
@@ -596,10 +581,6 @@ object TorManager {
                 val host = uri?.host ?: return listOf(Proxy.NO_PROXY)
                 // Localhost always direct
                 if (host == "localhost" || host == "127.0.0.1") {
-                    return listOf(Proxy.NO_PROXY)
-                }
-                // Firebase/Google domains go direct (temporary — until P2P replaces Firebase)
-                if (FIREBASE_BYPASS_DOMAINS.any { host == it || host.endsWith(".$it") }) {
                     return listOf(Proxy.NO_PROXY)
                 }
                 // Everything else goes through Tor SOCKS5

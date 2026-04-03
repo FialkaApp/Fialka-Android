@@ -19,7 +19,7 @@ package com.fialkaapp.fialka.tor
 
 import android.content.Context
 import com.fialkaapp.fialka.data.model.ContactRequest
-import com.fialkaapp.fialka.data.model.FirebaseMessage
+import com.fialkaapp.fialka.data.model.P2PMessage
 import com.fialkaapp.fialka.data.repository.ChatRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -110,7 +110,7 @@ object P2PServer : TorTransport.FrameListener {
             val json = JSONObject(String(payload, Charsets.UTF_8))
             val conversationId = json.getString("conversationId")
 
-            val wireMessage = FirebaseMessage(
+            val wireMessage = P2PMessage(
                 ciphertext = json.getString("ciphertext"),
                 iv = json.getString("iv"),
                 createdAt = json.getLong("createdAt"),

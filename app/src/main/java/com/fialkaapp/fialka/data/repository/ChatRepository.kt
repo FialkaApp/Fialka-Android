@@ -870,7 +870,7 @@ class ChatRepository(private val appContext: Context) {
      */
     suspend fun receiveMessage(
         conversationId: String,
-        firebaseMessage: FirebaseMessage
+        p2pMessage: P2PMessage
     ): MessageLocal? {
 
         return getMutex(conversationId).withLock {
@@ -878,7 +878,7 @@ class ChatRepository(private val appContext: Context) {
             // Skip duplicates — check by conversationId + timestamp (received only)
             val exists = messageDao.receivedMessageExists(
                 conversationId,
-                firebaseMessage.createdAt
+                p2pMessage.createdAt
             )
             if (exists > 0) return@withLock null
 
@@ -890,7 +890,7 @@ class ChatRepository(private val appContext: Context) {
             var ratchetState = getOrCreateRatchetState(conversationId, conversation.participantPublicKey)
 
             // DH ratchet step: if remote sent a new ephemeral key, perform DH ratchet
-            val remoteEphemeral = firebaseMessage.ephemeralKey
+            val remoteEphemeral = p2pMessage.ephemeralKey
 
             // Always store the remote ephemeral if present
             if (remoteEphemeral.isNotEmpty() && remoteEphemeral != ratchetState.remoteDhPublic) {
@@ -923,8 +923,8 @@ class ChatRepository(private val appContext: Context) {
                 try {
                     val decrypted = CryptoManager.decrypt(
                         CryptoManager.EncryptedData(
-                            ciphertext = firebaseMessage.ciphertext,
-                            iv = firebaseMessage.iv
+                            ciphertext = p2pMessage.ciphertext,
+                            iv = p2pMessage.iv
                         ),
                         messageKey
                     )
@@ -961,14 +961,14 @@ class ChatRepository(private val appContext: Context) {
                 // send/recv chains stay intact. The next DH ratchet step will
                 // naturally derive post-quantum chains from the upgraded root.
                 if (!ratchetState.pqxdhInitialized
-                    && firebaseMessage.kemCiphertext.isNotEmpty()
+                    && p2pMessage.kemCiphertext.isNotEmpty()
                     && ratchetState.pendingClassicSecret.isNotEmpty()
                 ) {
                     try {
                         val classicBytes = android.util.Base64.decode(
                             ratchetState.pendingClassicSecret, android.util.Base64.NO_WRAP
                         )
-                        val ssPQ = CryptoManager.mlkemDecaps(firebaseMessage.kemCiphertext)
+                        val ssPQ = CryptoManager.mlkemDecaps(p2pMessage.kemCiphertext)
                         val combined = classicBytes + ssPQ
                         classicBytes.fill(0)
                         ssPQ.fill(0)
@@ -988,10 +988,10 @@ class ChatRepository(private val appContext: Context) {
                 // If PQXDH is already complete and this message carries a fresh kemCiphertext,
                 // it's a SPQR re-key: decapsulate and mix into rootKey.
                 if (ratchetState.pqxdhInitialized
-                    && firebaseMessage.kemCiphertext.isNotEmpty()
+                    && p2pMessage.kemCiphertext.isNotEmpty()
                 ) {
                     try {
-                        val ssPQ = CryptoManager.mlkemDecaps(firebaseMessage.kemCiphertext)
+                        val ssPQ = CryptoManager.mlkemDecaps(p2pMessage.kemCiphertext)
                         val newRootKey = DoubleRatchet.pqRatchetStep(ratchetState.rootKey, ssPQ)
                         ratchetState = ratchetState.copy(
                             rootKey = newRootKey,
@@ -1006,13 +1006,13 @@ class ChatRepository(private val appContext: Context) {
             }
 
             // Verify ML-DSA-44 handshake signature (PQ authentication on first PQXDH message)
-            if (firebaseMessage.mldsaSignature.isNotEmpty() && firebaseMessage.kemCiphertext.isNotEmpty()) {
+            if (p2pMessage.mldsaSignature.isNotEmpty() && p2pMessage.kemCiphertext.isNotEmpty()) {
                 val contact0 = contactDao.getContactByPublicKey(conversation.participantPublicKey)
                 val mldsaKey = contact0?.mldsaPublicKey
                 if (mldsaKey != null) {
-                    val handshakeData = (firebaseMessage.kemCiphertext + firebaseMessage.ephemeralKey)
+                    val handshakeData = (p2pMessage.kemCiphertext + p2pMessage.ephemeralKey)
                         .toByteArray(Charsets.UTF_8)
-                    val mldsaValid = CryptoManager.verifyHandshakeMlDsa44(mldsaKey, handshakeData, firebaseMessage.mldsaSignature)
+                    val mldsaValid = CryptoManager.verifyHandshakeMlDsa44(mldsaKey, handshakeData, p2pMessage.mldsaSignature)
                     if (!mldsaValid) {
                     }
                 }
@@ -1023,15 +1023,15 @@ class ChatRepository(private val appContext: Context) {
 
             // Keys arrive via TYPE_KEY_BUNDLE in-band — no remote fetch
             val signingKey = contact?.signingPublicKey
-            val signatureValid: Boolean? = if (firebaseMessage.signature.isNotEmpty() && signingKey != null) {
+            val signatureValid: Boolean? = if (p2pMessage.signature.isNotEmpty() && signingKey != null) {
                 CryptoManager.verifySignature(
                     signingKey,
-                    firebaseMessage.ciphertext,
+                    p2pMessage.ciphertext,
                     conversationId,
-                    firebaseMessage.createdAt,
-                    firebaseMessage.signature
+                    p2pMessage.createdAt,
+                    p2pMessage.signature
                 )
-            } else if (firebaseMessage.signature.isNotEmpty()) {
+            } else if (p2pMessage.signature.isNotEmpty()) {
                 // Signature present but no signing key known — can't verify
                 null
             } else {
@@ -1048,7 +1048,7 @@ class ChatRepository(private val appContext: Context) {
             if (decryptedPlaintext != null && decryptedPlaintext.startsWith(FILE_PREFIX)) {
                 return@withLock handleReceivedFile(
                     conversationId, conversation, decryptedPlaintext,
-                    firebaseMessage.createdAt, signatureValid
+                    p2pMessage.createdAt, signatureValid
                 )
             }
 
@@ -1065,7 +1065,7 @@ class ChatRepository(private val appContext: Context) {
                 conversationId = conversationId,
                 senderPublicKey = conversation.participantPublicKey,
                 plaintext = decryptedPlaintext ?: "[Échec du déchiffrement]",
-                timestamp = firebaseMessage.createdAt,
+                timestamp = p2pMessage.createdAt,
                 isMine = false,
                 ephemeralDuration = ephDuration,
                 expiresAt = expiresAt,

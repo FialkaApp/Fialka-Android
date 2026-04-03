@@ -18,8 +18,8 @@
 package com.fialkaapp.fialka.data.model
 
 /**
- * Firebase message model — metadata-hardened.
- * Only ciphertext + minimal routing info transit on Firebase.
+ * P2P wire message model — metadata-hardened.
+ * Only ciphertext + minimal routing info transit over Tor (.onion → .onion).
  *
  * Removed from wire format (V1.1 metadata hardening):
  *  - senderPublicKey: was leaking identity-key-level info (unnecessary in 1-to-1)
@@ -28,10 +28,10 @@ package com.fialkaapp.fialka.data.model
  * Remaining fields:
  *  - ciphertext: Base64 AES-256-GCM (contains "index|plaintext")
  *  - iv: Base64 12-byte nonce
- *  - createdAt: server timestamp (needed for ordering + TTL cleanup)
- *  - senderUid: Firebase anonymous UID (needed for Cloud Function push routing)
+ *  - createdAt: sender timestamp (needed for ordering + dedup)
+ *  - senderUid: opaque P2P identifier (routing only, not linked to identity)
  */
-data class FirebaseMessage(
+data class P2PMessage(
     val ciphertext: String = "",
     val iv: String = "",
     val createdAt: Long = 0L,
@@ -41,7 +41,7 @@ data class FirebaseMessage(
     val kemCiphertext: String = "", // Base64 ML-KEM-1024 ciphertext (first message only, PQXDH)
     val mldsaSignature: String = "", // Base64 ML-DSA-44 signature (first message only, PQ handshake auth)
     val cipherSuite: Int = 0,      // 0 = AES-256-GCM (default), 1 = ChaCha20-Poly1305
-    @Transient val firebaseKey: String = ""  // Local-only: Firebase node key for delete-after-delivery
+    @Transient val localKey: String = ""  // Local-only: message key for delete-after-delivery (not transmitted)
 ) {
     fun toMap(): Map<String, Any> {
         val map = mutableMapOf<String, Any>(

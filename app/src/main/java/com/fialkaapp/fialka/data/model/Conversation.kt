@@ -45,8 +45,8 @@ data class Conversation(
     val ephemeralDuration: Long = 0,   // 0 = off, >0 = duration in ms for new messages
     val dummyTrafficEnabled: Boolean = false,  // Per-conversation dummy traffic cover
     // Timestamp of the last successfully decrypted incoming message.
-    // Used as the Firebase listener lower-bound on restart so already-seen messages
-    // (including ones we failed to decrypt) are not re-fetched and don't corrupt the ratchet.
+    // Used as lower-bound on reconnect so already-seen P2P messages are not
+    // reprocessed and don't corrupt the ratchet state.
     val lastDeliveredAt: Long = 0L,
     val participantOnionAddress: String = "", // .onion address for P2P delivery via Tor
     val participantMailboxOnion: String = ""  // .onion of the participant's mailbox (offline fallback)

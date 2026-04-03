@@ -12,12 +12,26 @@
 
 <br/>
 
+🔐 &nbsp;&nbsp; 🧅 &nbsp;&nbsp; 📬 &nbsp;&nbsp; 🛡️ &nbsp;&nbsp; 🔑 &nbsp;&nbsp; 📷 &nbsp;&nbsp; 📱
+
+<br/>
+
 [![Android](https://img.shields.io/badge/Android-33%2B-a855f7?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-7c3aed?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![E2E](https://img.shields.io/badge/PQXDH-X25519%20%2B%20ML--KEM--1024-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/en/CRYPTO.md)
 [![License](https://img.shields.io/badge/GPLv3-License-8b5cf6?style=for-the-badge)](LICENSE)
 [![Terms](https://img.shields.io/badge/Terms-Conditions-8b5cf6?style=for-the-badge)](TERMS.md)
 [![Privacy](https://img.shields.io/badge/Privacy-Policy-8b5cf6?style=for-the-badge)](PRIVACY.md)
+
+<br/>
+
+[![Tor](https://img.shields.io/badge/Tor-Guardian_Project-7c3aed?style=flat-square&logo=torproject&logoColor=white)](https://guardianproject.info/)
+[![BouncyCastle](https://img.shields.io/badge/BouncyCastle-1.80-7c3aed?style=flat-square)](https://www.bouncycastle.org/)
+[![SQLCipher](https://img.shields.io/badge/SQLCipher-4.5.4-7c3aed?style=flat-square)](https://www.zetetic.net/sqlcipher/)
+[![Room](https://img.shields.io/badge/Room-2.7.1-7c3aed?style=flat-square)](https://developer.android.com/jetpack/androidx/releases/room)
+[![Material3](https://img.shields.io/badge/Material_Design-3-7c3aed?style=flat-square&logo=materialdesign&logoColor=white)](https://m3.material.io/)
+[![ZXing](https://img.shields.io/badge/ZXing-4.3.0-7c3aed?style=flat-square)](https://github.com/journeyapps/zxing-android-embedded)
+[![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-7c3aed?style=flat-square&logo=kotlin&logoColor=white)](https://github.com/Kotlin/kotlinx.coroutines)
 
 <br/>
 
@@ -233,6 +247,10 @@ cd Fialka-Android
 
 </div>
 
+<details>
+<summary><b>View all security measures (34 items)</b></summary>
+<br/>
+
 | Measure | Status |
 |---------|--------|
 | **Identity: 1 Ed25519 seed → everything** (Account ID, .onion, X25519, ML-KEM, fingerprint) | ✅ |
@@ -270,6 +288,8 @@ cd Fialka-Android
 | Clipboard EXTRA_IS_SENSITIVE + 30s auto-clear | ✅ |
 | SecureFileManager (2-pass wipe: random + zeros) | ✅ |
 | **V3.4.1 Security Audit — 42+ vulnerabilities fixed** | ✅ |
+
+</details>
 
 > 📖 **Full Analysis** — [`SECURITY.md`](SECURITY.md) · [Crypto Protocol](docs/en/CRYPTO.md)
 
@@ -331,6 +351,98 @@ cd Fialka-Android
 | [**Structure**](docs/en/STRUCTURE.md) | Full project tree |
 | [**Changelog**](docs/en/CHANGELOG.md) | V1 → V4.0 history |
 | [**Security**](SECURITY.md) | Full audit, known limitations |
+
+</div>
+
+---
+
+---
+
+<div align="center">
+
+## 🙏 Acknowledgments — Libraries & Dependencies
+
+</div>
+
+<table>
+<tr>
+<td width="50%">
+
+### 🔐 Cryptography
+
+| Library | Version | Role |
+|---|---|---|
+| [**BouncyCastle**](https://www.bouncycastle.org/) | `1.80` | ML-KEM-1024, ML-DSA-44, Ed25519, ChaCha20-Poly1305 |
+| **Android Keystore** (AOSP) | — | Ed25519 seed in hardware (StrongBox) |
+| [**Security Crypto**](https://developer.android.com/jetpack/androidx/releases/security) | `1.1.0-alpha06` | EncryptedSharedPreferences, MasterKey |
+| [**Biometric**](https://developer.android.com/jetpack/androidx/releases/biometric) | `1.1.0` | Biometric authentication (fingerprint, face) |
+
+### 🧅 Networking & Anonymity
+
+| Library | Version | Role |
+|---|---|---|
+| [**tor-android**](https://github.com/guardianproject/tor-android) — Guardian Project | `0.4.9.5` | Embedded Tor binary, v3 Hidden Services |
+| [**jtorctl**](https://github.com/guardianproject/jtorctl) — Guardian Project | `0.4.5.7` | Tor daemon control (Java) |
+| [**socks-socket**](https://code.briarproject.org/briar/briar) — Briar Project | `0.1` | SOCKS5 connections through Tor |
+| [**lyrebird-android**](https://code.briarproject.org/briar/briar) — Briar Project | `0.6.2` | obfs4/Snowflake transports (anti-censorship) |
+| [**moat-api**](https://code.briarproject.org/briar/briar) — Briar Project | `0.4` | Tor bridge bootstrapping |
+
+### 🗄️ Database
+
+| Library | Version | Role |
+|---|---|---|
+| [**Room**](https://developer.android.com/jetpack/androidx/releases/room) | `2.7.1` | SQLite ORM (local persistence) |
+| [**SQLCipher**](https://www.zetetic.net/sqlcipher/) — Zetetic | `4.5.4` | AES-256 encryption of the Room database |
+| [**KSP**](https://github.com/google/ksp) — Google | — | Compile-time Room code generation |
+
+</td>
+<td width="50%">
+
+### 📱 Android SDK & UI
+
+| Library | Version | Role |
+|---|---|---|
+| [**AndroidX Core KTX**](https://developer.android.com/kotlin/ktx) | `1.15.0` | Kotlin extensions for Android |
+| [**AppCompat**](https://developer.android.com/jetpack/androidx/releases/appcompat) | `1.7.0` | Backwards compatibility |
+| [**Fragment / Activity KTX**](https://developer.android.com/jetpack/androidx/releases/activity) | `1.8.6 / 1.10.1` | Screen lifecycle and navigation |
+| [**Navigation**](https://developer.android.com/jetpack/androidx/releases/navigation) | `2.8.9` | Fragment navigation + Deep Links |
+| [**Lifecycle**](https://developer.android.com/jetpack/androidx/releases/lifecycle) | `2.8.7` | ViewModel, LiveData, coroutines |
+| [**RecyclerView**](https://developer.android.com/jetpack/androidx/releases/recyclerview) | `1.4.0` | Message lists |
+| [**ConstraintLayout**](https://developer.android.com/develop/ui/views/layout/constraint-layout) | `2.2.1` | Complex layouts |
+| [**Material Design 3**](https://m3.material.io/) — Google | `1.12.0` | M3 components, 5 themes |
+| [**Splash Screen**](https://developer.android.com/develop/ui/views/launch/splash-screen) | `1.0.1` | Startup screen |
+
+### 📷 QR Code & Async
+
+| Library | Version | Role |
+|---|---|---|
+| [**ZXing Android Embedded**](https://github.com/journeyapps/zxing-android-embedded) — JourneyApps | `4.3.0` | QR code generation + scanning |
+| [**Kotlinx Coroutines**](https://github.com/Kotlin/kotlinx.coroutines) — JetBrains | `1.9.0` | Non-blocking async, structured concurrency |
+| [**Kotlin**](https://kotlinlang.org/) — JetBrains | `2.3.0` | Primary programming language |
+
+</td>
+</tr>
+</table>
+
+<br/>
+
+<div align="center">
+
+### 📋 Cryptographic Standards & Protocols
+
+| Standard | Reference | Usage in Fialka |
+|---|---|---|
+| **ML-KEM-1024** | NIST FIPS 203 | Post-quantum Key Encapsulation Mechanism (hybrid PQXDH) |
+| **ML-DSA-44** | NIST FIPS 204 | Post-quantum digital signature (handshake) |
+| **Ed25519** | RFC 8032 | Per-message signature + identity seed |
+| **X25519** | RFC 7748 | Elliptic Curve Diffie-Hellman key exchange |
+| **PQXDH** | Signal Specification | Post-quantum hybrid key agreement protocol |
+| **Double Ratchet** | Signal Specification | Perfect Forward Secrecy + auto-healing |
+| **ChaCha20-Poly1305** | RFC 8439 | Authenticated symmetric encryption (AES fallback) |
+| **AES-256-GCM** | NIST SP 800-38D | Authenticated symmetric encryption (primary) |
+| **HKDF** | RFC 5869 | Cryptographic key derivation |
+| **PBKDF2** | RFC 8018 | PIN-based key derivation (600,000 iterations) |
+| **BIP-39** | Bitcoin Core | 24-word mnemonic for identity backup |
 
 </div>
 
