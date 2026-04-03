@@ -1,6 +1,6 @@
 # Security Policy — Fialka
 
-*Last updated: March 23, 2026*
+*Last updated: April 3, 2026*
 
 ---
 
@@ -307,6 +307,27 @@ Falcon-512 = **~666 bytes** → 10x smaller than ML-DSA-44. Viable per message. 
 5. **Enable disappearing messages** — For sensitive conversations, set ephemeral timers
 6. **Keep the app updated** — Security fixes are applied in new releases
 7. **Self-host your Mailbox** — For maximum privacy, run your own Mailbox node (Mode 1)
+
+---
+
+## Regulatory Compliance
+
+### EU Cyber Resilience Act (CRA — Regulation 2024/2847)
+
+The CRA imposes cybersecurity and vulnerability reporting obligations on products with digital elements sold in the EU. Fialka is an **open-source, non-commercial** software project distributed free of charge. Under the CRA, open-source software developed and distributed without commercial purpose is broadly exempt (Recital 18 and Article 3).
+
+| CRA requirement | Fialka status | Reason |
+|----------------|--------------|--------|
+| Vulnerability disclosure (ENISA) | ✅ Exempt | Non-commercial open source |
+| Conformity assessment | ✅ Exempt | Non-commercial open source |
+| CE marking | ✅ Exempt | Non-commercial open source |
+| Vulnerability tracking | ✅ Voluntary | Via GitHub Security Advisories (see above) |
+
+We will monitor CRA implementing acts finalized before October 2027 and update this position if Fialka's classification changes (e.g., commercial distribution via SAS).
+
+### GDPR / Loi Informatique et Libertés
+
+Fialka is fully P2P with no central server and no personal data processing by the developers. See [PRIVACY.md](PRIVACY.md) for details. The developers are not a *responsable de traitement* for any user data.
 
 ---
 

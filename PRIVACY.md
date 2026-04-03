@@ -1,6 +1,6 @@
 # Privacy Policy — Fialka
 
-*Last updated: March 23, 2026*
+*Last updated: April 3, 2026*
 
 ---
 
@@ -116,37 +116,47 @@ This data is protected by:
 - **No server-side backups** of message content exist anywhere
 - **No account database** exists — your identity is your key, stored only on your device
 
-## 7. Your Rights (GDPR — EU/EEA Users)
+## 7. Your Rights — EU/EEA Users (GDPR + French Law)
 
-Under the GDPR, you have rights to access, rectification, erasure, portability, objection, and restriction of processing.
+**GDPR (Regulation 2016/679)** — As an EU/EEA user, you have rights to access, rectification, erasure, portability, objection, and restriction of processing under Articles 15–22.
+
+**French Law (Loi Informatique et Libertés — Loi n° 78-17 du 6 janvier 1978 modifiée)** — French users benefit from additional protections under the French Data Protection Act, aligned with and complementing the GDPR. The CNIL (Commission Nationale de l'Informatique et des Libertés) is the competent supervisory authority in France.
 
 **In practice**, since:
 - The developers collect **zero personal data**
 - The developers operate **zero infrastructure**
 - There is **no central server** and **no account database**
 - All data is stored **locally on your device**
+- Fialka applies **privacy by design and by default** (GDPR Art. 25 / RGPD Art. 25)
 
-...these rights are satisfied **by design**. To delete all your data:
+...these rights are satisfied **by architecture**. To delete all your data:
 1. Delete the app (removes all local data instantly)
 
-There is no remote account to delete, no server to contact, no data to request.
+There is no remote account to delete, no server to contact, no data to request. The developers have no ability to respond to access or deletion requests because no data is held.
 
 ## 8. Children's Privacy
 
-Fialka is **not intended for use by anyone under 16** (or the applicable minimum digital age of consent). See [TERMS.md](TERMS.md).
+Fialka is **not intended for use by anyone under 16** (or the applicable minimum digital age of consent in your jurisdiction). See [TERMS.md](TERMS.md).
+
+**COPPA (USA — Children's Online Privacy Protection Act):** Fialka is not directed to children under the age of 13 and does not knowingly collect personal information from children under 13. Since Fialka collects no personal data from any user whatsoever (P2P architecture, zero server-side storage), COPPA compliance is satisfied by design. If you are under 13, do not use this application.
 
 ## 9. International Data Transfers
 
 The Fialka source code is hosted on GitHub (USA). All communications transit exclusively through the **Tor network** (global, decentralized). No user data is transferred to any corporate entity or jurisdiction.
 
-## 10. Changes to This Policy
+## 10. Cyber Resilience Act (CRA) — EU Regulation 2024/2847
+
+The EU Cyber Resilience Act enters into force progressively from 2026. Fialka is an **open-source, non-commercial software product**. Non-commercial open-source projects are broadly exempted under the CRA recitals. No commercial revenue is derived from Fialka. This policy will be updated if the CRA's final implementing acts affect this classification.
+
+## 11. Changes to This Policy
 
 Changes will be published in this file and reflected in the "Last updated" date above. Significant changes will be noted in the [Changelog](docs/en/CHANGELOG.md).
 
-## 11. Contact
+## 12. Contact
 
 - GitHub: [github.com/FialkaApp/Fialka-Android](https://github.com/FialkaApp/Fialka-Android)
 - Security issues: See [SECURITY.md](SECURITY.md)
+- GDPR / CNIL inquiries: See GitHub organization profile
 
 ---
 

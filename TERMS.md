@@ -1,6 +1,6 @@
 # Terms of Use — Fialka
 
-*Last updated: March 23, 2026*
+*Last updated: April 3, 2026*
 
 ---
 
@@ -28,6 +28,8 @@ Fialka is **free, open-source software** distributed under the [GNU General Publ
 ## 3. Eligibility
 
 You must be at least **16 years old** (or the applicable minimum digital age of consent in your jurisdiction) to use Fialka. By using the app, you confirm that you meet this requirement.
+
+**USA — COPPA Notice:** Fialka is not directed to children under 13. Since Fialka collects no personal information from any user (P2P architecture, zero server-side storage), the Children's Online Privacy Protection Act (COPPA) requirements are satisfied by design. If you are under 13, do not use this application.
 
 ## 4. User Responsibilities
 
@@ -113,7 +115,9 @@ These Terms may be updated at any time. Changes will be published in this file, 
 
 ## 13. Governing Law
 
-These Terms are governed by the laws of **France**, without regard to conflict of law provisions. Any dispute arising from these Terms shall be subject to the exclusive jurisdiction of the courts of France.
+These Terms are governed by the laws of **France** and applicable European Union regulations (including GDPR, Regulation 2016/679; and the Loi Informatique et Libertés n° 78-17 du 6 janvier 1978), without regard to conflict of law provisions. Any dispute arising from these Terms shall be subject to the exclusive jurisdiction of the courts of France.
+
+**Regarding the EU Cyber Resilience Act (CRA — Regulation 2024/2847):** Fialka is a non-commercial open-source software product. It is currently exempt under the CRA's open-source non-commercial provisions. This position will be reviewed as CRA implementing acts are finalized.
 
 ## 14. Contact
 
