@@ -26,12 +26,12 @@
 <br/>
 
 [![Tor](https://img.shields.io/badge/Tor-Guardian_Project-7c3aed?style=flat-square&logo=torproject&logoColor=white)](https://guardianproject.info/)
-[![BouncyCastle](https://img.shields.io/badge/BouncyCastle-1.80-7c3aed?style=flat-square)](https://www.bouncycastle.org/)
-[![SQLCipher](https://img.shields.io/badge/SQLCipher-4.5.4-7c3aed?style=flat-square)](https://www.zetetic.net/sqlcipher/)
-[![Room](https://img.shields.io/badge/Room-2.7.1-7c3aed?style=flat-square)](https://developer.android.com/jetpack/androidx/releases/room)
+[![BouncyCastle](https://img.shields.io/badge/BouncyCastle-1.83-7c3aed?style=flat-square)](https://www.bouncycastle.org/)
+[![SQLCipher](https://img.shields.io/badge/SQLCipher-4.14.1-7c3aed?style=flat-square)](https://www.zetetic.net/sqlcipher/)
+[![Room](https://img.shields.io/badge/Room-2.8.4-7c3aed?style=flat-square)](https://developer.android.com/jetpack/androidx/releases/room)
 [![Material3](https://img.shields.io/badge/Material_Design-3-7c3aed?style=flat-square&logo=materialdesign&logoColor=white)](https://m3.material.io/)
 [![ZXing](https://img.shields.io/badge/ZXing-4.3.0-7c3aed?style=flat-square)](https://github.com/journeyapps/zxing-android-embedded)
-[![Coroutines](https://img.shields.io/badge/Coroutines-1.9.0-7c3aed?style=flat-square&logo=kotlin&logoColor=white)](https://github.com/Kotlin/kotlinx.coroutines)
+[![Coroutines](https://img.shields.io/badge/Coroutines-1.10.2-7c3aed?style=flat-square&logo=kotlin&logoColor=white)](https://github.com/Kotlin/kotlinx.coroutines)
 
 <br/>
 
@@ -315,6 +315,7 @@ cd Fialka-Android
 | **V3.4.1** | One-Shot + Security Audit — Ephemeral photos, BIP-39 grid, **comprehensive security audit (42+ fixes)** | ✅ Done |
 | **V3.5** | SPQR + ChaCha20 — PQ Triple Ratchet (ML-KEM re-encapsulation), ChaCha20-Poly1305 alternative, documented threat model | ✅ Done |
 | **V4.0** | Kill Firebase — P2P .onion + Mailbox store-and-forward, invite QR, deep links | ✅ Done |
+| **V4.0.1** | Direct Keystore (FialkaSecurePrefs), SQLCipher 4.14.1, transport reliability (15s retry, Mailbox fallback, adaptive fetch) | ✅ Done |
 | **V4.1** | UX — App disguise (icon + cover screen), Dual PIN + Panic Button, E2E voice messages (Opus), reply/quote | 🔜 |
 | **V4.2** | Sealed Sender (VXEdDSA), multi-device Sesame, **third-party security audit** (Cure53 / Trail of Bits) | 🔜 |
 | **V5.0** | Long-term — **Falcon-512** per-message PQ signatures, decentralized Mailbox network, Bluetooth/WiFi fallback | 🔮 |
@@ -349,7 +350,7 @@ cd Fialka-Android
 | [**Crypto Protocol**](docs/en/CRYPTO.md) | X25519, Double Ratchet, fingerprint, threat model |
 | [**Setup**](docs/en/SETUP.md) | Prerequisites, build, dependencies |
 | [**Structure**](docs/en/STRUCTURE.md) | Full project tree |
-| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V4.0 history |
+| [**Changelog**](docs/en/CHANGELOG.md) | V1 → V4.0.1 history |
 | [**Security**](SECURITY.md) | Full audit, known limitations |
 
 </div>
@@ -476,7 +477,7 @@ The U.S. Government Department of Commerce, Bureau of Industry and Security (BIS
 
 <br/>
 
-<img src="https://img.shields.io/badge/Fialka-V4.0-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/Fialka-V4.0.1-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

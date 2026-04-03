@@ -107,7 +107,7 @@ Fialka supporte **deux modes distincts et mutuellement exclusifs** sur un même 
 - ✅ **Blob brut** — pas d'extraction de métadonnées (destinataire, timing pattern, taille réelle, etc.)
 - ✅ **TTL 7 jours max** — expiration automatique
 - ✅ **Statstics only** — seuls compteurs cumulatifs (totalDeposited, totalFetched)
-- ✅ **Polling 60s** — vérification non-stop des nouveaux messages
+- ✅ **Polling adaptatif** — 10 s de base, 5 s après réception de messages, backoff 60 s sur erreur réseau
 - ✅ **Configuration UI complète** — paramètres pour mode, TTL, whitelist (accès dans Settings)
 
 **⚠️ Contrainte majeure** : **Nécessite 2 appareils** pour fonctionner (ou emprunter à un ami)
@@ -150,7 +150,7 @@ Fialka supporte **deux modes distincts et mutuellement exclusifs** sur un même 
 | **UI** | Écrans, navigation, interactions | `ui/` — Fragments, ViewModels, Adapters (Material 3) |
 | **Repository** | Coordination local/crypto/remote | `data/repository/ChatRepository.kt` |
 | **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519, PQXDH (ML-KEM-1024) | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
-| **Local DB** | Room v17 — users, contacts, messages, ratchet (indexes composites) | `data/local/` — DAOs, Database (SQLCipher) |
+| **Local DB** | Room v24 — users, contacts, messages, ratchet (indexes composites) | `data/local/` — DAOs, Database (SQLCipher) |
 | **Remote** | Transport Tor Hidden Services P2P (.onion, ciphertext only) | `data/remote/TorTransport.kt` |
 | **Util** | QR, 5 thèmes, app lock, éphémère, dummy traffic, DeviceSecurityManager | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt`, `DeviceSecurityManager.kt` |
 

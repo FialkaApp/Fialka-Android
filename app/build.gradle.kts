@@ -21,8 +21,8 @@ android {
         applicationId = "com.fialkaapp.fialka"
         minSdk = 33
         targetSdk = 36
-        versionCode = 8
-        versionName = "4.0"
+        versionCode = 9
+        versionName = "4.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

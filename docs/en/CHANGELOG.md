@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V4.0-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/versionCode-8-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V4.0.1-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/versionCode-9-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -466,6 +466,45 @@
 - [x] **Room v24** — `deliveryStatus` on `MessageLocal`, `messageLocalId` + `fallbackOnion` on `OutboxMessage`, migrations v18→v24
 - [x] **MailboxDatabase v1** — `MailboxBlob`, `MailboxMember`, `MailboxInvite` entities (MAILBOX mode only)
 - [x] **Version 4.0** — `versionCode 8`, `versionName "4.0"`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>✅ V4.0.1 — Keystore Security, SQLCipher Fix & Transport Reliability</h2></summary>
+
+
+> Replaced `security-crypto` with `FialkaSecurePrefs` (direct Keystore), fixed SQLCipher 4.14.1 crash, fixed `DurationSelectorBottomSheet` NPE, full transport reliability (5 fixes).
+
+### 🔐 Security — FialkaSecurePrefs (Direct Android Keystore)
+- [x] **`security-crypto` removed** — `androidx.security:security-crypto:1.1.0-alpha06` and `MasterKey.Builder` / `EncryptedSharedPreferences` fully removed
+- [x] **`FialkaSecurePrefs`** — New `object` implementation using the Android Keystore directly: AES-256-GCM, key alias `fialka_ks_{name}`, prefs file `{name}_v2`
+- [x] **StrongBox with TEE fallback** — Silent attempt on StrongBox, automatic fallback to standard TEE if unavailable
+- [x] **6 files migrated** — `CryptoManager`, `FialkaDatabase`, `MailboxDatabase`, `AppMode`, `AppLockManager`, `MailboxClientManager` migrated to `FialkaSecurePrefs.open()`
+- [x] **AGP 8.9.1 + compileSdk 36 + Gradle 8.13** — Build toolchain upgrade; zero warnings in release builds
+
+### 🐛 Fix — SQLCipher crash on startup
+- [x] **`System.loadLibrary("sqlcipher")`** — `sqlcipher-android:4.14.1` removed the static initializer; `FialkaApplication.onCreate()` now loads the native library first
+- [x] **Defensive calls** — `FialkaDatabase.getInstance()` and `MailboxDatabase.buildDatabase()` also call `loadLibrary` as a defensive guard
+
+### 🐛 Fix — DurationSelectorBottomSheet NPE
+- [x] **`context` parameter removed** — `DurationSelectorBottomSheet` no longer takes an external `Context`; `BottomSheetDialogFragment` provides its own context
+- [x] **`show()` simplified** — Removed `fragmentManager.findFragmentById(R.id.nav_host_fragment)?.requireContext()!!` which returned `null` from `childFragmentManager`
+
+### ⚡ Transport Reliability
+- [x] **Reduced retry delay** — `RETRY_INTERVAL_MS` 60 s → 15 s; `MAX_RETRY_DELAY_MS` cap 30 min → 3 min (backoff: 15 s / 30 s / 1 min / 2 min / 3 min)
+- [x] **`DELIVERY_FAILED` on exhausted messages** — Messages reaching 50 retries are marked `DELIVERY_FAILED` BEFORE queue deletion (fixes permanent hourglass ⏳)
+- [x] **Mailbox fallback in `processOutboxForContact()`** — If P2P deposit fails, automatically deposits via Mailbox and updates to `DELIVERY_MAILBOX`
+- [x] **Mailbox sweep in `broadcastPresence()`** — After the offline-contacts loop, `processOutbox()` is called to sweep queued messages
+- [x] **Adaptive fetch in `MailboxClientManager`** — Base 10 s, 5 s when messages received (+`OutboxManager.flushNow()`), backoff up to 60 s on error
+
+### 📦 Updated Dependencies
+- [x] **BouncyCastle** 1.80 → **1.83** (ML-KEM-1024, Ed25519, ML-DSA-44)
+- [x] **SQLCipher** 4.5.4 → **4.14.1**
+- [x] **Room** 2.7.1 → **2.8.4**
+- [x] **Coroutines** 1.9.0 → **1.10.2**
+- [x] **Navigation** 2.8.9 → **2.9.7** | **Lifecycle** 2.8.7 → **2.10.0**
 
 </details>
 

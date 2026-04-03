@@ -1,6 +1,6 @@
 # Security Policy — Fialka
 
-*Last updated: April 3, 2026*
+*Last updated: April 2026*
 
 ---
 
@@ -14,7 +14,7 @@
 
 | Version | Supported |
 |---------|-----------|
-| V4.0.x  | ✅ Current |
+| V4.0.1  | ✅ Current |
 | V3.4.x  | ✅ Security fixes |
 | < V3.4  | ❌ Unsupported |
 
@@ -87,20 +87,20 @@ The birational map converts `EdwardsPoint → MontgomeryPoint` — a standard co
 
 | Component | Algorithm | Key Size | Library | Purpose |
 |-----------|-----------|----------|---------|---------|
-| **Identity key** | Ed25519 | 256-bit | BouncyCastle 1.80 | Master identity, message signing, derives all other keys |
+| **Identity key** | Ed25519 | 256-bit | BouncyCastle 1.83 | Master identity, message signing, derives all other keys |
 | **DH key agreement** | X25519 | 256-bit | Android built-in | Double Ratchet (derived from Ed25519 via birational map) |
-| **Post-quantum KEM** | ML-KEM-1024 | NIST Level 5 | BouncyCastle 1.80 | PQXDH hybrid key exchange + SPQR (derived from seed via HKDF) |
+| **Post-quantum KEM** | ML-KEM-1024 | NIST Level 5 | BouncyCastle 1.83 | PQXDH hybrid key exchange + SPQR (derived from seed via HKDF) |
 | **PQ signature (handshake)** | ML-DSA-44 | NIST Level 2 | BouncyCastle | Hybrid handshake authentication (Ed25519 + ML-DSA-44) |
 | **Symmetric encryption** | AES-256-GCM | 256-bit | Android built-in | Message encryption (hardware AES) |
-| **Symmetric encryption (alt)** | ChaCha20-Poly1305 | 256-bit | BouncyCastle 1.80 | Message encryption (no hardware AES) |
+| **Symmetric encryption (alt)** | ChaCha20-Poly1305 | 256-bit | BouncyCastle 1.83 | Message encryption (no hardware AES) |
 | **Key derivation** | HKDF-SHA256 | — | Custom (RFC 5869) | Root key, chain keys, ML-KEM seed |
 | **KDF chain** | HMAC-SHA256 | 256-bit | Android built-in | Double Ratchet chain advancement |
 | **Fingerprint** | SHA-256 → 16 emojis | 96-bit | Android built-in | Visual MITM detection |
 | **Account ID** | SHA3-256 → Base58 | 256-bit | BouncyCastle | Human-readable identity |
 | **PIN hashing** | PBKDF2-HMAC-SHA256 | 600K iterations | Android built-in | App Lock |
-| **Local database** | SQLCipher | AES-256 | SQLCipher 4.5.4 | Encrypted local storage |
+| **Local database** | SQLCipher | AES-256 | SQLCipher 4.14.1 | Encrypted local storage |
 | **Key storage** | Android Keystore | Hardware-backed | Android (StrongBox/TEE) | Seed protection |
-| **Configuration** | EncryptedSharedPreferences | AES-256-GCM | AndroidX Security | Sensitive settings |
+| **Configuration** | FialkaSecurePrefs | AES-256-GCM | Android Keystore (direct) | Sensitive settings |
 | **Backup** | BIP-39 | 256-bit + checksum | Custom | 24-word recovery phrase |
 | **File encryption** | AES-256-GCM per file | 256-bit | Android built-in | E2E file sharing |
 | **File deletion** | 2-pass overwrite | — | SecureFileManager | Random bytes + zeros |
@@ -203,7 +203,7 @@ Every 10 messages (SPQR):
 
 | Version | Classic Signature | PQ Signature | Where | Size |
 |---------|---|---|---|---|
-| **V4.0** (current) | Ed25519 / every msg | ❌ None | — | 64 B |
+| **Fialka V4.0** | Ed25519 / every msg | ❌ None | — | 64 B |
 | **V3.6b** | Ed25519 / every msg | **ML-DSA-44** | **Handshake only** | +2 420 B (one-time) |
 | **V5.0** (2028+) | Ed25519 / every msg | **FN-DSA Falcon-512** | **Every message** | +666 B / msg |
 
@@ -292,8 +292,8 @@ Falcon-512 = **~666 bytes** → 10x smaller than ML-DSA-44. Viable per message. 
 |-----------|----------------|-------|
 | Signal | ~90% | Audited, battle-tested, millions of users |
 | Session | ~73% | Decentralized but limited crypto |
-| **Fialka V4.0** (current) | **~85%** | Strong crypto, P2P .onion transport, no Firebase metadata leak |
-| **Fialka V4.0** (target, pre-audit) | **~93%** | Zero Google, full Tor P2P, hybrid PQ |
+| **Fialka V4.0.1** (current) | **~85%** | Strong crypto, P2P .onion transport, no Firebase metadata leak, direct Keystore prefs |
+| **Fialka V4.0.1** (target, pre-audit) | **~93%** | Zero Google, full Tor P2P, hybrid PQ |
 | **Fialka V5.0** (post-audit, Falcon) | **~95%** | Full PQ signatures, audited, mesh fallback |
 
 ---

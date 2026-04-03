@@ -106,7 +106,7 @@ Fialka supports **two distinct and mutually exclusive modes** on the same device
 - ✅ **Raw blob** — no metadata extraction (recipient, timing, actual size, etc.)
 - ✅ **7-day max TTL** — automatic expiration
 - ✅ **Stats only** — cumulative counters only (totalDeposited, totalFetched)
-- ✅ **60s polling** — non-stop message check
+- ✅ **Adaptive polling** — 10 s base interval, 5 s after messages received, 60 s backoff on network error
 - ✅ **Full UI configuration** — parameters for mode, TTL, whitelist (access in Settings)
 
 **⚠️ Major constraint** : **Requires 2 devices** to function (or borrow from a friend)
@@ -148,7 +148,7 @@ Fialka supports **two distinct and mutually exclusive modes** on the same device
 | **UI** | Screens, navigation, interactions | `ui/` — Fragments, ViewModels, Adapters (Material 3) |
 | **Repository** | Local/crypto/remote coordination | `data/repository/ChatRepository.kt` |
 | **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519, PQXDH (ML-KEM-1024) | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
-| **Local DB** | Room v17 — users, contacts, messages, ratchet (composite indexes) | `data/local/` — DAOs, Database (SQLCipher) |
+| **Local DB** | Room v24 — users, contacts, messages, ratchet (composite indexes) | `data/local/` — DAOs, Database (SQLCipher) |
 | **Remote** | Tor Hidden Services P2P (.onion transport, ciphertext only) | `data/remote/TorTransport.kt` |
 | **Util** | QR, 5 themes, app lock, ephemeral, dummy traffic, DeviceSecurityManager | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt`, `DeviceSecurityManager.kt` |
 

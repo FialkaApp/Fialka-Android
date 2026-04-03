@@ -171,11 +171,11 @@ Before encryption, each message is padded to the next bucket:
 
 ## Message Signing (Ed25519, V3.2)
 
-Every message is signed with a dedicated **Ed25519** key pair (separate from the X25519 identity key) via BouncyCastle 1.80.
+Every message is signed with a dedicated **Ed25519** key pair (separate from the X25519 identity key) via BouncyCastle 1.83.
 
 ```
 Send:
-  signingKeyPair = getOrDeriveSigningKeyPair()   (EncryptedSharedPreferences)
+  signingKeyPair = getOrDeriveSigningKeyPair()   (FialkaSecurePrefs)
   dataToSign = ciphertext.UTF8 || conversationId.UTF8 || createdAt.bigEndian8bytes
   signature  = Ed25519.sign(signingKeyPair.private, dataToSign)
   → sent in message via Tor: { ..., "signature": Base64(signature) }
@@ -229,7 +229,7 @@ Subsequent messages:
 - ✅ **Post-quantum resistance**: even if X25519 is broken by a quantum computer, ML-KEM-1024 protects the root_key
 - ✅ **Deferred upgrade**: no bootstrap message — upgrade happens on the first real message
 - ✅ **No regression**: if ML-KEM fails, the conversation remains protected by classic X25519
-- ✅ **BouncyCastle 1.80**: certified ML-KEM-1024 implementation (`org.bouncycastle.pqc.crypto.mlkem` package)
+- ✅ **BouncyCastle 1.83**: certified ML-KEM-1024 implementation (`org.bouncycastle.pqc.crypto.mlkem` package)
 - ✅ **StrongBox probe**: `DeviceSecurityManager` detects hardware StrongBox support for key protection
 
 ---

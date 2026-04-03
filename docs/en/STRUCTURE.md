@@ -65,6 +65,7 @@ Fialka/
 │       │   │   │   ├── ContactDao.kt
 │       │   │   │   ├── ConversationDao.kt
 │       │   │   │   ├── MessageLocalDao.kt
+│       │   │   │   ├── OutboxDao.kt          # Outbox messages + `getExhaustedMessages()`
 │       │   │   │   └── RatchetStateDao.kt
 │       │   │   │
 │       │   │   ├── model/
@@ -84,8 +85,9 @@ Fialka/
 │       │   ├── util/
 │       │   │   ├── QrCodeGenerator.kt        # QR codes generation (ZXing)
 │       │   │   ├── SecureFileManager.kt      # Secure file deletion (2-pass overwrite: random + zeros)
+│       │   │   ├── FialkaSecurePrefs.kt      # Direct Android Keystore AES-256-GCM storage (replaces security-crypto)
 │       │   │   ├── ThemeManager.kt           # 5 themes (Midnight/Hacker/Phantom/Aurora/Daylight)
-│       │   │   ├── AppLockManager.kt         # PIN, biometrics, auto-lock timeout
+│       │   │   ├── AppLockManager.kt         # PIN, biometrics, auto-lock timeout (FialkaSecurePrefs)
 │       │   │   ├── EphemeralManager.kt       # Ephemeral durations (30s → 1 month)
 │       │   │   ├── DummyTrafficManager.kt    # Dummy traffic (traffic analysis countermeasure)
 │       │   │   └── DeviceSecurityManager.kt  # StrongBox probe, MAXIMUM/STANDARD security levels

@@ -42,6 +42,8 @@ Ou ouvrir dans Android Studio → **Run** sur un émulateur ou device physique.
 
 > Fialka embarque Tor (`libtor.so`) directement. Au premier lancement, l'app bootstrap une connexion Tor et génère l'identité de l'utilisateur à partir d'un unique seed Ed25519.
 
+> **Note SQLCipher** — `sqlcipher-android:4.14.1` ne dispose plus d'initialiseur statique. `FialkaApplication.onCreate()` appelle `System.loadLibrary("sqlcipher")` en tout premier, avant tout accès à la base Room.
+
 ---
 
 ## Notes d'architecture
@@ -59,16 +61,16 @@ Ou ouvrir dans Android Studio → **Run** sur un émulateur ou device physique.
 |------------|---------|-------|
 | Kotlin | 2.3.0 | Langage |
 | AndroidX Core / AppCompat / Material | Latest | UI Material Design |
-| AndroidX Navigation | 2.8.9 | Navigation single-activity |
-| AndroidX Lifecycle | 2.8.7 | ViewModels, LiveData, coroutines |
-| Room + KSP | 2.7.1 | Base de données locale SQLite |
-| SQLCipher | 4.5.4 | Chiffrement AES-256 de la base Room |
-| BouncyCastle | 1.80 | Ed25519, ML-KEM-1024, ML-DSA-44 |
+| AndroidX Navigation | 2.9.7 | Navigation single-activity |
+| AndroidX Lifecycle | 2.10.0 | ViewModels, LiveData, coroutines |
+| Room + KSP | 2.8.4 | Base de données locale SQLite |
+| SQLCipher | 4.14.1 | Chiffrement AES-256 de la base Room |
+| BouncyCastle | 1.83 | Ed25519, ML-KEM-1024, ML-DSA-44 |
 | Tor (libtor.so) | Embedded | Transport P2P Tor Hidden Services |
 | UnifiedPush | Latest | Notifications push (compatible ntfy.sh) |
-| AndroidX Security Crypto | 1.1.0-alpha06 | Stockage sécurisé (Android Keystore) |
+| FialkaSecurePrefs | In-app | Stockage sécurisé (Android Keystore direct AES-256-GCM) |
 | AndroidX Biometric | 1.1.0 | BiometricPrompt (empreinte, visage) |
-| Kotlinx Coroutines | 1.9.0 | Async + Flow |
+| Kotlinx Coroutines | 1.10.2 | Async + Flow |
 | ZXing Android Embedded | 4.3.0 | Génération et scan QR codes |
 
 ---
