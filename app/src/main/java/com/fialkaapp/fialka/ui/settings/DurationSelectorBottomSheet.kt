@@ -18,7 +18,6 @@
 package com.fialkaapp.fialka.ui.settings
 
 import android.app.Dialog
-import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -36,7 +35,6 @@ import com.fialkaapp.fialka.util.EphemeralManager
  * Bottom sheet for selecting duration values (ephemeral messages, auto-lock).
  */
 class DurationSelectorBottomSheet(
-    private val context: Context,
     private val mode: Mode,
     private val currentValue: Long,
     private val onDurationSelected: (Long) -> Unit
@@ -130,7 +128,6 @@ class DurationSelectorBottomSheet(
             onDurationSelected: (Long) -> Unit
         ) {
             val bottomSheet = DurationSelectorBottomSheet(
-                context = fragmentManager.findFragmentById(R.id.nav_host_fragment)?.requireContext()!!,
                 mode = mode,
                 currentValue = currentValue,
                 onDurationSelected = onDurationSelected

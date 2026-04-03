@@ -40,6 +40,9 @@ import kotlinx.coroutines.launch
 class FialkaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        // Load SQLCipher native library — required before ANY Room database is opened.
+        // sqlcipher-android 4.14.1 removed the static initializer; app must load explicitly.
+        System.loadLibrary("sqlcipher")
         // BC provider NOT registered — Ed25519 uses BC lightweight API directly,
         // and registering platform's stripped BC at position 1 breaks TLS.
         // Pre-warm DeviceSecurityManager on IO thread so the StrongBox probe

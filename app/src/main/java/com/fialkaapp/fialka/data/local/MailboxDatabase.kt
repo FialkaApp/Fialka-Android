@@ -61,6 +61,8 @@ abstract class MailboxDatabase : RoomDatabase() {
         }
 
         private fun buildDatabase(context: Context): MailboxDatabase {
+            // Defensive: ensure sqlcipher .so is loaded if somehow not done via Application
+            System.loadLibrary("sqlcipher")
             val passphrase = getOrCreatePassphrase(context)
             val factory = SupportOpenHelperFactory(passphrase)
 
