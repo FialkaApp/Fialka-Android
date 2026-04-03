@@ -47,7 +47,9 @@ object MailboxClientManager {
 
     private lateinit var appContext: Context
 
-    private const val FETCH_INTERVAL_MS = 30_000L // 30 seconds
+    private const val FETCH_INTERVAL_MS = 10_000L      // 10 s baseline
+    private const val FETCH_FAST_MS     =  5_000L      // 5 s when messages were received
+    private const val MAX_FETCH_BACKOFF_MS = 60_000L    // 60 s max on repeated errors
 
     private val _connected = MutableStateFlow(false)
     val connected: StateFlow<Boolean> = _connected.asStateFlow()
@@ -78,15 +80,42 @@ object MailboxClientManager {
     fun startFetchLoop() {
         if (fetchJob?.isActive == true) return
         fetchJob = CoroutineScope(Dispatchers.IO).launch {
+            var backoff = FETCH_INTERVAL_MS
             // Immediate first fetch on startup
             try {
-                if (isJoined()) fetchFromMailbox()
-            } catch (_: Exception) {}
+                if (isJoined()) {
+                    val n = fetchFromMailbox()
+                    backoff = when {
+                        n < 0  -> minOf(backoff * 2, MAX_FETCH_BACKOFF_MS) // error
+                        n > 0  -> FETCH_FAST_MS                            // got messages
+                        else   -> FETCH_INTERVAL_MS                        // empty
+                    }
+                    if (n > 0) {
+                        try { OutboxManager.flushNow() } catch (_: Exception) {}
+                    }
+                }
+            } catch (_: Exception) {
+                backoff = minOf(backoff * 2, MAX_FETCH_BACKOFF_MS)
+            }
             while (true) {
-                delay(FETCH_INTERVAL_MS)
+                delay(backoff)
                 try {
-                    if (isJoined()) fetchFromMailbox()
-                } catch (_: Exception) {}
+                    if (isJoined()) {
+                        val n = fetchFromMailbox()
+                        backoff = when {
+                            n < 0  -> minOf(backoff * 2, MAX_FETCH_BACKOFF_MS)
+                            n > 0  -> FETCH_FAST_MS
+                            else   -> FETCH_INTERVAL_MS
+                        }
+                        if (n > 0) {
+                            try { OutboxManager.flushNow() } catch (_: Exception) {}
+                        }
+                    } else {
+                        backoff = FETCH_INTERVAL_MS
+                    }
+                } catch (_: Exception) {
+                    backoff = minOf(backoff * 2, MAX_FETCH_BACKOFF_MS)
+                }
             }
         }
     }

@@ -41,8 +41,8 @@ import kotlin.math.min
  */
 object OutboxManager {
 
-    private const val RETRY_INTERVAL_MS = 60_000L
-    private const val MAX_RETRY_DELAY_MS = 30 * 60_000L
+    private const val RETRY_INTERVAL_MS = 15_000L
+    private const val MAX_RETRY_DELAY_MS = 3 * 60_000L
 
     /** Result of a send attempt */
     enum class DeliveryResult { DIRECT, MAILBOX, QUEUED }
@@ -151,9 +151,19 @@ object OutboxManager {
         return DeliveryResult.QUEUED
     }
 
+    /** Public entry point for immediate flush (e.g. called after a mailbox fetch delivers messages). */
+    suspend fun flushNow() = processOutbox()
+
     private suspend fun processOutbox() {
         val dao = FialkaDatabase.getInstance(appContext).outboxDao()
         val messageDao = FialkaDatabase.getInstance(appContext).messageLocalDao()
+        // Mark exhausted messages as DELIVERY_FAILED before deleting them so the UI
+        // shows ✗ instead of leaving the hourglass spinning forever.
+        dao.getExhaustedMessages().forEach { msg ->
+            msg.messageLocalId?.let {
+                try { messageDao.updateDeliveryStatus(it, MessageLocal.DELIVERY_FAILED) } catch (_: Exception) {}
+            }
+        }
         dao.deleteExhaustedRetries()
 
         val pending = dao.getPendingMessages()
@@ -243,11 +253,14 @@ object OutboxManager {
                         val frame = TorTransport.Frame(TorTransport.TYPE_PRESENCE, presencePayload)
                         val resp = TorTransport.sendFrame(onion, frame = frame)
                         if (resp?.type == TorTransport.TYPE_ACK) {
-                            // Contact is online — flush outbox for them immediately
+                            // Contact is online — flush outbox for them immediately via P2P
                             processOutboxForContact(onion)
                         }
                     } catch (_: Exception) {}
                 }
+                // Sweep the full outbox for contacts that didn't respond (offline).
+                // This triggers mailbox deposit for any queued messages that have a fallbackOnion.
+                try { processOutbox() } catch (_: Exception) {}
             } catch (e: Exception) {
                 android.util.Log.w("OutboxManager", "broadcastPresence failed: ${e.message}")
             }
@@ -276,6 +289,27 @@ object OutboxManager {
                     msg.messageLocalId?.let {
                         try { messageDao.updateDeliveryStatus(it, MessageLocal.DELIVERY_SENT) } catch (_: Exception) {}
                     }
+                    continue
+                }
+                // P2P failed — try mailbox deposit as fallback
+                if (!msg.fallbackOnion.isNullOrEmpty()) {
+                    try {
+                        val recipientEd25519 = resolveRecipientEd25519(msg.destinationOnion)
+                        if (recipientEd25519 != null) {
+                            val deposited = MailboxClientManager.depositToMailbox(
+                                msg.fallbackOnion,
+                                recipientEd25519,
+                                msg.frameType.toByte(),
+                                msg.payload
+                            )
+                            if (deposited) {
+                                dao.deleteById(msg.id)
+                                msg.messageLocalId?.let {
+                                    try { messageDao.updateDeliveryStatus(it, MessageLocal.DELIVERY_MAILBOX) } catch (_: Exception) {}
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
                 }
             }
         } catch (e: Exception) {
