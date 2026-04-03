@@ -27,8 +27,8 @@ import androidx.security.crypto.MasterKey
 import com.fialkaapp.fialka.data.model.MailboxBlob
 import com.fialkaapp.fialka.data.model.MailboxInvite
 import com.fialkaapp.fialka.data.model.MailboxMember
-import net.sqlcipher.database.SQLiteDatabase
-import net.sqlcipher.database.SupportFactory
+import androidx.sqlite.db.SupportSQLiteDatabase
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import java.security.SecureRandom
 
 /**
@@ -63,15 +63,7 @@ abstract class MailboxDatabase : RoomDatabase() {
 
         private fun buildDatabase(context: Context): MailboxDatabase {
             val passphrase = getOrCreatePassphrase(context)
-            val factory = SupportFactory(
-                passphrase,
-                object : net.sqlcipher.database.SQLiteDatabaseHook {
-                    override fun preKey(database: SQLiteDatabase?) {}
-                    override fun postKey(database: SQLiteDatabase?) {
-                        database?.rawExecSQL("PRAGMA cipher_memory_security = ON;")
-                    }
-                }
-            )
+            val factory = SupportOpenHelperFactory(passphrase)
 
             return Room.databaseBuilder(
                 context.applicationContext,
@@ -79,6 +71,11 @@ abstract class MailboxDatabase : RoomDatabase() {
                 "mailbox_db"
             )
                 .openHelperFactory(factory)
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        db.execSQL("PRAGMA cipher_memory_security = ON;")
+                    }
+                })
                 .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
         }

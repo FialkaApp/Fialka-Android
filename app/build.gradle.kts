@@ -101,7 +101,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.7.1")
 
     // SQLCipher (encrypted Room database)
-    implementation("net.zetetic:android-database-sqlcipher:4.5.4")
+    implementation("net.zetetic:sqlcipher-android:4.14.1")
     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
 
     // Security / Crypto
@@ -118,13 +118,15 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
 
     // RecyclerView
     implementation("androidx.recyclerview:recyclerview:1.4.0")
 
     // QR Code — generation + scanning
-    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0") {
+        isTransitive = false
+    }
+    implementation("com.google.zxing:core:3.5.3")
 
     // Splash Screen
     implementation("androidx.core:core-splashscreen:1.0.1")

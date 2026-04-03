@@ -2,33 +2,20 @@
 # Fialka ProGuard / R8 Rules
 # ==============================================================================
 
-# --- Data models (Room entities + Firebase deserialization) ---
+# --- Data models (Room entities) ---
 -keepclassmembers class com.fialkaapp.fialka.data.model.** { *; }
-
-# --- Firebase RTDB deserialization needs default constructors + fields ---
--keep class com.fialkaapp.fialka.data.model.FirebaseMessage { *; }
--keepclassmembers class com.fialkaapp.fialka.data.model.FirebaseMessage {
-    <init>();
-    <fields>;
-}
 
 # --- Room DB ---
 -keep class * extends androidx.room.RoomDatabase
 -keep @androidx.room.Entity class *
 -keep @androidx.room.Dao class *
 
-# --- Firebase ---
--keep class com.google.firebase.** { *; }
--dontwarn com.google.firebase.**
--keep class com.google.android.gms.** { *; }
--dontwarn com.google.android.gms.**
-
 # --- AndroidX / Navigation ---
 -keep class androidx.navigation.** { *; }
 
 # --- SQLCipher ---
--keep class net.sqlcipher.** { *; }
--dontwarn net.sqlcipher.**
+-keep class net.zetetic.database.** { *; }
+-dontwarn net.zetetic.database.**
 
 # --- jtorctl (Tor control port) ---
 -keep class net.freehaven.tor.control.** { *; }

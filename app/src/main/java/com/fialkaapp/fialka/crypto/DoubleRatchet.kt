@@ -128,6 +128,9 @@ object DoubleRatchet {
      * Perform one DH ratchet step:
      *   dh_out = X25519(localPrivate, remotePubKey)
      *   (newRootKey, newChainKey) = KDF_RK(rootKey, dh_out)
+     *
+     * RFC-compliant HKDF usage: rootKey is the HKDF salt, dh_out is the IKM.
+     * This matches the Signal Double Ratchet specification §2.2.
      */
     fun dhRatchetStep(
         rootKeyBase64: String,
@@ -141,18 +144,17 @@ object DoubleRatchet {
 
         val rootKey = Base64.decode(rootKeyBase64, Base64.NO_WRAP)
 
-        // KDF_RK: derive new root key + chain key from (rootKey, dhSecret)
-        val combined = ByteArray(rootKey.size + dhSecret.size)
-        System.arraycopy(rootKey, 0, combined, 0, rootKey.size)
-        System.arraycopy(dhSecret, 0, combined, rootKey.size, dhSecret.size)
-
-        val newRootKey = hkdfExpand(combined, "Fialka-DR-root-ratchet".toByteArray())
-        val newChainKey = hkdfExpand(combined, "Fialka-DR-chain-ratchet".toByteArray())
+        // KDF_RK — Signal spec: HKDF(dh_secret, salt=root_key, info="...")
+        // rootKey acts as the HKDF salt (input keying material for the extractor)
+        // dhSecret is the IKM — separating them maintains domain independence
+        val prk = hmacSha256(rootKey, dhSecret)   // HKDF-Extract(salt=rootKey, IKM=dhSecret)
+        val newRootKey  = hmacSha256(prk, "Fialka-DR-root-ratchet\u0001".toByteArray(Charsets.UTF_8))
+        val newChainKey = hmacSha256(prk, "Fialka-DR-chain-ratchet\u0002".toByteArray(Charsets.UTF_8))
 
         // Zero everything
         rootKey.fill(0)
         dhSecret.fill(0)
-        combined.fill(0)
+        prk.fill(0)
 
         val result = DhRatchetResult(
             newRootKey = Base64.encodeToString(newRootKey, Base64.NO_WRAP),

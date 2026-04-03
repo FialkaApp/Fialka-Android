@@ -30,8 +30,9 @@ import com.fialkaapp.fialka.data.model.MessageLocal
 import com.fialkaapp.fialka.data.model.OutboxMessage
 import com.fialkaapp.fialka.data.model.RatchetState
 import com.fialkaapp.fialka.data.model.UserLocal
-import net.sqlcipher.database.SQLiteDatabase
-import net.sqlcipher.database.SupportFactory
+import com.fialkaapp.fialka.util.DeviceSecurityManager
+import androidx.sqlite.db.SupportSQLiteDatabase
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import java.security.SecureRandom
 
 /**
@@ -76,12 +77,7 @@ abstract class FialkaDatabase : RoomDatabase() {
         fun getInstance(context: Context): FialkaDatabase {
             return INSTANCE ?: synchronized(this) {
                 val passphrase = getOrCreatePassphrase(context)
-                val factory = SupportFactory(passphrase, object : net.sqlcipher.database.SQLiteDatabaseHook {
-                    override fun preKey(database: SQLiteDatabase?) {}
-                    override fun postKey(database: SQLiteDatabase?) {
-                        database?.rawExecSQL("PRAGMA cipher_memory_security = ON;")
-                    }
-                })
+                val factory = SupportOpenHelperFactory(passphrase)
 
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
@@ -89,6 +85,11 @@ abstract class FialkaDatabase : RoomDatabase() {
                     "fialka_db"
                 )
                     .openHelperFactory(factory)
+                    .addCallback(object : RoomDatabase.Callback() {
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            db.execSQL("PRAGMA cipher_memory_security = ON;")
+                        }
+                    })
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                 INSTANCE = instance
@@ -101,8 +102,10 @@ abstract class FialkaDatabase : RoomDatabase() {
          * Stored in EncryptedSharedPreferences (Keystore-backed AES-256-GCM).
          */
         private fun getOrCreatePassphrase(context: Context): ByteArray {
+            val profile = DeviceSecurityManager.getSecurityProfile(context.applicationContext)
             val masterKey = MasterKey.Builder(context.applicationContext)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .setRequestStrongBoxBacked(profile.isStrongBoxAvailable)
                 .build()
             val prefs = EncryptedSharedPreferences.create(
                 context.applicationContext,
