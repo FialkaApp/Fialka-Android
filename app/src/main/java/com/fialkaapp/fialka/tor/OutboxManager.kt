@@ -18,6 +18,7 @@
 package com.fialkaapp.fialka.tor
 
 import android.content.Context
+import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.data.local.FialkaDatabase
 import com.fialkaapp.fialka.data.model.MessageLocal
 import com.fialkaapp.fialka.data.model.OutboxMessage
@@ -28,6 +29,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import com.fialkaapp.fialka.tor.TorState
 import java.util.UUID
 import kotlin.math.min
 
@@ -50,6 +53,13 @@ object OutboxManager {
 
     fun init(context: Context) {
         appContext = context.applicationContext
+        // Migrate any messages stuck in SENDING (from a previous crash mid-send) to PENDING
+        scope.launch {
+            try {
+                FialkaDatabase.getInstance(appContext).messageLocalDao()
+                    .migrateSendingToPending()
+            } catch (_: Exception) {}
+        }
     }
 
     fun start() {
@@ -60,6 +70,17 @@ object OutboxManager {
                     android.util.Log.e("OutboxManager", "processOutbox failed: ${e.message}", e)
                 }
                 delay(RETRY_INTERVAL_MS)
+            }
+        }
+        // TAP: broadcast presence every time the onion is (re)published
+        scope.launch {
+            var lastPublished = false
+            TorManager.state.collect { state ->
+                val isPublished = state is TorState.ONION_PUBLISHED
+                if (isPublished && !lastPublished) {
+                    broadcastPresence()
+                }
+                lastPublished = isPublished
             }
         }
     }
@@ -195,8 +216,77 @@ object OutboxManager {
     }
 
     /**
+     * TAP — "I'm online" broadcast.
+     * Sends a TYPE_PRESENCE frame to every accepted contact's .onion.
+     * Also embeds our mailboxOnion so contacts can update their fallback address.
+     * Fire-and-forget — not queued, best-effort only.
+     * After broadcast, immediately flushes outbox entries for each reachable contact.
+     */
+    fun broadcastPresence() {
+        scope.launch {
+            try {
+                val db = FialkaDatabase.getInstance(appContext)
+                val conversations = db.conversationDao().getAcceptedConversations()
+                val myMailbox = MailboxClientManager.getMailboxOnion()
+                val myPubKey = CryptoManager.getPublicKey() ?: return@launch
+                val mySigningPub = CryptoManager.getSigningPublicKeyBase64()
+
+                val presencePayload = JSONObject().apply {
+                    put("senderPublicKey", myPubKey)
+                    put("signingPublicKey", mySigningPub)
+                    if (myMailbox != null) put("mailboxOnion", myMailbox)
+                }.toString().toByteArray(Charsets.UTF_8)
+
+                for (conv in conversations) {
+                    val onion = conv.participantOnionAddress.ifEmpty { continue }
+                    try {
+                        val frame = TorTransport.Frame(TorTransport.TYPE_PRESENCE, presencePayload)
+                        val resp = TorTransport.sendFrame(onion, frame = frame)
+                        if (resp?.type == TorTransport.TYPE_ACK) {
+                            // Contact is online — flush outbox for them immediately
+                            processOutboxForContact(onion)
+                        }
+                    } catch (_: Exception) {}
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("OutboxManager", "broadcastPresence failed: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Immediately retry all pending outbox messages destined for [contactOnion].
+     * Called when we receive a PRESENCE frame (contact came online) or after a
+     * successful broadcastPresence() ACK (we came online and contact responded).
+     */
+    suspend fun processOutboxForContact(contactOnion: String) {
+        try {
+            val dao = FialkaDatabase.getInstance(appContext).outboxDao()
+            val messageDao = FialkaDatabase.getInstance(appContext).messageLocalDao()
+            val pending = dao.getPendingMessagesForOnion(contactOnion)
+            for (msg in pending) {
+                val frame = TorTransport.Frame(msg.frameType.toByte(), msg.payload)
+                val response = TorTransport.sendFrame(msg.destinationOnion, frame = frame)
+                if (response != null &&
+                    response.type == TorTransport.TYPE_ACK &&
+                    response.payload.isNotEmpty() &&
+                    response.payload[0] == TorTransport.ACK_OK
+                ) {
+                    dao.deleteById(msg.id)
+                    msg.messageLocalId?.let {
+                        try { messageDao.updateDeliveryStatus(it, MessageLocal.DELIVERY_SENT) } catch (_: Exception) {}
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("OutboxManager", "processOutboxForContact($contactOnion) failed: ${e.message}")
+        }
+    }
+
+    /**
      * Resolve the Ed25519 public key (raw 32 bytes) for a recipient identified by .onion address.
-     * Falls back to publicKey (X25519) if signingPublicKey is absent.
+     * Returns null — and skips mailbox deposit — if signingPublicKey is absent (X25519 fallback
+     * would corrupt the mailbox member lookup which expects raw Ed25519).
      */
     private suspend fun resolveRecipientEd25519(onionAddress: String): ByteArray? {
         return try {
@@ -205,7 +295,11 @@ object OutboxManager {
                 android.util.Log.w("OutboxManager", "resolveRecipientEd25519: contact introuvable pour $onionAddress")
                 return null
             }
-            val keyB64 = contact.signingPublicKey ?: contact.publicKey
+            // Must be the raw Ed25519 signing key (32 bytes) — X25519 would corrupt the mailbox member lookup
+            val keyB64 = contact.signingPublicKey ?: run {
+                android.util.Log.w("OutboxManager", "resolveRecipientEd25519: signingPublicKey absent pour $onionAddress — mailbox deposit ignoré")
+                return null
+            }
             android.util.Base64.decode(keyB64, android.util.Base64.NO_WRAP)
         } catch (e: Exception) {
             android.util.Log.e("OutboxManager", "resolveRecipientEd25519 failed: ${e.message}")

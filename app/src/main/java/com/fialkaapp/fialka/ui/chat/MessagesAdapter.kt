@@ -344,12 +344,14 @@ class MessagesAdapter(
                     binding.tvDeliveryBadge.visibility = View.VISIBLE
                     binding.tvDeliveryBadge.text = "📬"
                     binding.failedRowSent.visibility = View.GONE
+                    binding.progressSending.visibility = View.GONE
                 }
                 MessageLocal.DELIVERY_FAILED -> {
                     binding.ivSentCheck.visibility = View.GONE
                     binding.tvDeliveryBadge.visibility = View.VISIBLE
                     binding.tvDeliveryBadge.text = "❌"
                     binding.failedRowSent.visibility = View.VISIBLE
+                    binding.progressSending.visibility = View.GONE
                     binding.btnResend.setOnClickListener { onResend?.invoke(message.localId) }
                 }
                 MessageLocal.DELIVERY_PENDING -> {
@@ -358,6 +360,13 @@ class MessagesAdapter(
                     binding.tvDeliveryBadge.visibility = View.VISIBLE
                     binding.tvDeliveryBadge.text = "⏳"
                     binding.failedRowSent.visibility = View.GONE
+                    binding.progressSending.visibility = View.GONE
+                }
+                MessageLocal.DELIVERY_SENDING -> {
+                    binding.ivSentCheck.visibility = View.GONE
+                    binding.tvDeliveryBadge.visibility = View.GONE
+                    binding.failedRowSent.visibility = View.GONE
+                    binding.progressSending.visibility = View.VISIBLE
                 }
                 else -> {
                     // DELIVERY_SENT (direct)
@@ -365,6 +374,7 @@ class MessagesAdapter(
                     binding.ivSentCheck.alpha = 1.0f
                     binding.tvDeliveryBadge.visibility = View.GONE
                     binding.failedRowSent.visibility = View.GONE
+                    binding.progressSending.visibility = View.GONE
                 }
             }
         }

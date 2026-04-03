@@ -48,7 +48,7 @@ object MailboxClientManager {
 
     private lateinit var appContext: Context
 
-    private const val FETCH_INTERVAL_MS = 60_000L // 1 minute
+    private const val FETCH_INTERVAL_MS = 30_000L // 30 seconds
 
     private val _connected = MutableStateFlow(false)
     val connected: StateFlow<Boolean> = _connected.asStateFlow()
@@ -194,7 +194,8 @@ object MailboxClientManager {
         val frame = TorTransport.Frame(TorTransport.TYPE_LEAVE, authPayload)
         val response = TorTransport.sendFrame(onion, frame = frame)
 
-        // Clear local state regardless of server response
+        // Stop fetch loop and clear local state regardless of server response
+        stopFetchLoop()
         disconnect()
         return response?.type == TorTransport.TYPE_ACK
     }

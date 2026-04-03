@@ -493,17 +493,38 @@ class ChatRepository(private val appContext: Context) {
 
             // Generate localId now so OutboxManager can link back to it
             val localId = UUID.randomUUID().toString()
+
+            // ── Insert message immediately with DELIVERY_SENDING so it appears in the UI ──
+            // The spinner is shown until the Tor send completes and the status is updated.
+            val ephDuration = conversation.ephemeralDuration
+            val expiresAt = if (ephDuration > 0) System.currentTimeMillis() + ephDuration else 0L
+            val localMessage = MessageLocal(
+                localId = localId,
+                conversationId = conversationId,
+                senderPublicKey = user.publicKey,
+                plaintext = plaintext,
+                isMine = true,
+                ephemeralDuration = ephDuration,
+                expiresAt = expiresAt,
+                signatureValid = true,
+                deliveryStatus = MessageLocal.DELIVERY_SENDING
+            )
+            messageDao.insertMessage(localMessage)
+            updateConversationLastMessage(conversationId, plaintext)
+
+            // ── Attempt delivery via Tor ──
             val mailboxOnion = conversation.participantMailboxOnion.ifEmpty { null }
             val deliveryResult = OutboxManager.sendOrQueue(
                 recipientOnion, frame, mailboxOnion, localId
             )
 
-            // Map delivery result to MessageLocal status
+            // Map delivery result to final MessageLocal status and update DB
             val deliveryStatus = when (deliveryResult) {
                 OutboxManager.DeliveryResult.DIRECT -> MessageLocal.DELIVERY_SENT
                 OutboxManager.DeliveryResult.MAILBOX -> MessageLocal.DELIVERY_MAILBOX
                 OutboxManager.DeliveryResult.QUEUED -> MessageLocal.DELIVERY_PENDING
             }
+            messageDao.updateDeliveryStatus(localId, deliveryStatus)
 
             // 7. Send succeeded → persist ratchet state; clear pendingKemCiphertext
             //    If this was the first message carrying kemCiphertext (PQXDH initiator),
@@ -548,24 +569,8 @@ class ChatRepository(private val appContext: Context) {
                 )
             }
 
-            // 8. Save plaintext locally (with ephemeral timing if enabled)
-            val ephDuration = conversation.ephemeralDuration
-            val expiresAt = if (ephDuration > 0) System.currentTimeMillis() + ephDuration else 0L
-            val localMessage = MessageLocal(
-                localId = localId,
-                conversationId = conversationId,
-                senderPublicKey = user.publicKey,
-                plaintext = plaintext,
-                isMine = true,
-                ephemeralDuration = ephDuration,
-                expiresAt = expiresAt,
-                signatureValid = true,  // Own messages are implicitly valid
-                deliveryStatus = deliveryStatus
-            )
-            messageDao.insertMessage(localMessage)
-            updateConversationLastMessage(conversationId, plaintext)
-
-            localMessage
+            // 8. Return the inserted message (already in DB with final deliveryStatus)
+            localMessage.copy(deliveryStatus = deliveryStatus)
         }
     }
 

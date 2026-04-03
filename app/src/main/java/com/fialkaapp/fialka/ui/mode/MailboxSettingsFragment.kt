@@ -45,6 +45,7 @@ import com.journeyapps.barcodescanner.ScanOptions
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.databinding.FragmentMailboxSettingsBinding
 import com.fialkaapp.fialka.tor.MailboxClientManager
+import com.fialkaapp.fialka.tor.OutboxManager
 import com.fialkaapp.fialka.ui.MainActivity
 import com.fialkaapp.fialka.ui.addcontact.CustomScannerActivity
 import kotlinx.coroutines.launch
@@ -368,6 +369,7 @@ class MailboxSettingsFragment : Fragment() {
             if (_binding == null) return@launch
             if (success) {
                 Toast.makeText(requireContext(), getString(R.string.mailbox_client_joined, message), Toast.LENGTH_SHORT).show()
+                OutboxManager.broadcastPresence()
                 updateUi()
                 checkStatus()
             } else {

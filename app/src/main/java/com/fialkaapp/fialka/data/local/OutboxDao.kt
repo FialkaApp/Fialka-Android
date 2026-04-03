@@ -60,4 +60,13 @@ interface OutboxDao {
 
     @Query("UPDATE outbox SET status = 0, retryCount = 0, nextRetryAt = 0 WHERE messageLocalId = :messageLocalId")
     suspend fun resetRetryForMessage(messageLocalId: String)
+
+    @Query("""
+        SELECT * FROM outbox
+        WHERE (status = ${OutboxMessage.STATUS_PENDING} OR status = ${OutboxMessage.STATUS_SENDING})
+        AND destinationOnion = :onion
+        AND retryCount < 50
+        ORDER BY createdAt ASC
+    """)
+    suspend fun getPendingMessagesForOnion(onion: String): List<OutboxMessage>
 }

@@ -89,6 +89,11 @@ object TorTransport {
     const val TYPE_FETCH_RESP: Byte = 0x11
     const val TYPE_ERROR: Byte = 0x12
 
+    // ── Presence / TAP ──
+    // Sent on Tor reconnect to tell all contacts "I'm online".
+    // Payload: optional JSON {"mailboxOnion":"..."}  (can be empty = 0 bytes).
+    const val TYPE_PRESENCE: Byte = 0x13
+
     // ── Status codes ──
     const val ACK_OK: Byte = 0x00
     const val ACK_ERROR: Byte = 0x01

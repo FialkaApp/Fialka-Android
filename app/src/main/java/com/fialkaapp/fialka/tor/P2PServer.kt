@@ -80,6 +80,7 @@ object P2PServer : TorTransport.FrameListener {
             TorTransport.TYPE_KEY_BUNDLE -> handleKeyBundle(frame.payload)
             TorTransport.TYPE_FILE_CHUNK -> handleFileChunk(frame.payload)
             TorTransport.TYPE_PING -> TorTransport.ackOk()
+            TorTransport.TYPE_PRESENCE -> handlePresence(frame.payload)
             // Mailbox frames hitting P2P server → explicit rejection
             TorTransport.TYPE_JOIN,
             TorTransport.TYPE_DEPOSIT,
@@ -200,6 +201,7 @@ object P2PServer : TorTransport.FrameListener {
             val mlkemPublicKey = json.optString("mlkemPublicKey", "")
             val mldsaPublicKey = json.optString("mldsaPublicKey", "")
             val signingPublicKey = json.optString("signingPublicKey", "")
+            val mailboxOnion = json.optString("mailboxOnion", "")
 
             // Update the contact's keys in local DB
             val repository = ChatRepository(appContext)
@@ -218,12 +220,61 @@ object P2PServer : TorTransport.FrameListener {
                 if (updated !== contact) {
                     repository.updateContact(updated)
                 }
+                // Update mailbox address if sender included it
+                if (mailboxOnion.isNotEmpty()) {
+                    try { repository.updateContactMailbox(senderPublicKey, mailboxOnion) } catch (_: Exception) {}
+                }
             }
 
             TorTransport.ackOk()
         } catch (_: Exception) {
             TorTransport.ackError("malformed key bundle")
         }
+    }
+
+    // ══════════════════════════════════════════
+    //  TYPE_PRESENCE (0x13) — contact came online
+    // ══════════════════════════════════════════
+
+    /**
+     * Handles incoming TAP / presence heartbeat.
+     * The sender tells us they are online plus optionally their current mailboxOnion.
+     * We:
+     *  1. Update the contact's mailboxOnion in DB if it changed.
+     *  2. Flush our outbox for this contact immediately (no need to wait 60s).
+     *  3. Return ACK_OK so the sender knows we received it.
+     */
+    private suspend fun handlePresence(payload: ByteArray): TorTransport.Frame {
+        try {
+            if (payload.isNotEmpty()) {
+                val json = JSONObject(String(payload, Charsets.UTF_8))
+                val senderPublicKey = json.optString("senderPublicKey", "")
+                val mailboxOnion = json.optString("mailboxOnion", "")
+                val signingPublicKey = json.optString("signingPublicKey", "")
+
+                if (senderPublicKey.isNotEmpty()) {
+                    val repository = ChatRepository(appContext)
+                    // Update mailbox address if provided and changed
+                    if (mailboxOnion.isNotEmpty()) {
+                        try { repository.updateContactMailbox(senderPublicKey, mailboxOnion) } catch (_: Exception) {}
+                    }
+                    // Update signing key if we didn't have it yet
+                    if (signingPublicKey.isNotEmpty()) {
+                        val contact = repository.getContactByPublicKey(senderPublicKey)
+                        if (contact != null && contact.signingPublicKey == null) {
+                            try { repository.updateContact(contact.copy(signingPublicKey = signingPublicKey)) } catch (_: Exception) {}
+                        }
+                    }
+                    // Resolve their onion and flush outbox for them
+                    val contact = repository.getContactByPublicKey(senderPublicKey)
+                    val onion = contact?.onionAddress ?: ""
+                    if (onion.isNotEmpty()) {
+                        scope.launch { OutboxManager.processOutboxForContact(onion) }
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+        return TorTransport.ackOk()
     }
 
     // ══════════════════════════════════════════

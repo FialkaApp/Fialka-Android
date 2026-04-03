@@ -80,4 +80,12 @@ interface MessageLocalDao {
 
     @Query("UPDATE messages SET deliveryStatus = :status WHERE localId = :localId")
     suspend fun updateDeliveryStatus(localId: String, status: Int)
+
+    /**
+     * On app startup, migrate any messages stuck in DELIVERY_SENDING (= 4) to DELIVERY_PENDING (= 3).
+     * DELIVERY_SENDING is set just before the Tor send attempt; if the app was killed mid-send
+     * those messages would stay as SENDING forever. PENDING means "in outbox, will retry".
+     */
+    @Query("UPDATE messages SET deliveryStatus = ${MessageLocal.DELIVERY_PENDING} WHERE deliveryStatus = ${MessageLocal.DELIVERY_SENDING}")
+    suspend fun migrateSendingToPending()
 }

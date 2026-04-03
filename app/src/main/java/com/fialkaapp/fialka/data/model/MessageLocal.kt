@@ -50,13 +50,14 @@ data class MessageLocal(
     val signatureValid: Boolean? = null,  // null = no signature, true = valid, false = invalid
     val isOneShot: Boolean = false,       // true = image visible once then deleted
     val oneShotOpened: Boolean = false,   // true = one-shot image was already viewed
-    // Delivery status: 0=SENT (direct P2P), 1=MAILBOX (via mailbox deposit), 2=FAILED, 3=PENDING (in outbox)
-    val deliveryStatus: Int = DELIVERY_SENT
+    // Delivery status: 0=SENT (direct P2P), 1=MAILBOX (via mailbox deposit), 2=FAILED, 3=PENDING (in outbox), 4=SENDING (in flight)
+    val deliveryStatus: Int = DELIVERY_SENDING
 ) {
     companion object {
         const val DELIVERY_SENT = 0     // Delivered directly via P2P
         const val DELIVERY_MAILBOX = 1  // Delivered via mailbox deposit
         const val DELIVERY_FAILED = 2   // Both direct + mailbox failed, in outbox
         const val DELIVERY_PENDING = 3  // Queued in outbox, delivery in progress
+        const val DELIVERY_SENDING = 4  // Currently being sent (show spinner) — migrated to PENDING on restart
     }
 }
