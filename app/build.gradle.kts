@@ -79,45 +79,45 @@ kotlin {
 
 dependencies {
     // AndroidX Core
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("com.google.android.material:material:1.13.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
-    implementation("androidx.activity:activity-ktx:1.10.1")
-    implementation("androidx.fragment:fragment-ktx:1.8.6")
+    implementation("androidx.activity:activity-ktx:1.13.0")
+    implementation("androidx.fragment:fragment-ktx:1.8.9")
 
     // Navigation
-    implementation("androidx.navigation:navigation-fragment-ktx:2.8.9")
-    implementation("androidx.navigation:navigation-ui-ktx:2.8.9")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.9.7")
+    implementation("androidx.navigation:navigation-ui-ktx:2.9.7")
 
     // Lifecycle
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
 
     // Room (local database)
-    implementation("androidx.room:room-runtime:2.7.1")
-    implementation("androidx.room:room-ktx:2.7.1")
-    ksp("androidx.room:room-compiler:2.7.1")
+    implementation("androidx.room:room-runtime:2.8.4")
+    implementation("androidx.room:room-ktx:2.8.4")
+    ksp("androidx.room:room-compiler:2.8.4")
 
     // SQLCipher (encrypted Room database)
     implementation("net.zetetic:sqlcipher-android:4.14.1")
     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
 
     // Security / Crypto
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.security:security-crypto:1.1.0")  // GA released Jul 2025
     implementation("androidx.biometric:biometric:1.1.0")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.80")  // ML-KEM-1024 (mlkem package) added in 1.80
+    implementation("org.bouncycastle:bcprov-jdk18on:1.83")  // ML-KEM-1024, CVE fixes vs 1.80
 
     // Tor — Guardian Project Tor binary (BSD) + Briar privacy libs (Apache/BSD)
-    implementation("info.guardianproject:tor-android:0.4.9.5")
+    implementation("info.guardianproject:tor-android:0.4.9.5.1")
     implementation("info.guardianproject:jtorctl:0.4.5.7")
     implementation("org.briarproject:socks-socket:0.1")
     implementation("org.briarproject:lyrebird-android:0.6.2")
     implementation("org.briarproject:moat-api:0.4")
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
     // RecyclerView
     implementation("androidx.recyclerview:recyclerview:1.4.0")
@@ -134,7 +134,7 @@ dependencies {
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.14.1")
-    testImplementation("org.bouncycastle:bcprov-jdk18on:1.80")
+    testImplementation("org.bouncycastle:bcprov-jdk18on:1.83")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 }
