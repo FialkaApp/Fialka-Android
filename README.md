@@ -454,6 +454,18 @@ Ce projet est sous licence [GPLv3](LICENSE). Consultez les [Conditions d'utilisa
 
 <br/>
 
+### 📜 Notice d’exportation cryptographique
+
+<sub>
+Cette distribution inclut des logiciels cryptographiques. Le pays dans lequel vous résidez peut imposer des restrictions à l’importation, la possession, l’utilisation et/ou la réexportation vers un autre pays de logiciels de chiffrement. AVANT d’utiliser tout logiciel de chiffrement, veuillez vérifier les lois, règlements et politiques de votre pays concernant l’importation, la possession ou l’utilisation de tels logiciels, et leur réexportation, afin de déterminer si cela est autorisé. Voir <a href="https://www.wassenaar.org/">https://www.wassenaar.org/</a> pour plus d’informations.
+<br/><br/>
+Le Département du Commerce des États-Unis, Bureau of Industry and Security (BIS), a classé ce logiciel sous le numéro de contrôle des exportations (ECCN) <strong>5D002.C.1</strong>, qui englobe les logiciels de sécurité de l’information utilisant ou mettant en œuvre des fonctions cryptographiques avec des algorithmes asymétriques. La forme et les modalités de distribution de cette licence rendent ce logiciel éligible à l’exportation au titre de l’exception de licence ENC « Technology Software Unrestricted (TSU) » (voir les règlements d’administration des exportations du BIS, section 740.13) pour le code objet et le code source.<br/><br/>
+<strong>Union européenne — Règlement (UE) 2021/821 (biens à double usage) :</strong> Ce logiciel relève de la catégorie 5, Partie 2 (« Sécurité de l'information ») de l'Annexe I du Règlement (UE) 2021/821. En tant que logiciel à source ouverte librement accessible au public (licence GPLv3, disponible sur GitHub), il bénéficie de l'exemption prévue par la Note Logiciel Générale (NLG) ainsi que par la Note sur la Cryptographie (Note 3), qui excluent du champ des contrôles à l'exportation les logiciels « accessibles au public ». Aucune autorisation d'exportation spécifique n'est requise au sein de l'Union européenne pour ce logiciel.
+<br/><br/>
+<strong>France — LCEN 2004 (Art. 30, Loi n° 2004-575 du 21 juin 2004) :</strong> En France, l'utilisation des moyens de cryptologie est libre depuis la loi pour la Confiance dans l'Économie Numérique (LCEN) du 21 juin 2004, désormais codifiée dans le Code des postes et des communications électroniques. Aucune déclaration préalable ni autorisation n'est requise pour utiliser ce logiciel sur le territoire français.</sub>
+
+<br/>
+
 © 2024-2026 FialkaApp Contributors. Licensed under [GPLv3](LICENSE).
 
 <br/>

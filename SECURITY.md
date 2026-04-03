@@ -343,3 +343,15 @@ We follow a **coordinated disclosure** model. If you report a vulnerability:
 **Fialka is a tool. The developers do not operate any infrastructure, do not store any user data, and cannot access any messages. There is no central server — all communication is peer-to-peer via Tor. Users are solely responsible for their use of the software.**
 
 © 2024-2026 FialkaApp Contributors. Licensed under [GPLv3](LICENSE).
+
+---
+
+## 📜 Cryptography Export Notice
+
+This distribution includes cryptographic software. The country in which you currently reside may have restrictions on the import, possession, use, and/or re-export to another country, of encryption software. BEFORE using any encryption software, please check your country’s laws, regulations and policies concerning the import, possession, or use, and re-export of encryption software, to see if this is permitted. See https://www.wassenaar.org/ for more information.
+
+The U.S. Government Department of Commerce, Bureau of Industry and Security (BIS), has classified this software as Export Commodity Control Number (ECCN) **5D002.C.1**, which includes information security software using or performing cryptographic functions with asymmetric algorithms. The form and manner of this distribution makes it eligible for export under the License Exception ENC Technology Software Unrestricted (TSU) exception (see the BIS Export Administration Regulations, Section 740.13) for both object code and source code.
+
+**European Union — Regulation (EU) 2021/821 (Dual-Use Regulation):** This software falls under Category 5, Part 2 ("Information Security") of Annex I of Regulation (EU) 2021/821. As publicly available open-source software (GPLv3 licence, available on GitHub), it is exempt from export control requirements under the General Software Note (GSN) and the Cryptography Note (Note 3), which exclude software "generally available to the public" from control. No specific export authorisation is required within the European Union for this software.
+
+**France — LCEN 2004 (Art. 30, Law No. 2004-575 of 21 June 2004):** In France, the use of cryptographic means has been freely permitted since the Law for Confidence in the Digital Economy (LCEN) of 21 June 2004, now codified in the French Postal and Electronic Communications Code. No prior declaration or authorisation is required to use this software in France.
