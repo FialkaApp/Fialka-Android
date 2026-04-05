@@ -30,7 +30,9 @@ import androidx.core.view.updatePadding
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.fragment.NavHostFragment
+import androidx.appcompat.app.AlertDialog
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.data.local.FialkaDatabase
 import com.fialkaapp.fialka.util.AppLockManager
 import com.fialkaapp.fialka.util.DummyTrafficManager
 import com.fialkaapp.fialka.util.NotificationHelper
@@ -86,6 +88,12 @@ class MainActivity : AppCompatActivity() {
             val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             view.updatePadding(bottom = maxOf(navBarHeight, imeHeight))
             insets
+        }
+
+        // Warn before destructive database migration (DROP ALL TABLES)
+        if (FialkaDatabase.needsDestructiveMigration(this)) {
+            showDestructiveMigrationWarning()
+            return
         }
 
         // Show lock screen on first launch
@@ -242,5 +250,40 @@ class MainActivity : AppCompatActivity() {
 
     private fun showLockScreen() {
         lockLauncher.launch(Intent(this, LockScreenActivity::class.java))
+    }
+
+    /**
+     * Blocking dialog shown when a Room schema upgrade would trigger
+     * fallbackToDestructiveMigration (DROP ALL TABLES).
+     *
+     * The user must explicitly acknowledge the data loss before the app
+     * is allowed to open (and migrate) the database.
+     */
+    private fun showDestructiveMigrationWarning() {
+        AlertDialog.Builder(this)
+            .setTitle("Mise à jour — données locales")
+            .setMessage(
+                "Cette mise à jour de Fialka nécessite une réinitialisation de la base de données locale.\n\n" +
+                "⚠ Tous vos messages, contacts et sessions seront effacés de cet appareil.\n\n" +
+                "Vos clés d'identité (seed phrase) ne sont PAS affectées — vous pourrez recréer votre compte.\n\n" +
+                "Si vous souhaitez conserver vos données, ne continuez pas et exportez votre backup d'abord."
+            )
+            .setCancelable(false)
+            .setPositiveButton("Compris, continuer") { _, _ ->
+                // User acknowledged — let the app open normally (Room will migrate on first DB access)
+                FialkaDatabase.recordCurrentVersion(this)
+                // Re-run startup sequence
+                if (AppLockManager.isPinSet(this)) {
+                    isLocked = true
+                    showLockScreen()
+                }
+                handleInviteIntent(intent)
+                handleMailboxDeepLink(intent)
+                handleChatNotificationIntent(intent)
+            }
+            .setNegativeButton("Annuler (quitter)") { _, _ ->
+                finishAffinity()
+            }
+            .show()
     }
 }

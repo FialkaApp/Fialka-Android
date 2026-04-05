@@ -22,6 +22,7 @@ import android.util.Base64
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import android.content.SharedPreferences
 import com.fialkaapp.fialka.data.model.Contact
 import com.fialkaapp.fialka.util.FialkaSecurePrefs
 import com.fialkaapp.fialka.data.model.Conversation
@@ -73,6 +74,33 @@ abstract class FialkaDatabase : RoomDatabase() {
         private const val PREFS_FILE = "fialka_db_key"
         private const val KEY_DB_PASSPHRASE = "db_passphrase"
 
+        // Plain (non-encrypted) prefs — only stores the non-sensitive schema version
+        private const val META_PREFS = "fialka_meta"
+        private const val KEY_DB_VERSION = "db_schema_version"
+        private const val CURRENT_VERSION = 24
+
+        /**
+         * Returns true if the database file already exists (i.e. this is an upgrade, not a
+         * fresh install) AND the stored schema version differs from CURRENT_VERSION.
+         * When true, a destructive migration is about to DROP ALL TABLES — the caller
+         * must warn the user before allowing [getInstance] to proceed.
+         */
+        fun needsDestructiveMigration(context: Context): Boolean {
+            val prefs = metaPrefs(context)
+            val stored = prefs.getInt(KEY_DB_VERSION, 0)
+            // stored == 0  → first install, no data to lose
+            // stored == CURRENT_VERSION → same version, no migration
+            return stored != 0 && stored != CURRENT_VERSION
+        }
+
+        /** Persist the current schema version after a successful DB open. */
+        fun recordCurrentVersion(context: Context) {
+            metaPrefs(context).edit().putInt(KEY_DB_VERSION, CURRENT_VERSION).apply()
+        }
+
+        private fun metaPrefs(context: Context): SharedPreferences =
+            context.applicationContext.getSharedPreferences(META_PREFS, Context.MODE_PRIVATE)
+
         fun getInstance(context: Context): FialkaDatabase {
             return INSTANCE ?: synchronized(this) {
                 // Defensive: ensure sqlcipher .so is loaded if somehow not done via Application
@@ -93,6 +121,7 @@ abstract class FialkaDatabase : RoomDatabase() {
                     })
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
+                recordCurrentVersion(context)
                 INSTANCE = instance
                 instance
             }
