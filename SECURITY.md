@@ -295,7 +295,7 @@ Falcon-512 = **~666 bytes** → 10x smaller than ML-DSA-44. Viable per message. 
 | Signal | ~90% | Audited, battle-tested, millions of users |
 | Session | ~73% | Decentralized but limited crypto |
 | **Fialka V4.1.0** (current) | **~86%** | Ed25519 contact request auth, unit test coverage, migration safety warning |
-| **Fialka V4.1.0** (target, pre-audit) | **~93%** | Zero Google, full Tor P2P, hybrid PQ |
+| **Fialka V4.1.0** (target, pre-audit) | **~93%** | + third-party crypto audit, ml-dsa ≥1.0.0, CI/CD reproducible builds, androidTest JNI coverage |
 | **Fialka V5.0** (post-audit, Falcon) | **~95%** | Full PQ signatures, audited, mesh fallback |
 
 ---
