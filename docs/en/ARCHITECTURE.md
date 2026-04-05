@@ -30,7 +30,14 @@
 │                │  Ratchet +     │  Services P2P   │
 │                │  PQXDH(ML-KEM) │  + Mailbox      │
 │                │  + ML-DSA-44   │  + UnifiedPush  │
-└────────────────┴────────────────┴────────────────┘
+├────────────────┴────────────────┴────────────────┤
+│           JNI Bridge (FialkaNative.kt)            │
+├──────────────────────────────────────────────────┤
+│         Fialka-Core (Rust) — libfialka_core.so   │
+│  AES-GCM · ChaCha20 · Ed25519 · X25519 · ML-KEM  │
+│  ML-DSA · HKDF · Double Ratchet · Onion          │
+│       arm64-v8a + x86_64 (cross-platform)        │
+└──────────────────────────────────────────────────┘
 ```
 
 ---

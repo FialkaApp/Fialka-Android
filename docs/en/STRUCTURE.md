@@ -54,7 +54,8 @@ Fialka/
 │       │   ├── LockScreenActivity.kt         # PIN + biometrics lock screen
 │       │   │
 │       │   ├── crypto/
-│       │   │   ├── CryptoManager.kt          # X25519, ECDH, AES-256-GCM, HKDF, ML-KEM-1024 (PQXDH)
+│       │   │   ├── CryptoManager.kt          # Crypto orchestration — delegates to FialkaNative (Rust JNI)
+│       │   │   ├── FialkaNative.kt           # JNI bridge — 30 extern functions to libfialka_core.so
 │       │   │   ├── DoubleRatchet.kt          # Full Double Ratchet (DH + KDF chains) + PQXDH upgrade
 │       │   │   └── MnemonicManager.kt        # BIP-39 mnemonic encode/decode (24 words)
 │       │   │

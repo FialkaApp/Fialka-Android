@@ -18,15 +18,25 @@
 
 - **Android Studio** Hedgehog (2023.1.1) ou plus récent
 - **JDK 17**
+- **Rust toolchain** 1.70+ — `rustup target add aarch64-linux-android x86_64-linux-android`
+- **Android NDK** 27.2+ — installé via Android Studio SDK Manager
+- **cargo-ndk** — `cargo install cargo-ndk`
 
 > Fialka n'a **aucune dépendance à un service externe**. Pas de Firebase, pas de compte Google, pas de clé API.
+
+> **Fialka-Core (Rust JNI)** — Les fichiers `.so` pré-compilés (`arm64-v8a` + `x86_64`) sont inclus dans `app/src/main/jniLibs/`. Pour les recompiler après modification de `Fialka-Core/` :
+> ```bash
+> cd Fialka-Core
+> $env:ANDROID_NDK_HOME = "<chemin NDK>"
+> cargo ndk -t arm64-v8a -t x86_64-linux-android -o "../app/src/main/jniLibs" build --release
+> ```
 
 ---
 
 ## 1. Cloner le repo
 
 ```bash
-git clone https://github.com/FialkaApp/Fialka-Android.git
+git clone --recurse-submodules https://github.com/FialkaApp/Fialka-Android.git
 cd Fialka-Android
 ```
 
@@ -65,7 +75,7 @@ Ou ouvrir dans Android Studio → **Run** sur un émulateur ou device physique.
 | AndroidX Lifecycle | 2.10.0 | ViewModels, LiveData, coroutines |
 | Room + KSP | 2.8.4 | Base de données locale SQLite |
 | SQLCipher | 4.14.1 | Chiffrement AES-256 de la base Room |
-| BouncyCastle | 1.83 | Ed25519, ML-KEM-1024, ML-DSA-44 |
+| **Fialka-Core** (Rust JNI) | submodule | Toute la crypto : AES-GCM, ChaCha20, Ed25519, X25519, ML-KEM-1024, ML-DSA-44, HKDF, Ratchet |
 | Tor (libtor.so) | Embedded | Transport P2P Tor Hidden Services |
 | UnifiedPush | Latest | Notifications push (compatible ntfy.sh) |
 | FialkaSecurePrefs | In-app | Stockage sécurisé (Android Keystore direct AES-256-GCM) |

@@ -17,6 +17,7 @@
 ```
 Fialka/
 ├── .gitignore
+├── .gitmodules
 ├── LICENSE
 ├── README.md
 ├── PRIVACY.md
@@ -25,6 +26,11 @@ Fialka/
 ├── build.gradle.kts                          # Config Gradle racine
 ├── settings.gradle.kts
 ├── gradle.properties
+│
+├── Fialka-Core/                              # Submodule Rust — bibliothèque native
+│   ├── src/ffi/mod.rs                        # 30 fonctions JNI extern C
+│   ├── Cargo.toml
+│   └── ...                                   # Crypto Rust (AES, ChaCha20, Ed25519, ML-KEM, ML-DSA...)
 │
 ├── docs/                                     # Documentation détaillée
 │   ├── fr/                                   # Documentation française
@@ -53,7 +59,8 @@ Fialka/
 │       │   ├── LockScreenActivity.kt         # Écran de verrouillage PIN + biométrie
 │       │   │
 │       │   ├── crypto/
-│       │   │   ├── CryptoManager.kt          # X25519, ECDH, AES-256-GCM, HKDF, ML-KEM-1024 (PQXDH)
+│       │   │   ├── CryptoManager.kt          # Orchestration crypto — délègue à FialkaNative (Rust JNI)
+│       │   │   ├── FialkaNative.kt           # Pont JNI — 30 fonctions extern vers libfialka_core.so
 │       │   │   ├── DoubleRatchet.kt          # Full Double Ratchet (DH + KDF chains) + PQXDH upgrade
 │       │   │   └── MnemonicManager.kt        # BIP-39 mnemonic encode/decode (24 mots)
 │       │   │

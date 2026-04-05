@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V4.0.1-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/versionCode-9-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V4.0.2-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/versionCode-10-9C4DCC?style=for-the-badge" />
 
 </div>
 

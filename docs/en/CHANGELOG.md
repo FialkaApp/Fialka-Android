@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V4.0.1-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/versionCode-9-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V4.0.2-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/versionCode-10-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -466,6 +466,44 @@
 - [x] **Room v24** — `deliveryStatus` on `MessageLocal`, `messageLocalId` + `fallbackOnion` on `OutboxMessage`, migrations v18→v24
 - [x] **MailboxDatabase v1** — `MailboxBlob`, `MailboxMember`, `MailboxInvite` entities (MAILBOX mode only)
 - [x] **Version 4.0** — `versionCode 8`, `versionName "4.0"`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>✅ V4.0.2 — Fialka-Core Rust JNI Bridge</h2></summary>
+
+
+> Native Rust cryptography migration — all crypto is now executed inside the `fialka-core` Rust library, exposed via a JNI bridge. Complete removal of BouncyCastle.
+
+### 🦀 Rust JNI Bridge (Fialka-Core)
+- [x] **30 JNI functions** implemented in `Fialka-Core/src/ffi/mod.rs` via the `jni = 0.21` crate
+- [x] **`FialkaNative.kt`** — Kotlin bridge object, `System.loadLibrary("fialka_core")`, 30 `external fun`
+- [x] **`libfialka_core.so`** — compiled with `cargo-ndk` for `arm64-v8a` (906 KB) and `x86_64` (984 KB)
+- [x] **git submodule** — `Fialka-Core/` integrated as a submodule in Fialka-Android
+
+### 🔐 Cryptographic migration
+- [x] **`CryptoManager.kt`** — 100% migrated: all BouncyCastle calls replaced with `FialkaNative`
+  - `identityDerive` → 8704-byte bundle (Ed25519, X25519, ML-KEM-1024, ML-DSA-44)
+  - `encryptAes` / `decryptAes` → FialkaNative.encryptAes / decryptAes
+  - `encryptChaCha` / `decryptChaCha` → FialkaNative (12-byte nonce, 16-byte tag)
+  - `encryptFile` / `decryptFile` → FialkaNative (format: key[32] || iv[12] || CT)
+  - `hmacSha256` → FialkaNative.hmacSha256
+  - `hkdfZeroSalt` / key derivation → FialkaNative.hkdfZeroSalt
+  - `ed25519Sign` / `ed25519Verify` → FialkaNative
+  - `x25519Dh` → FialkaNative (strip JCA ASN.1 prefixes: X509 12 bytes, PKCS8 16 bytes)
+  - `mlkemEncaps` / `mlkemDecaps` → FialkaNative
+  - `mldsaSign` / `mldsaVerify` → FialkaNative
+  - `deriveRootKeyPqxdh` → FialkaNative
+  - `computeOnion` / `ed25519ToX25519Raw` → FialkaNative
+- [x] **`TorTransport.kt`** — `signEd25519` / `verifyEd25519` migrated to FialkaNative
+- [x] **`build.gradle.kts`** — `org.bouncycastle:bcprov-jdk18on:1.83` dependency removed
+- [x] **Robolectric + JVM tests** removed (incompatible with JNI); tests migrated to `androidTest`
+
+### 🧩 Cross-platform
+- [x] Same Rust library used on Android (JNI) and on any other target (Windows/Linux/iOS via FFI)
+- [x] **Version V4.0.2** — `versionCode 10`
 
 </details>
 

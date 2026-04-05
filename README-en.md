@@ -26,7 +26,7 @@
 <br/>
 
 [![Tor](https://img.shields.io/badge/Tor-Guardian_Project-7c3aed?style=flat-square&logo=torproject&logoColor=white)](https://guardianproject.info/)
-[![BouncyCastle](https://img.shields.io/badge/BouncyCastle-1.83-7c3aed?style=flat-square)](https://www.bouncycastle.org/)
+[![Fialka-Core](https://img.shields.io/badge/Fialka--Core-Rust_JNI-7c3aed?style=flat-square&logo=rust&logoColor=white)](Fialka-Core/)
 [![SQLCipher](https://img.shields.io/badge/SQLCipher-4.14.1-7c3aed?style=flat-square)](https://www.zetetic.net/sqlcipher/)
 [![Room](https://img.shields.io/badge/Room-2.8.4-7c3aed?style=flat-square)](https://developer.android.com/jetpack/androidx/releases/room)
 [![Material3](https://img.shields.io/badge/Material_Design-3-7c3aed?style=flat-square&logo=materialdesign&logoColor=white)](https://m3.material.io/)
@@ -215,7 +215,12 @@
 │    Room DB     │     Crypto     │   Transport     │
 │   (SQLCipher)  │ PQXDH + DR +   │ Tor P2P .onion  │
 │                │ ML-DSA-44      │ + Mailbox       │
-└────────────────┴────────────────┴────────────────┘
+├────────────────┴────────────────┴────────────────┤
+│              JNI Bridge (FialkaNative)            │
+│         Fialka-Core — native Rust library         │
+│  AES-GCM · ChaCha20 · Ed25519 · X25519 · ML-KEM  │
+│  ML-DSA · HKDF · Double Ratchet · Onion          │
+└──────────────────────────────────────────────────┘
 ```
 
 > 📖 **Details** — [Full Architecture](docs/en/ARCHITECTURE.md) · [Crypto Protocol](docs/en/CRYPTO.md) · [Project Structure](docs/en/STRUCTURE.md)
@@ -316,6 +321,7 @@ cd Fialka-Android
 | **V3.5** | SPQR + ChaCha20 — PQ Triple Ratchet (ML-KEM re-encapsulation), ChaCha20-Poly1305 alternative, documented threat model | ✅ Done |
 | **V4.0** | Kill Firebase — P2P .onion + Mailbox store-and-forward, invite QR, deep links | ✅ Done |
 | **V4.0.1** | Direct Keystore (FialkaSecurePrefs), SQLCipher 4.14.1, transport reliability (15s retry, Mailbox fallback, adaptive fetch) | ✅ Done |
+| **V4.0.2** | Fialka-Core Rust JNI — 30-function JNI bridge, BouncyCastle removed, 100% native Rust crypto, git submodule | ✅ Done |
 | **V4.1** | UX — App disguise (icon + cover screen), Dual PIN + Panic Button, E2E voice messages (Opus), reply/quote | 🔜 |
 | **V4.2** | Sealed Sender (VXEdDSA), multi-device Sesame, **third-party security audit** (Cure53 / Trail of Bits) | 🔜 |
 | **V5.0** | Long-term — **Falcon-512** per-message PQ signatures, decentralized Mailbox network, Bluetooth/WiFi fallback | 🔮 |
@@ -373,7 +379,7 @@ cd Fialka-Android
 
 | Library | Version | Role |
 |---|---|---|
-| [**BouncyCastle**](https://www.bouncycastle.org/) | `1.80` | ML-KEM-1024, ML-DSA-44, Ed25519, ChaCha20-Poly1305 |
+| [**Fialka-Core**](Fialka-Core/) (Rust) | submodule | All native crypto: AES-256-GCM, ChaCha20-Poly1305, Ed25519, X25519, ML-KEM-1024, ML-DSA-44, HKDF, Double Ratchet, .onion |
 | **Android Keystore** (AOSP) | — | Ed25519 seed in hardware (StrongBox) |
 | [**Security Crypto**](https://developer.android.com/jetpack/androidx/releases/security) | `1.1.0-alpha06` | EncryptedSharedPreferences, MasterKey |
 | [**Biometric**](https://developer.android.com/jetpack/androidx/releases/biometric) | `1.1.0` | Biometric authentication (fingerprint, face) |
@@ -392,8 +398,8 @@ cd Fialka-Android
 
 | Library | Version | Role |
 |---|---|---|
-| [**Room**](https://developer.android.com/jetpack/androidx/releases/room) | `2.7.1` | SQLite ORM (local persistence) |
-| [**SQLCipher**](https://www.zetetic.net/sqlcipher/) — Zetetic | `4.5.4` | AES-256 encryption of the Room database |
+| [**Room**](https://developer.android.com/jetpack/androidx/releases/room) | `2.8.4` | SQLite ORM (local persistence) |
+| [**SQLCipher**](https://www.zetetic.net/sqlcipher/) — Zetetic | `4.14.1` | AES-256 encryption of the Room database |
 | [**KSP**](https://github.com/google/ksp) — Google | — | Compile-time Room code generation |
 
 </td>
@@ -418,7 +424,7 @@ cd Fialka-Android
 | Library | Version | Role |
 |---|---|---|
 | [**ZXing Android Embedded**](https://github.com/journeyapps/zxing-android-embedded) — JourneyApps | `4.3.0` | QR code generation + scanning |
-| [**Kotlinx Coroutines**](https://github.com/Kotlin/kotlinx.coroutines) — JetBrains | `1.9.0` | Non-blocking async, structured concurrency |
+| [**Kotlinx Coroutines**](https://github.com/Kotlin/kotlinx.coroutines) — JetBrains | `1.10.2` | Non-blocking async, structured concurrency |
 | [**Kotlin**](https://kotlinlang.org/) — JetBrains | `2.3.0` | Primary programming language |
 
 </td>
@@ -477,7 +483,7 @@ The U.S. Government Department of Commerce, Bureau of Industry and Security (BIS
 
 <br/>
 
-<img src="https://img.shields.io/badge/Fialka-V4.0.1-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/Fialka-V4.0.2-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 
