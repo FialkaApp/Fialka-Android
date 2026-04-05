@@ -6,6 +6,7 @@ package com.fialkaapp.fialka.crypto
 
 import android.util.Base64
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -198,6 +199,7 @@ class DoubleRatchetTest {
     // dhRatchetStep
     // ========================================================================
 
+    @Ignore("Requires libfialka_core.so (JNI) — run as an instrumented test on device/emulator")
     @Test
     fun `dhRatchetStep produces new root and chain keys`() {
         // Initialize two sides
@@ -219,6 +221,7 @@ class DoubleRatchetTest {
         assertEquals(32, Base64.decode(dhResult.newRootKey, Base64.NO_WRAP).size)
     }
 
+    @Ignore("Requires libfialka_core.so (JNI) — run as an instrumented test on device/emulator")
     @Test
     fun `dhRatchetStep is deterministic`() {
         val ss1 = ByteArray(32) { (it + 1).toByte() }

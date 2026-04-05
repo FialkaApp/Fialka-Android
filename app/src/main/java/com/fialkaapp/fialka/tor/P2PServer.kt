@@ -18,6 +18,9 @@
 package com.fialkaapp.fialka.tor
 
 import android.content.Context
+import android.util.Base64
+import com.fialkaapp.fialka.crypto.CryptoManager
+import com.fialkaapp.fialka.crypto.FialkaNative
 import com.fialkaapp.fialka.data.model.ContactRequest
 import com.fialkaapp.fialka.data.model.P2PMessage
 import com.fialkaapp.fialka.data.repository.ChatRepository
@@ -184,6 +187,33 @@ object P2PServer : TorTransport.FrameListener {
                 return TorTransport.ackOk()
             }
 
+            // ── Ed25519 signature verification ──────────────────────────────
+            // The sender must prove ownership of senderSigningPublicKey by signing
+            // the canonical fields: senderPublicKey || conversationId || createdAt
+            val signingPubKeyB64 = json.optString("senderSigningPublicKey", "")
+            val signatureB64     = json.optString("requestSignature", "")
+
+            if (signingPubKeyB64.isNotEmpty() && signatureB64.isNotEmpty()) {
+                // Build the same canonical blob that the sender signed
+                val senderPk   = json.getString("senderPublicKey")
+                val convId     = json.getString("conversationId")
+                val createdAt  = json.getLong("createdAt")
+                val dataToVerify = buildContactRequestSignedData(senderPk, convId, createdAt)
+
+                val pubKeyBytes = Base64.decode(signingPubKeyB64, Base64.NO_WRAP)
+                val sigBytes    = Base64.decode(signatureB64, Base64.NO_WRAP)
+                val ok = try {
+                    val result = FialkaNative.ed25519Verify(pubKeyBytes, dataToVerify, sigBytes)
+                    result.isNotEmpty() && result[0] == 1.toByte()
+                } catch (_: Exception) { false }
+
+                if (!ok) {
+                    android.util.Log.w("P2PServer", "Rejected contact request: invalid Ed25519 signature from $signingPubKeyB64")
+                    return TorTransport.ackError("invalid signature")
+                }
+            }
+            // ────────────────────────────────────────────────────────────────
+
             val request = ContactRequest(
                 senderPublicKey = json.getString("senderPublicKey"),
                 senderDisplayName = json.getString("senderDisplayName"),
@@ -200,6 +230,21 @@ object P2PServer : TorTransport.FrameListener {
         } catch (_: Exception) {
             TorTransport.ackError("malformed contact request")
         }
+    }
+
+    /**
+     * Canonical data blob for contact request signature:
+     * senderPublicKey (UTF-8 bytes) || 0x00 || conversationId (UTF-8 bytes) || createdAt (big-endian 8 bytes)
+     */
+    private fun buildContactRequestSignedData(
+        senderPublicKey: String,
+        conversationId: String,
+        createdAt: Long
+    ): ByteArray {
+        val pkBytes   = senderPublicKey.toByteArray(Charsets.UTF_8)
+        val convBytes = conversationId.toByteArray(Charsets.UTF_8)
+        val tsBytes   = java.nio.ByteBuffer.allocate(8).putLong(createdAt).array()
+        return pkBytes + byteArrayOf(0x00) + convBytes + tsBytes
     }
 
     // ══════════════════════════════════════════
@@ -359,6 +404,10 @@ object P2PServer : TorTransport.FrameListener {
 
     /**
      * Send a contact request to a remote peer's .onion via TYPE_CONTACT_REQ.
+     *
+     * The payload is signed with our Ed25519 identity key so the recipient can
+     * verify that senderSigningPublicKey actually corresponds to the sender.
+     * Signed data: senderPublicKey || 0x00 || conversationId || createdAt (big-endian 8 bytes)
      */
     suspend fun sendContactRequest(
         recipientOnion: String,
@@ -367,13 +416,25 @@ object P2PServer : TorTransport.FrameListener {
         conversationId: String,
         senderSigningPublicKey: String?
     ): Boolean {
+        val createdAt = System.currentTimeMillis()
         val json = JSONObject().apply {
             put("senderPublicKey", senderPublicKey)
             put("senderDisplayName", senderDisplayName)
             put("conversationId", conversationId)
-            put("createdAt", System.currentTimeMillis())
+            put("createdAt", createdAt)
             if (senderSigningPublicKey != null) {
                 put("senderSigningPublicKey", senderSigningPublicKey)
+                // Sign the canonical fields so the recipient can verify our identity
+                try {
+                    val dataToSign = buildContactRequestSignedData(senderPublicKey, conversationId, createdAt)
+                    val seed = CryptoManager.getIdentitySeed()
+                    val sigBytes = FialkaNative.ed25519Sign(seed, dataToSign)
+                    seed.fill(0)
+                    dataToSign.fill(0)
+                    put("requestSignature", Base64.encodeToString(sigBytes, Base64.NO_WRAP))
+                } catch (e: Exception) {
+                    android.util.Log.e("P2PServer", "Failed to sign contact request", e)
+                }
             }
             val mailbox = MailboxClientManager.getMailboxOnion()
             if (mailbox != null) put("mailboxOnion", mailbox)
