@@ -99,7 +99,7 @@ Fialka includes or interacts with the following third-party components:
 | Component | License | Developers' role |
 |-----------|---------|-----------------|
 | Tor (The Onion Router) | BSD | Bundled for anonymous transport |
-| BouncyCastle | MIT | Bundled for cryptography |
+| Fialka-Core (Rust) | GPL-3.0 | Bundled cryptographic core — Ed25519, X25519, ML-KEM-1024, ML-DSA-44, AES-256-GCM, ChaCha20-Poly1305, HKDF, Double Ratchet |
 | UnifiedPush / ntfy.sh | Open-source | Optional, user-configured |
 | SQLCipher | BSD | Bundled for local DB encryption |
 

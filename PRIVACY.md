@@ -105,7 +105,7 @@ This data is protected by:
 |-----------|------|---------------|------------------------|
 | **Tor** (The Onion Router) | Anonymous transport layer | Encrypted network traffic | ❌ No — Tor Project |
 | **UnifiedPush / ntfy.sh** | Optional push wake-up | Wake-up signal (zero content) | ❌ No — self-hostable |
-| **BouncyCastle** | Cryptographic library | Local computation only | ❌ No — library |
+| **Fialka-Core** (Rust) | Cryptographic core library | Local computation only | ❌ No — library |
 
 **No Google services, no Firebase, no cloud APIs, no corporate infrastructure.**
 

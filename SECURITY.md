@@ -87,16 +87,16 @@ The birational map converts `EdwardsPoint → MontgomeryPoint` — a standard co
 
 | Component | Algorithm | Key Size | Library | Purpose |
 |-----------|-----------|----------|---------|---------|
-| **Identity key** | Ed25519 | 256-bit | BouncyCastle 1.83 | Master identity, message signing, derives all other keys |
+| **Identity key** | Ed25519 | 256-bit | Fialka-Core (Rust) | Master identity, message signing, derives all other keys |
 | **DH key agreement** | X25519 | 256-bit | Android built-in | Double Ratchet (derived from Ed25519 via birational map) |
-| **Post-quantum KEM** | ML-KEM-1024 | NIST Level 5 | BouncyCastle 1.83 | PQXDH hybrid key exchange + SPQR (derived from seed via HKDF) |
-| **PQ signature (handshake)** | ML-DSA-44 | NIST Level 2 | BouncyCastle | Hybrid handshake authentication (Ed25519 + ML-DSA-44) |
+| **Post-quantum KEM** | ML-KEM-1024 | NIST Level 5 | Fialka-Core (Rust) | PQXDH hybrid key exchange + SPQR (derived from seed via HKDF) |
+| **PQ signature (handshake)** | ML-DSA-44 | NIST Level 2 | Fialka-Core (Rust) | Hybrid handshake authentication (Ed25519 + ML-DSA-44) |
 | **Symmetric encryption** | AES-256-GCM | 256-bit | Android built-in | Message encryption (hardware AES) |
-| **Symmetric encryption (alt)** | ChaCha20-Poly1305 | 256-bit | BouncyCastle 1.83 | Message encryption (no hardware AES) |
+| **Symmetric encryption (alt)** | ChaCha20-Poly1305 | 256-bit | Fialka-Core (Rust) | Message encryption (no hardware AES) |
 | **Key derivation** | HKDF-SHA256 | — | Custom (RFC 5869) | Root key, chain keys, ML-KEM seed |
 | **KDF chain** | HMAC-SHA256 | 256-bit | Android built-in | Double Ratchet chain advancement |
 | **Fingerprint** | SHA-256 → 16 emojis | 96-bit | Android built-in | Visual MITM detection |
-| **Account ID** | SHA3-256 → Base58 | 256-bit | BouncyCastle | Human-readable identity |
+| **Account ID** | SHA3-256 → Base58 | 256-bit | Fialka-Core (Rust) | Human-readable identity |
 | **PIN hashing** | PBKDF2-HMAC-SHA256 | 600K iterations | Android built-in | App Lock |
 | **Local database** | SQLCipher | AES-256 | SQLCipher 4.14.1 | Encrypted local storage |
 | **Key storage** | Android Keystore | Hardware-backed | Android (StrongBox/TEE) | Seed protection |

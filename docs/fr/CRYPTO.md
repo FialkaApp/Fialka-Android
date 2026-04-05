@@ -171,7 +171,7 @@ Avant chiffrement, chaque message est paddé vers le bucket supérieur :
 
 ## Signature de message (Ed25519, V3.2)
 
-Chaque message est signé avec une clé **Ed25519** dédiée (séparée de la clé d'identité X25519) via BouncyCastle 1.83.
+Chaque message est signé avec une clé **Ed25519** dédiée (séparée de la clé d'identité X25519) via **Fialka-Core** (Rust, JNI).
 
 ```
 Envoi :
@@ -229,7 +229,7 @@ Messages suivants :
 - ✅ **Résistance post-quantique** : même si X25519 est cassé par un ordinateur quantique, ML-KEM-1024 protège le root_key
 - ✅ **Upgrade différée** : pas de message bootstrap — l'upgrade se fait au premier vrai message
 - ✅ **Aucune régression** : si ML-KEM échoue, la conversation reste protégée par X25519 classique
-- ✅ **BouncyCastle 1.83** : implémentation ML-KEM-1024 certifiée (package `org.bouncycastle.pqc.crypto.mlkem`)
+- ✅ **Fialka-Core (Rust)** : implémentation ML-KEM-1024 native, byte-for-byte compatible avec BouncyCastle 1.83 (migration transparente)
 - ✅ **StrongBox probe** : `DeviceSecurityManager` détecte le support matériel StrongBox pour la protection des clés
 
 ---
