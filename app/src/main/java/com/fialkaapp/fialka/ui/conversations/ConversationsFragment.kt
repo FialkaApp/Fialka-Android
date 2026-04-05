@@ -17,10 +17,18 @@
  */
 package com.fialkaapp.fialka.ui.conversations
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
@@ -34,6 +42,7 @@ import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.databinding.FragmentConversationsBinding
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.tor.TorState
+import com.fialkaapp.fialka.util.NotificationHelper
 import kotlinx.coroutines.launch
 
 /**
@@ -50,6 +59,24 @@ class ConversationsFragment : Fragment() {
     private lateinit var requestsAdapter: ContactRequestsAdapter
     private var allConversations: List<com.fialkaapp.fialka.data.model.Conversation> = emptyList()
 
+    /** Android 13+ runtime permission for POST_NOTIFICATIONS. */
+    private val notifPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (!granted) {
+                // User denied — explain why it matters
+                AlertDialog.Builder(requireContext())
+                    .setTitle(getString(R.string.perm_notif_denied_title))
+                    .setMessage(getString(R.string.perm_notif_denied_message))
+                    .setPositiveButton(getString(R.string.perm_open_settings)) { _, _ ->
+                        startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                            putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().packageName)
+                        })
+                    }
+                    .setNegativeButton(getString(R.string.perm_later), null)
+                    .show()
+            }
+        }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -61,6 +88,9 @@ class ConversationsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Ask for runtime permissions needed for notifications and background service
+        askPermissionsIfNeeded()
 
         // Conversations adapter
         adapter = ConversationsAdapter { conversation ->
@@ -206,6 +236,58 @@ class ConversationsFragment : Fragment() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    /**
+     * Ask for runtime permissions needed for the app to work correctly:
+     * 1. POST_NOTIFICATIONS (Android 13+) — for message/request notifications
+     * 2. REQUEST_IGNORE_BATTERY_OPTIMIZATIONS — keeps the Tor service alive in background
+     *
+     * Each dialog is shown at most once (tracked via SharedPreferences).
+     */
+    private fun askPermissionsIfNeeded() {
+        val prefs = requireContext().getSharedPreferences("fialka_perm_asked", 0)
+
+        // -- 1. POST_NOTIFICATIONS --
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val alreadyGranted = NotificationHelper.hasNotificationPermission(requireContext())
+            val alreadyAsked = prefs.getBoolean("notif_asked", false)
+            if (!alreadyGranted && !alreadyAsked) {
+                prefs.edit().putBoolean("notif_asked", true).apply()
+                AlertDialog.Builder(requireContext())
+                    .setTitle(getString(R.string.perm_notif_title))
+                    .setMessage(getString(R.string.perm_notif_message))
+                    .setPositiveButton(getString(R.string.perm_allow)) { _, _ ->
+                        notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    .setNegativeButton(getString(R.string.perm_later), null)
+                    .show()
+            }
+        }
+
+        // -- 2. IGNORE_BATTERY_OPTIMIZATIONS (Android 6+) --
+        val batteryAsked = prefs.getBoolean("battery_asked", false)
+        if (!batteryAsked) {
+            val pm = requireContext().getSystemService(PowerManager::class.java)
+            val isIgnoring = pm.isIgnoringBatteryOptimizations(requireContext().packageName)
+            if (!isIgnoring) {
+                prefs.edit().putBoolean("battery_asked", true).apply()
+                AlertDialog.Builder(requireContext())
+                    .setTitle(getString(R.string.perm_battery_title))
+                    .setMessage(getString(R.string.perm_battery_message))
+                    .setPositiveButton(getString(R.string.perm_allow)) { _, _ ->
+                        try {
+                            startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                data = Uri.parse("package:${requireContext().packageName}")
+                            })
+                        } catch (_: Exception) {
+                            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                        }
+                    }
+                    .setNegativeButton(getString(R.string.perm_later), null)
+                    .show()
+            }
+        }
     }
 
     override fun onDestroyView() {

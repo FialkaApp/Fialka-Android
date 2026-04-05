@@ -18,9 +18,13 @@
 package com.fialkaapp.fialka.ui.settings
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -30,19 +34,24 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.databinding.FragmentSettingsNotificationsBinding
 
+/**
+ * Notification settings screen.
+ *
+ * Shows the REAL state of:
+ *  - POST_NOTIFICATIONS permission (Android 13+)
+ *  - Battery optimizations (needed to keep Tor alive in background)
+ *
+ * The user can tap each row to grant the permission / open the relevant system screen.
+ * The old "push enabled" toggle is removed — the Android permission IS the toggle.
+ */
 class NotificationsFragment : Fragment() {
 
     private var _binding: FragmentSettingsNotificationsBinding? = null
     private val binding get() = _binding!!
 
-    private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) {
-                enablePush()
-            } else {
-                binding.switchPush.isChecked = false
-                updateStatusText(false)
-            }
+    private val notifPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ ->
+            refreshStatus()
         }
 
     override fun onCreateView(
@@ -57,48 +66,92 @@ class NotificationsFragment : Fragment() {
 
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
 
-        val prefs = requireContext().getSharedPreferences(PREFS_NAME, 0)
-        val pushEnabled = prefs.getBoolean(KEY_PUSH_ENABLED, false)
-        binding.switchPush.isChecked = pushEnabled
-        updateStatusText(pushEnabled)
+        refreshStatus()
 
-        binding.switchPush.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED
-                ) {
-                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    enablePush()
-                }
+        // Tap notification row → request permission or open system settings
+        binding.switchPush.setOnClickListener {
+            handleNotifTap()
+        }
+        binding.switchPush.setOnCheckedChangeListener { _, _ ->
+            handleNotifTap()
+        }
+
+        // Tap battery row → open system settings
+        binding.btnBatteryOptimization.setOnClickListener {
+            openBatterySettings()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Refresh when user returns from system settings
+        refreshStatus()
+    }
+
+    private fun handleNotifTap() {
+        val granted = hasNotifPermission()
+        if (granted) {
+            // Already granted — open app notification settings so user can disable if they want
+            startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().packageName)
+            })
+        } else {
+            // Request permission (Android 13+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             } else {
-                disablePush()
+                // Below API 33 — permission automatic, open system settings
+                startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().packageName)
+                })
             }
         }
     }
 
-    private fun enablePush() {
-        savePref(true)
-        updateStatusText(true)
+    private fun openBatterySettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:${requireContext().packageName}")
+            })
+        } catch (_: Exception) {
+            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }
     }
 
-    private fun disablePush() {
-        savePref(false)
-        updateStatusText(false)
-    }
+    private fun refreshStatus() {
+        if (_binding == null) return
+        val notifGranted = hasNotifPermission()
+        val batteryIgnored = isBatteryIgnored()
 
-    private fun savePref(enabled: Boolean) {
-        requireContext().getSharedPreferences(PREFS_NAME, 0)
-            .edit().putBoolean(KEY_PUSH_ENABLED, enabled).apply()
-    }
-
-    private fun updateStatusText(enabled: Boolean) {
-        binding.tvPushStatus.text = if (enabled) {
+        // Notification row
+        binding.switchPush.isChecked = notifGranted
+        binding.tvPushStatus.text = if (notifGranted) {
             "✅ Activées — vous recevrez des notifications de nouveaux messages"
         } else {
-            "\uD83D\uDD12 Désactivées par défaut pour protéger votre vie privée"
+            "🔕 Désactivées — appuyez pour autoriser"
         }
+
+        // Battery row
+        binding.tvBatteryStatus.text = if (batteryIgnored) {
+            "✅ Optimisations batterie désactivées — Tor reste actif en arrière-plan"
+        } else {
+            "⚠️ Les optimisations batterie peuvent tuer Tor en arrière-plan — appuyez pour corriger"
+        }
+    }
+
+    private fun hasNotifPermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(
+                requireContext(), Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Automatic below API 33
+        }
+    }
+
+    private fun isBatteryIgnored(): Boolean {
+        val pm = requireContext().getSystemService(PowerManager::class.java)
+        return pm.isIgnoringBatteryOptimizations(requireContext().packageName)
     }
 
     override fun onDestroyView() {

@@ -48,6 +48,17 @@
     <string name="notif_channel_requests_name">Demandes de contact</string>
     <string name="notif_channel_requests_desc">Notifications de nouvelles demandes de contact</string>
 
+    <!-- Permission dialogs -->
+    <string name="perm_notif_title">Autoriser les notifications</string>
+    <string name="perm_notif_message">Fialka vous avertira en temps réel de nouveaux messages chiffrés, même si l\'app est fermée. Les notifications contiennent uniquement le nom du contact, jamais le contenu du message — protection complète de la vie privée.</string>
+    <string name="perm_notif_denied_title">Notifications désactivées</string>
+    <string name="perm_notif_denied_message">Vous pouvez les réactiver dans les paramètres de l\'app Android. Pour recevoir les messages plus vite en arrière-plan, nous décritons vivement d\'activer les notifications.</string>
+    <string name="perm_battery_title">Désactiver les optimisations batterie</string>
+    <string name="perm_battery_message">Fialka a besoin que Tor soit toujours actif en arrière-plan pour recevoir les messages P2P. Les optimisations batterie d\'Android peuvent arrêter Tor inopinément. Nous décritons vivement de désactiver l\'optimisation batterie pour Fialka.</string>
+    <string name="perm_allow">Autoriser</string>
+    <string name="perm_later">Plus tard</string>
+    <string name="perm_open_settings">Ouvrir les paramètres</string>
+
     <!-- Add Contact -->
     <string name="add_contact_title">Ajouter un contact</string>
     <string name="scan_qr_code">📷  Scanner un QR code</string>

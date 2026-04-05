@@ -34,14 +34,12 @@ import com.fialkaapp.fialka.ui.MainActivity
 /**
  * Central helper for posting in-app and system notifications.
  *
- * - New message: fires only when push is enabled AND user isn't viewing that conversation.
- * - Contact request: fires always (no pref gate — requests are rare and important).
+ * - New message: fires unless the user is already viewing that conversation.
+ * - Contact request: always fires.
  * - Privacy-first: notification body never contains message plaintext.
+ * - Gated only by Android POST_NOTIFICATIONS runtime permission (Android 13+).
  */
 object NotificationHelper {
-
-    private const val PREFS_NAME = "fialka_settings"
-    private const val KEY_PUSH_ENABLED = "push_notifications_enabled"
 
     /** Stable ID used for all contact-request notifications (grouped under one). */
     private const val NOTIF_ID_CONTACT_REQUEST = 9_001
@@ -59,12 +57,13 @@ object NotificationHelper {
     /**
      * Post a new-message notification for [conversationId] / [contactName].
      * Silently dropped if:
-     *  - The user didn't enable push notifications in Settings
      *  - The user is currently viewing [conversationId]
      *  - POST_NOTIFICATIONS permission is missing (Android 13+)
+     *
+     * Note: we do NOT gate on a push-enabled preference here — the system permission
+     * is the only gate. The user controls notifications via Android system settings.
      */
     fun notifyNewMessage(context: Context, conversationId: String, contactName: String) {
-        if (!isPushEnabled(context)) return
         if (ChatRepository.currentlyViewedConversation == conversationId) return
         if (!hasPermission(context)) return
 
@@ -129,9 +128,8 @@ object NotificationHelper {
     // Private helpers
     // ------------------------------------------------------------------
 
-    private fun isPushEnabled(context: Context): Boolean =
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getBoolean(KEY_PUSH_ENABLED, false)
+    /** Public check so UI can decide whether to ask for the permission. */
+    fun hasNotificationPermission(context: Context): Boolean = hasPermission(context)
 
     private fun hasPermission(context: Context): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
