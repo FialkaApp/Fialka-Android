@@ -32,6 +32,10 @@ import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
@@ -206,6 +210,25 @@ class ChatFragment : Fragment() {
             },
             onResend = { messageId ->
                 viewModel.resendMessage(messageId)
+            },
+            onMessageLongPress = { anchorView, message ->
+                val popup = PopupMenu(requireContext(), anchorView)
+                popup.menuInflater.inflate(R.menu.menu_message_actions, popup.menu)
+                popup.setOnMenuItemClickListener { item ->
+                    when (item.itemId) {
+                        R.id.action_copy -> {
+                            val clipboard = requireContext()
+                                .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(
+                                ClipData.newPlainText("message", message.plaintext)
+                            )
+                            Toast.makeText(requireContext(), "Message copié", Toast.LENGTH_SHORT).show()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                popup.show()
             }
         )
         binding.rvMessages.adapter = adapter

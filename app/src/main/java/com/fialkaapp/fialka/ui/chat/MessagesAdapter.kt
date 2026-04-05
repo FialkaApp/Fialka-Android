@@ -54,7 +54,8 @@ class MessagesAdapter(
     private val onFingerprintInfoClick: (() -> Unit)? = null,
     private val onRetryDownload: ((String) -> Unit)? = null,
     private val onOneShotOpen: ((String) -> Unit)? = null,
-    private val onResend: ((String) -> Unit)? = null
+    private val onResend: ((String) -> Unit)? = null,
+    private val onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null
 ) : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
 
     private var lastAnimatedPosition = -1
@@ -228,11 +229,11 @@ class MessagesAdapter(
         when (holder) {
             is SentViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
-                holder.bind(msg, onOneShotOpen, onResend)
+                holder.bind(msg, onOneShotOpen, onResend, onMessageLongPress)
             }
             is ReceivedViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
-                holder.bind(msg, onRetryDownload, onOneShotOpen)
+                holder.bind(msg, onRetryDownload, onOneShotOpen, onMessageLongPress)
             }
             is InfoViewHolder -> {
                 val info = getItem(position) as ChatItem.InfoMessage
@@ -262,7 +263,7 @@ class MessagesAdapter(
     class SentViewHolder(
         private val binding: ItemMessageSentBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: MessageLocal, onOneShotOpen: ((String) -> Unit)? = null, onResend: ((String) -> Unit)? = null) {
+        fun bind(message: MessageLocal, onOneShotOpen: ((String) -> Unit)? = null, onResend: ((String) -> Unit)? = null, onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null) {
             binding.tvTimeSent.text = timeFormat.format(Date(message.timestamp))
             binding.ivImagePreviewSent.visibility = View.GONE
 
@@ -323,6 +324,10 @@ class MessagesAdapter(
                     binding.tvMessageSent.text = message.plaintext
                     binding.fileRowSent.visibility = View.GONE
                     binding.bubbleSent.setOnClickListener(null)
+                    binding.bubbleSent.setOnLongClickListener { v ->
+                        onMessageLongPress?.invoke(v, message)
+                        true
+                    }
                 }
             }
 
@@ -383,7 +388,7 @@ class MessagesAdapter(
     class ReceivedViewHolder(
         private val binding: ItemMessageReceivedBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: MessageLocal, onRetryDownload: ((String) -> Unit)?, onOneShotOpen: ((String) -> Unit)?) {
+        fun bind(message: MessageLocal, onRetryDownload: ((String) -> Unit)?, onOneShotOpen: ((String) -> Unit)?, onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null) {
             binding.tvTimeReceived.text = timeFormat.format(Date(message.timestamp))
             binding.ivImagePreviewReceived.visibility = View.GONE
 
@@ -475,6 +480,10 @@ class MessagesAdapter(
                     binding.fileRowReceived.visibility = View.GONE
                     binding.statusRowReceived.visibility = View.GONE
                     binding.bubbleReceived.setOnClickListener(null)
+                    binding.bubbleReceived.setOnLongClickListener { v ->
+                        onMessageLongPress?.invoke(v, message)
+                        true
+                    }
                 }
             }
 
