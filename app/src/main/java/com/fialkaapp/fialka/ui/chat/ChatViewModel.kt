@@ -23,6 +23,7 @@ import com.fialkaapp.fialka.data.model.MessageLocal
 import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.util.DummyTrafficManager
+import com.fialkaapp.fialka.util.NotificationHelper
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -112,6 +113,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             // Mark as read + flag as currently viewed
             repository.markConversationRead(conversationId)
+            NotificationHelper.cancelConversation(getApplication(), conversationId)
             ChatRepository.currentlyViewedConversation = conversationId
 
             _conversationIdLive.value = conversationId

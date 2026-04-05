@@ -23,6 +23,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -70,6 +71,25 @@ class ConversationsFragment : Fragment() {
             findNavController().navigate(R.id.action_conversations_to_chat, bundle)
         }
         binding.rvConversations.adapter = adapter
+
+        // Pull-to-refresh: theme the spinner with primary + accent colors, then delegate to ViewModel
+        binding.swipeRefresh.setColorSchemeColors(
+            ContextCompat.getColor(requireContext(), R.color.primary),
+            ContextCompat.getColor(requireContext(), R.color.accent)
+        )
+        binding.swipeRefresh.setProgressBackgroundColorSchemeColor(
+            ContextCompat.getColor(requireContext(), R.color.grey_medium)
+        )
+        binding.swipeRefresh.setOnRefreshListener {
+            viewModel.refresh()
+        }
+        viewModel.isRefreshing.observe(viewLifecycleOwner) { refreshing ->
+            binding.swipeRefresh.isRefreshing = refreshing
+            // Replay the fall-in animation when refresh completes so the list feels fresh
+            if (!refreshing) {
+                binding.rvConversations.scheduleLayoutAnimation()
+            }
+        }
 
         // Contact requests adapter
         requestsAdapter = ContactRequestsAdapter(

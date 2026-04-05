@@ -23,6 +23,7 @@ import android.app.NotificationManager
 import android.os.Build
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.MnemonicManager
+import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.tor.MailboxClientManager
 import com.fialkaapp.fialka.tor.MailboxServer
 import com.fialkaapp.fialka.tor.OutboxManager
@@ -76,19 +77,34 @@ class FialkaApplication : Application() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val nm = getSystemService(NotificationManager::class.java)
+
+            // Channel for chat messages
+            val msgChannel = NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
-                "Messages Fialka",
+                getString(R.string.notif_channel_messages_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notifications de nouveaux messages"
+                description = getString(R.string.notif_channel_messages_desc)
+                enableVibration(true)
             }
-            getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(channel)
+            nm.createNotificationChannel(msgChannel)
+
+            // Channel for contact requests
+            val reqChannel = NotificationChannel(
+                NOTIFICATION_CHANNEL_REQUESTS,
+                getString(R.string.notif_channel_requests_name),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = getString(R.string.notif_channel_requests_desc)
+                enableVibration(true)
+            }
+            nm.createNotificationChannel(reqChannel)
         }
     }
 
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "fialka_messages"
+        const val NOTIFICATION_CHANNEL_REQUESTS = "fialka_requests"
     }
 }

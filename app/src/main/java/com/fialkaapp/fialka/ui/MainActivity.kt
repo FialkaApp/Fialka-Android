@@ -33,6 +33,7 @@ import androidx.navigation.fragment.NavHostFragment
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.util.AppLockManager
 import com.fialkaapp.fialka.util.DummyTrafficManager
+import com.fialkaapp.fialka.util.NotificationHelper
 import com.fialkaapp.fialka.util.ThemeManager
 
 
@@ -97,6 +98,8 @@ class MainActivity : AppCompatActivity() {
         handleInviteIntent(intent)
         // Navigate to Mailbox Settings if opened via fialka://mailbox deep link
         handleMailboxDeepLink(intent)
+        // Navigate directly to a chat if opened from a message notification
+        handleChatNotificationIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -104,6 +107,7 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent) // Update so fragments read the new intent via requireActivity().intent
         handleInviteIntent(intent)
         handleMailboxDeepLink(intent)
+        handleChatNotificationIntent(intent)
     }
 
     /**
@@ -175,6 +179,46 @@ class MainActivity : AppCompatActivity() {
         /** Pending mailbox join data: [onion, pubkey, type, inviteCode]. */
         @Volatile
         var pendingMailboxJoin: Array<String>? = null
+
+        /** Pending chat open from notification: [conversationId, contactName]. */
+        @Volatile
+        var pendingChatOpen: Array<String>? = null
+    }
+
+    /**
+     * When a new-message notification is tapped, navigate directly to the correct chat.
+     * Stores the pending destination so ConversationsFragment can pick it up when ready.
+     */
+    private fun handleChatNotificationIntent(intent: Intent?) {
+        if (intent?.action != "com.fialkaapp.fialka.ACTION_OPEN_CHAT") return
+        val conversationId = intent.getStringExtra(NotificationHelper.EXTRA_CONVERSATION_ID) ?: return
+        val contactName = intent.getStringExtra(NotificationHelper.EXTRA_CONTACT_NAME) ?: ""
+
+        pendingChatOpen = arrayOf(conversationId, contactName)
+
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
+        val navController = navHostFragment.navController
+
+        navController.addOnDestinationChangedListener(object : NavController.OnDestinationChangedListener {
+            override fun onDestinationChanged(
+                controller: NavController,
+                destination: NavDestination,
+                arguments: Bundle?
+            ) {
+                if (destination.id == R.id.conversationsFragment) {
+                    controller.removeOnDestinationChangedListener(this)
+                    pendingChatOpen = null
+                    try {
+                        val bundle = Bundle().apply {
+                            putString("conversationId", conversationId)
+                            putString("contactName", contactName)
+                        }
+                        controller.navigate(R.id.action_conversations_to_chat, bundle)
+                    } catch (_: Exception) {}
+                }
+            }
+        })
     }
 
     override fun onPause() {

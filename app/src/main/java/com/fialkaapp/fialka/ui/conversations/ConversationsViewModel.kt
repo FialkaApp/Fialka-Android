@@ -29,6 +29,7 @@ import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.util.DummyTrafficManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -40,6 +41,9 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
 
     private val _accountReset = MutableLiveData<Boolean?>()
     val accountReset: LiveData<Boolean?> = _accountReset
+
+    private val _isRefreshing = MutableLiveData<Boolean>(false)
+    val isRefreshing: LiveData<Boolean> = _isRefreshing
 
     private val _pendingRequests = MutableLiveData<List<ContactRequest>>(emptyList())
     val pendingRequests: LiveData<List<ContactRequest>> = _pendingRequests
@@ -108,22 +112,37 @@ class ConversationsViewModel(application: Application) : AndroidViewModel(applic
     }
 
     fun acceptRequest(request: ContactRequest) {
+        // Remove from pending list immediately (optimistic) so the UI hides the
+        // pending section before Room LiveData fires the new conversation — avoids
+        // the double-entry glitch visible between the DB insert and this update.
+        pendingList.removeAll { it.conversationId == request.conversationId }
+        _pendingRequests.value = pendingList.toList()
+
         viewModelScope.launch {
             try {
                 repository.acceptContactRequest(request)
-
-                // Remove from pending list
-                pendingList.removeAll { it.conversationId == request.conversationId }
-                _pendingRequests.value = pendingList.toList()
             } catch (e: Exception) {
             }
         }
     }
 
     fun declineRequest(request: ContactRequest) {
-        // Just remove from pending list
         pendingList.removeAll { it.conversationId == request.conversationId }
         _pendingRequests.value = pendingList.toList()
+    }
+
+    /**
+     * Pull-to-refresh: show spinner for 600 ms then dismiss.
+     * Room LiveData is already reactive so no explicit re-query is needed;
+     * the spinner gives the user visual feedback that the list is up-to-date.
+     */
+    fun refresh() {
+        if (_isRefreshing.value == true) return
+        _isRefreshing.value = true
+        viewModelScope.launch {
+            delay(600)
+            _isRefreshing.postValue(false)
+        }
     }
 
     fun resetAccount() {

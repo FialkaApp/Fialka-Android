@@ -39,6 +39,15 @@
     <string name="new_chat">Nouveau chat</string>
     <string name="pending_requests_header">📩 Demandes de contact en attente</string>
 
+    <!-- Notifications -->
+    <string name="notif_new_message">Nouveau message chiffré</string>
+    <string name="notif_contact_request_title">Nouvelle demande de contact</string>
+    <string name="notif_contact_request_text">%1$s veut discuter avec vous</string>
+    <string name="notif_channel_messages_name">Messages Fialka</string>
+    <string name="notif_channel_messages_desc">Notifications de nouveaux messages chiffrés</string>
+    <string name="notif_channel_requests_name">Demandes de contact</string>
+    <string name="notif_channel_requests_desc">Notifications de nouvelles demandes de contact</string>
+
     <!-- Add Contact -->
     <string name="add_contact_title">Ajouter un contact</string>
     <string name="scan_qr_code">📷  Scanner un QR code</string>

@@ -21,6 +21,7 @@ import android.content.Context
 import com.fialkaapp.fialka.data.model.ContactRequest
 import com.fialkaapp.fialka.data.model.P2PMessage
 import com.fialkaapp.fialka.data.repository.ChatRepository
+import com.fialkaapp.fialka.util.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -124,6 +125,16 @@ object P2PServer : TorTransport.FrameListener {
             val repository = ChatRepository(appContext)
             val received = repository.receiveMessage(conversationId, wireMessage)
 
+            // Fire a system notification for the new message (privacy-safe: no plaintext shown).
+            if (received != null) {
+                try {
+                    val conv = repository.getConversation(conversationId)
+                    if (conv != null) {
+                        NotificationHelper.notifyNewMessage(appContext, conversationId, conv.contactDisplayName)
+                    }
+                } catch (_: Exception) {}
+            }
+
             // Mettre à jour le mailboxOnion de l'expéditeur si fourni
             // Cela permet de le joindre via mailbox même s'il a rejoint la mailbox après le handshake
             val senderMailboxOnion = json.optString("senderMailboxOnion", "")
@@ -183,6 +194,7 @@ object P2PServer : TorTransport.FrameListener {
             )
 
             scope.launch { _incomingRequests.emit(request) }
+            NotificationHelper.notifyContactRequest(appContext, request.senderDisplayName)
 
             TorTransport.ackOk()
         } catch (_: Exception) {
