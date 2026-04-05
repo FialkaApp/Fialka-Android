@@ -25,9 +25,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
-import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
-import org.bouncycastle.crypto.signers.Ed25519Signer
+import com.fialkaapp.fialka.crypto.FialkaNative
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -379,13 +377,8 @@ object TorTransport {
     //  Ed25519 CRYPTO HELPERS
     // ══════════════════════════════════════════
 
-    private fun signEd25519(privateKey: ByteArray, data: ByteArray): ByteArray {
-        val privParams = Ed25519PrivateKeyParameters(privateKey, 0)
-        val signer = Ed25519Signer()
-        signer.init(true, privParams)
-        signer.update(data, 0, data.size)
-        return signer.generateSignature()
-    }
+    private fun signEd25519(privateKey: ByteArray, data: ByteArray): ByteArray =
+        FialkaNative.ed25519Sign(privateKey, data)
 
     fun verifyEd25519(
         publicKey: ByteArray,
@@ -393,11 +386,8 @@ object TorTransport {
         signature: ByteArray
     ): Boolean {
         return try {
-            val pubParams = Ed25519PublicKeyParameters(publicKey, 0)
-            val verifier = Ed25519Signer()
-            verifier.init(false, pubParams)
-            verifier.update(data, 0, data.size)
-            verifier.verifySignature(signature)
+            val result = FialkaNative.ed25519Verify(publicKey, data, signature)
+            result.isNotEmpty() && result[0] == 1.toByte()
         } catch (_: Exception) {
             false
         }

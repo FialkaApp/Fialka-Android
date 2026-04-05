@@ -22,30 +22,6 @@ import android.content.SharedPreferences
 import android.util.Base64
 import com.fialkaapp.fialka.util.DeviceSecurityManager
 import com.fialkaapp.fialka.util.FialkaSecurePrefs
-import org.bouncycastle.crypto.digests.SHA3Digest
-import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
-import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
-import org.bouncycastle.crypto.signers.Ed25519Signer
-import org.bouncycastle.pqc.crypto.mldsa.MLDSAKeyGenerationParameters
-import org.bouncycastle.pqc.crypto.mldsa.MLDSAKeyPairGenerator
-import org.bouncycastle.pqc.crypto.mldsa.MLDSAParameters
-import org.bouncycastle.pqc.crypto.mldsa.MLDSAPrivateKeyParameters
-import org.bouncycastle.pqc.crypto.mldsa.MLDSAPublicKeyParameters
-import org.bouncycastle.pqc.crypto.mldsa.MLDSASigner
-import org.bouncycastle.crypto.SecretWithEncapsulation
-import org.bouncycastle.crypto.engines.ChaCha7539Engine
-import org.bouncycastle.crypto.macs.Poly1305
-import org.bouncycastle.crypto.modes.ChaCha20Poly1305
-import org.bouncycastle.crypto.params.AEADParameters
-import org.bouncycastle.crypto.params.KeyParameter
-import org.bouncycastle.pqc.crypto.mlkem.MLKEMExtractor
-import org.bouncycastle.pqc.crypto.mlkem.MLKEMGenerator
-import org.bouncycastle.pqc.crypto.mlkem.MLKEMKeyGenerationParameters
-import org.bouncycastle.pqc.crypto.mlkem.MLKEMKeyPairGenerator
-import org.bouncycastle.pqc.crypto.mlkem.MLKEMParameters
-import org.bouncycastle.pqc.crypto.mlkem.MLKEMPrivateKeyParameters
-import org.bouncycastle.pqc.crypto.mlkem.MLKEMPublicKeyParameters
-import java.math.BigInteger
 import java.security.*
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
@@ -96,10 +72,7 @@ object CryptoManager {
     private const val GCM_TAG_LENGTH_BITS = 128
     private const val GCM_IV_LENGTH_BYTES = 12
     private const val AES_KEY_LENGTH_BYTES = 32
-    private const val CHACHA20_NONCE_BYTES = 12
-    private const val POLY1305_TAG_BYTES = 16
-
-    private const val HKDF_INFO = "Fialka-v2-message-key"
+private const val HKDF_INFO = "Fialka-v2-message-key"
     private const val INBOX_HKDF_INFO = "Fialka-Inbox-v1"
 
     private val secureRandom = SecureRandom()
@@ -245,19 +218,7 @@ object CryptoManager {
      */
     fun computeOnionFromEd25519(ed25519PubBytes: ByteArray): String {
         require(ed25519PubBytes.size == 32) { "Ed25519 public key must be 32 bytes" }
-        val version: Byte = 0x03
-
-        val sha3 = SHA3Digest(256)
-        val prefix = ".onion checksum".toByteArray(Charsets.US_ASCII)
-        sha3.update(prefix, 0, prefix.size)
-        sha3.update(ed25519PubBytes, 0, ed25519PubBytes.size)
-        sha3.update(byteArrayOf(version), 0, 1)
-        val hash = ByteArray(32)
-        sha3.doFinal(hash, 0)
-        val checksum = hash.copyOf(2)
-
-        val addressBytes = ed25519PubBytes + checksum + byteArrayOf(version)
-        return base32Encode(addressBytes).lowercase() + ".onion"
+        return FialkaNative.computeOnion(ed25519PubBytes).toString(Charsets.UTF_8)
     }
 
     /**
@@ -274,28 +235,7 @@ object CryptoManager {
      */
     fun ed25519PublicKeyToX25519Raw(ed25519PubBytes: ByteArray): ByteArray {
         require(ed25519PubBytes.size == 32) { "Ed25519 public key must be 32 bytes" }
-        val p = BigInteger.TWO.pow(255).subtract(BigInteger.valueOf(19))
-
-        // Ed25519 encoding: y in little-endian, sign of x in top bit of byte[31]
-        val yCopy = ed25519PubBytes.copyOf()
-        yCopy[31] = (yCopy[31].toInt() and 0x7F).toByte()  // clear sign bit
-
-        // Little-endian → BigInteger (reverse to big-endian first)
-        val y = BigInteger(1, yCopy.reversedArray())
-
-        // u = (1 + y) * modInverse(1 - y, p) mod p
-        val numerator   = BigInteger.ONE.add(y).mod(p)
-        val denominator = BigInteger.ONE.subtract(y).mod(p)
-        val u = numerator.multiply(denominator.modInverse(p)).mod(p)
-
-        // BigInteger → 32-byte big-endian → reverse to little-endian
-        val uBytes = ByteArray(32)
-        val raw = u.toByteArray()
-        val srcOff = if (raw.size > 32) raw.size - 32 else 0
-        val dstOff = if (raw.size < 32) 32 - raw.size else 0
-        System.arraycopy(raw, srcOff, uBytes, dstOff, minOf(raw.size, 32))
-        uBytes.reverse()  // big-endian → little-endian
-        return uBytes
+        return FialkaNative.ed25519ToX25519Raw(ed25519PubBytes)
     }
 
     /**
@@ -331,93 +271,52 @@ object CryptoManager {
     }
 
     /**
-     * Core derivation: 1 Ed25519 seed → all keys + Account ID.
+     * Core derivation: 1 Ed25519 seed → all keys + Account ID (via Rust fialka-core).
      * Called by both generateIdentity() and restoreFromSeed().
+     *
+     * Bundle from Rust (8704 bytes):
+     *   ed_pub(32) || x25519_pub(32) || x25519_priv(32)
+     *   || mlkem_ek(1568) || mlkem_dk(3168)
+     *   || mldsa_vk(1312) || mldsa_sk(2560)
      */
     private fun deriveAndStoreAllKeys(seed: ByteArray): String {
-        // ── 1. Ed25519 signing keypair ──
-        val ed25519Private = Ed25519PrivateKeyParameters(seed, 0)
-        val ed25519Public = ed25519Private.generatePublicKey()
+        val bundle = FialkaNative.identityDerive(seed)
 
-        // ── 2. X25519 DH keypair (birational: same scalar as Ed25519) ──
-        //    Ed25519 internal scalar = SHA-512(seed)[0..31] (clamped)
-        //    X25519 uses the same scalar → same math point on Montgomery curve
-        val sha512 = MessageDigest.getInstance("SHA-512").digest(seed)
-        val x25519PrivateRaw = sha512.copyOf(32)
-        sha512.fill(0)
+        // Parse the 8704-byte bundle
+        var off = 0
+        val edPub        = bundle.copyOfRange(off, off + 32).also { off += 32 }
+        val x25519PubRaw = bundle.copyOfRange(off, off + 32).also { off += 32 }
+        val x25519PrivRaw= bundle.copyOfRange(off, off + 32).also { off += 32 }
+        val mlkemEk      = bundle.copyOfRange(off, off + 1568).also { off += 1568 }
+        val mlkemDk      = bundle.copyOfRange(off, off + 3168).also { off += 3168 }
+        val mldsaVk      = bundle.copyOfRange(off, off + 1312).also { off += 1312 }
+        val mldsaSk      = bundle.copyOfRange(off, off + 2560)
 
-        val kf = KeyFactory.getInstance("X25519")
-        val x25519Private = kf.generatePrivate(
-            PKCS8EncodedKeySpec(X25519_PKCS8_PREFIX + x25519PrivateRaw)
-        )
-        x25519PrivateRaw.fill(0)
+        // Wrap X25519 raw keys into JCA encoding for storage format compatibility
+        val x25519PubJca  = X25519_X509_PREFIX + x25519PubRaw
+        val x25519PrivJca = X25519_PKCS8_PREFIX + x25519PrivRaw
 
-        // Derive X25519 public: DH(private, base_point u=9)
-        val basePoint = ByteArray(32).also { it[0] = 9 }
-        val basePointPub = kf.generatePublic(X509EncodedKeySpec(X25519_X509_PREFIX + basePoint))
-        val ka = KeyAgreement.getInstance("X25519")
-        ka.init(x25519Private)
-        ka.doPhase(basePointPub, true)
-        val x25519PublicRaw = ka.generateSecret()
-        val x25519Public = kf.generatePublic(X509EncodedKeySpec(X25519_X509_PREFIX + x25519PublicRaw))
+        val x25519PubBase64  = Base64.encodeToString(x25519PubJca, Base64.NO_WRAP)
+        val x25519PrivBase64 = Base64.encodeToString(x25519PrivJca, Base64.NO_WRAP)
 
-        val x25519PubBase64  = Base64.encodeToString(x25519Public.encoded, Base64.NO_WRAP)
-        val x25519PrivBase64 = Base64.encodeToString(x25519Private.encoded, Base64.NO_WRAP)
+        val accountId = FialkaNative.deriveAccountId(edPub).toString(Charsets.UTF_8)
 
-        // ── 3. ML-KEM-1024 deterministic from HKDF(seed) ──
-        //    HKDF-SHA256(seed, salt="fialka-ml-kem", info="identity-keypair", 64 bytes)
-        //    → d(32) + z(32) fed to KeyGen via deterministic SecureRandom
-        val mlkemSeed = hkdfSha256(
-            ikm = seed,
-            salt = "fialka-ml-kem".toByteArray(Charsets.UTF_8),
-            info = "identity-keypair".toByteArray(Charsets.UTF_8),
-            length = 64
-        )
-        val mlkemRandom = FixedSecureRandom(mlkemSeed)
-        val mlkemGen = MLKEMKeyPairGenerator()
-        mlkemGen.init(MLKEMKeyGenerationParameters(mlkemRandom, MLKEMParameters.ml_kem_1024))
-        val mlkemKeyPair = mlkemGen.generateKeyPair()
-        val mlkemPub  = mlkemKeyPair.public  as MLKEMPublicKeyParameters
-        val mlkemPriv = mlkemKeyPair.private as MLKEMPrivateKeyParameters
-        mlkemSeed.fill(0)
-
-        // ── 4. ML-DSA-44 deterministic from HKDF(seed) — PQ handshake authentication ──
-        //    HKDF-SHA256(seed, salt="fialka-ml-dsa-44", info="identity-keypair", 32 bytes)
-        //    → ξ (32 bytes) fed to KeyGen via deterministic SecureRandom
-        val mldsaSeed = hkdfSha256(
-            ikm = seed,
-            salt = "fialka-ml-dsa-44".toByteArray(Charsets.UTF_8),
-            info = "identity-keypair".toByteArray(Charsets.UTF_8),
-            length = 32
-        )
-        val mldsaRandom = FixedSecureRandom(mldsaSeed)
-        val mldsaGen = MLDSAKeyPairGenerator()
-        mldsaGen.init(MLDSAKeyGenerationParameters(mldsaRandom, MLDSAParameters.ml_dsa_44))
-        val mldsaKeyPair = mldsaGen.generateKeyPair()
-        val mldsaPub  = mldsaKeyPair.public  as MLDSAPublicKeyParameters
-        val mldsaPriv = mldsaKeyPair.private as MLDSAPrivateKeyParameters
-        mldsaSeed.fill(0)
-
-        // ── 5. Account ID: SHA3-256(Ed25519 pubkey raw 32 bytes) → Base58 ──
-        val accountId = deriveAccountId(ed25519Public.encoded)
-
-        // ── 6. Store everything in EncryptedSharedPreferences ──
         prefs.edit()
             .putString(KEY_ED25519_SEED, Base64.encodeToString(seed, Base64.NO_WRAP))
             .putString(KEY_PUBLIC, x25519PubBase64)
             .putString(KEY_PRIVATE, x25519PrivBase64)
-            .putString(KEY_SIGNING_PUBLIC, Base64.encodeToString(ed25519Public.encoded, Base64.NO_WRAP))
+            .putString(KEY_SIGNING_PUBLIC, Base64.encodeToString(edPub, Base64.NO_WRAP))
             .putString(KEY_SIGNING_PRIVATE, Base64.encodeToString(seed, Base64.NO_WRAP))
-            .putString(KEY_MLKEM_PUBLIC, Base64.encodeToString(mlkemPub.encoded, Base64.NO_WRAP))
-            .putString(KEY_MLKEM_PRIVATE, Base64.encodeToString(mlkemPriv.encoded, Base64.NO_WRAP))
-            .putString(KEY_MLDSA_PUBLIC, Base64.encodeToString(mldsaPub.encoded, Base64.NO_WRAP))
-            .putString(KEY_MLDSA_PRIVATE, Base64.encodeToString(mldsaPriv.encoded, Base64.NO_WRAP))
+            .putString(KEY_MLKEM_PUBLIC, Base64.encodeToString(mlkemEk, Base64.NO_WRAP))
+            .putString(KEY_MLKEM_PRIVATE, Base64.encodeToString(mlkemDk, Base64.NO_WRAP))
+            .putString(KEY_MLDSA_PUBLIC, Base64.encodeToString(mldsaVk, Base64.NO_WRAP))
+            .putString(KEY_MLDSA_PRIVATE, Base64.encodeToString(mldsaSk, Base64.NO_WRAP))
             .putString(KEY_ACCOUNT_ID, accountId)
             .apply()
 
-        // Update signing key cache
-        cachedSigningPrivate = ed25519Private
-        cachedSigningPublic = ed25519Public
+        // Cache raw ed25519 pub bytes (no BC objects needed)
+        cachedSigningPublicBytes = edPub
+        x25519PrivRaw.fill(0)
 
         return x25519PubBase64
     }
@@ -434,13 +333,6 @@ object CryptoManager {
             .remove(KEY_MLDSA_PRIVATE)
             .apply()
         clearSigningKeyCache()
-    }
-
-    private fun getIdentityPrivateKey(): PrivateKey {
-        val privBase64 = prefs.getString(KEY_PRIVATE, null)
-            ?: throw IllegalStateException("Identity key not initialized")
-        val kf = KeyFactory.getInstance("X25519")
-        return kf.generatePrivate(PKCS8EncodedKeySpec(Base64.decode(privBase64, Base64.NO_WRAP)))
     }
 
     // ========================================================================
@@ -462,19 +354,25 @@ object CryptoManager {
     }
 
     // ========================================================================
-    // 3. DIFFIE-HELLMAN (X25519)
+    // 3. DIFFIE-HELLMAN (X25519 via Rust fialka-core)
     // ========================================================================
 
-    /** DH with identity private key (Keystore) and a remote public key. */
-    fun performKeyAgreement(remotePublicKeyBase64: String): ByteArray {
-        val remotePubBytes = Base64.decode(remotePublicKeyBase64, Base64.NO_WRAP)
-        val kf = KeyFactory.getInstance("X25519")
-        val remotePub = kf.generatePublic(X509EncodedKeySpec(remotePubBytes))
+    private fun getIdentityPrivateKeyRaw(): ByteArray {
+        val privBase64 = prefs.getString(KEY_PRIVATE, null)
+            ?: throw IllegalStateException("Identity key not initialized")
+        val full = Base64.decode(privBase64, Base64.NO_WRAP)
+        // Strip JCA PKCS8 prefix (16 bytes) to get raw 32-byte X25519 private key
+        return full.copyOfRange(X25519_PKCS8_PREFIX.size, X25519_PKCS8_PREFIX.size + 32)
+    }
 
-        val ka = KeyAgreement.getInstance("X25519")
-        ka.init(getIdentityPrivateKey())
-        ka.doPhase(remotePub, true)
-        return ka.generateSecret()
+    /** DH with identity private key and a remote public key. */
+    fun performKeyAgreement(remotePublicKeyBase64: String): ByteArray {
+        val privRaw = getIdentityPrivateKeyRaw()
+        val pubFull = Base64.decode(remotePublicKeyBase64, Base64.NO_WRAP)
+        val pubRaw = pubFull.copyOfRange(X25519_X509_PREFIX.size, X25519_X509_PREFIX.size + 32)
+        val secret = FialkaNative.x25519Dh(privRaw, pubRaw)
+        privRaw.fill(0)
+        return secret
     }
 
     /** DH with an ephemeral private key (software) and a remote public key. */
@@ -482,19 +380,13 @@ object CryptoManager {
         localPrivateKeyBase64: String,
         remotePublicKeyBase64: String
     ): ByteArray {
-        val privBytes = Base64.decode(localPrivateKeyBase64, Base64.NO_WRAP)
-        val kf = KeyFactory.getInstance("X25519")
-        val localPriv = kf.generatePrivate(PKCS8EncodedKeySpec(privBytes))
-        privBytes.fill(0)  // Zero private key material immediately
-
-        val remotePub = kf.generatePublic(
-            X509EncodedKeySpec(Base64.decode(remotePublicKeyBase64, Base64.NO_WRAP))
-        )
-
-        val ka = KeyAgreement.getInstance("X25519")
-        ka.init(localPriv)
-        ka.doPhase(remotePub, true)
-        return ka.generateSecret()
+        val privFull = Base64.decode(localPrivateKeyBase64, Base64.NO_WRAP)
+        val pubFull = Base64.decode(remotePublicKeyBase64, Base64.NO_WRAP)
+        val privRaw = privFull.copyOfRange(X25519_PKCS8_PREFIX.size, X25519_PKCS8_PREFIX.size + 32)
+        val pubRaw = pubFull.copyOfRange(X25519_X509_PREFIX.size, X25519_X509_PREFIX.size + 32)
+        val secret = FialkaNative.x25519Dh(privRaw, pubRaw)
+        privRaw.fill(0)
+        return secret
     }
 
     // ========================================================================
@@ -502,99 +394,29 @@ object CryptoManager {
     // ========================================================================
 
     fun deriveSymmetricKey(sharedSecret: ByteArray): SecretKey {
-        val salt = ByteArray(32)
-        val prk = hmacSha256(salt, sharedSecret)
+        val keyBytes = FialkaNative.hkdfZeroSalt(sharedSecret, HKDF_INFO.toByteArray(Charsets.UTF_8))
         sharedSecret.fill(0)
-
-        val info = HKDF_INFO.toByteArray(Charsets.UTF_8)
-        val expandInput = ByteArray(info.size + 1)
-        System.arraycopy(info, 0, expandInput, 0, info.size)
-        expandInput[expandInput.size - 1] = 0x01
-        val okm = hmacSha256(prk, expandInput)
-
-        prk.fill(0)
-        expandInput.fill(0)
-
-        val key = SecretKeySpec(okm, 0, AES_KEY_LENGTH_BYTES, "AES")
-        okm.fill(0)
-        return key
+        return SecretKeySpec(keyBytes, "AES")
     }
 
     // ========================================================================
     // 5. AES-256-GCM ENCRYPTION / DECRYPTION
     // ========================================================================
 
-    // Padding buckets (bytes). 2-byte length header included in bucket.
-    private val PADDING_BUCKETS = intArrayOf(256, 1024, 4096, 16384)
-
-    /**
-     * Pad plaintext into fixed-size buckets to prevent traffic analysis.
-     * Format: [2 bytes big-endian real length][UTF-8 plaintext][random padding to bucket boundary]
-     */
-    private fun padPlaintext(plaintextBytes: ByteArray): ByteArray {
-        val payloadSize = 2 + plaintextBytes.size  // 2-byte header + content
-        val bucket = PADDING_BUCKETS.firstOrNull { it >= payloadSize } ?: payloadSize
-        val padded = ByteArray(bucket)
-        // Write real length as 2-byte big-endian header
-        padded[0] = ((plaintextBytes.size shr 8) and 0xFF).toByte()
-        padded[1] = (plaintextBytes.size and 0xFF).toByte()
-        // Copy plaintext after header
-        plaintextBytes.copyInto(padded, destinationOffset = 2)
-        // Fill remaining bytes with random data (not zeros — avoids pattern)
-        if (bucket > payloadSize) {
-            val randomPad = ByteArray(bucket - payloadSize)
-            secureRandom.nextBytes(randomPad)
-            randomPad.copyInto(padded, destinationOffset = payloadSize)
-            randomPad.fill(0)
-        }
-        return padded
-    }
-
-    /**
-     * Strip padding to recover original plaintext bytes.
-     */
-    private fun unpadPlaintext(padded: ByteArray): ByteArray {
-        val realLength = ((padded[0].toInt() and 0xFF) shl 8) or (padded[1].toInt() and 0xFF)
-        require(realLength >= 0 && realLength <= padded.size - 2) { "Invalid padding header" }
-        return padded.copyOfRange(2, 2 + realLength)
-    }
-
     fun encrypt(plaintext: String, key: SecretKey): EncryptedData {
-        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
-        val iv = ByteArray(GCM_IV_LENGTH_BYTES)
-        secureRandom.nextBytes(iv)
-
-        cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
-        val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
-        val paddedBytes = padPlaintext(plaintextBytes)
-        plaintextBytes.fill(0)
-        val ciphertextBytes = cipher.doFinal(paddedBytes)
-        paddedBytes.fill(0)
-
-        val result = EncryptedData(
-            ciphertext = Base64.encodeToString(ciphertextBytes, Base64.NO_WRAP),
+        val raw = FialkaNative.encryptAes(plaintext.toByteArray(Charsets.UTF_8), key.encoded)
+        val iv = raw.copyOfRange(0, 12)
+        val ct = raw.copyOfRange(12, raw.size)
+        return EncryptedData(
+            ciphertext = Base64.encodeToString(ct, Base64.NO_WRAP),
             iv = Base64.encodeToString(iv, Base64.NO_WRAP)
         )
-        iv.fill(0)
-        ciphertextBytes.fill(0)
-        return result
     }
 
     fun decrypt(encryptedData: EncryptedData, key: SecretKey): String {
-        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
         val iv = Base64.decode(encryptedData.iv, Base64.NO_WRAP)
-        val ciphertextBytes = Base64.decode(encryptedData.ciphertext, Base64.NO_WRAP)
-
-        cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
-        val paddedBytes = cipher.doFinal(ciphertextBytes)
-        val plaintextBytes = unpadPlaintext(paddedBytes)
-        val plaintext = String(plaintextBytes, Charsets.UTF_8)
-
-        iv.fill(0)
-        ciphertextBytes.fill(0)
-        paddedBytes.fill(0)
-        plaintextBytes.fill(0)
-        return plaintext
+        val ct = Base64.decode(encryptedData.ciphertext, Base64.NO_WRAP)
+        return FialkaNative.decryptAes(iv, ct, key.encoded).toString(Charsets.UTF_8)
     }
 
     // ========================================================================
@@ -602,60 +424,26 @@ object CryptoManager {
     // ========================================================================
 
     /**
-     * Encrypt with ChaCha20-Poly1305 (BouncyCastle).
+     * Encrypt with ChaCha20-Poly1305 (via Rust fialka-core).
      * Same padding as AES-GCM — transparent to the Double Ratchet.
      */
     fun encryptChaCha(plaintext: String, key: SecretKey): EncryptedData {
-        val nonce = ByteArray(CHACHA20_NONCE_BYTES)
-        secureRandom.nextBytes(nonce)
-
-        val plaintextBytes = plaintext.toByteArray(Charsets.UTF_8)
-        val paddedBytes = padPlaintext(plaintextBytes)
-        plaintextBytes.fill(0)
-
-        val aead = ChaCha20Poly1305()
-        aead.init(true, AEADParameters(KeyParameter(key.encoded), POLY1305_TAG_BYTES * 8, nonce))
-
-        val output = ByteArray(aead.getOutputSize(paddedBytes.size))
-        var off = aead.processBytes(paddedBytes, 0, paddedBytes.size, output, 0)
-        off += aead.doFinal(output, off)
-        paddedBytes.fill(0)
-
-        val ciphertext = output.copyOf(off)
-        val result = EncryptedData(
-            ciphertext = Base64.encodeToString(ciphertext, Base64.NO_WRAP),
+        val raw = FialkaNative.encryptChaCha(plaintext.toByteArray(Charsets.UTF_8), key.encoded)
+        val nonce = raw.copyOfRange(0, 12)
+        val ct = raw.copyOfRange(12, raw.size)
+        return EncryptedData(
+            ciphertext = Base64.encodeToString(ct, Base64.NO_WRAP),
             iv = Base64.encodeToString(nonce, Base64.NO_WRAP)
         )
-        nonce.fill(0)
-        output.fill(0)
-        ciphertext.fill(0)
-        return result
     }
 
     /**
-     * Decrypt with ChaCha20-Poly1305 (BouncyCastle).
+     * Decrypt with ChaCha20-Poly1305 (via Rust fialka-core).
      */
     fun decryptChaCha(encryptedData: EncryptedData, key: SecretKey): String {
         val nonce = Base64.decode(encryptedData.iv, Base64.NO_WRAP)
-        val ciphertextBytes = Base64.decode(encryptedData.ciphertext, Base64.NO_WRAP)
-
-        val aead = ChaCha20Poly1305()
-        aead.init(false, AEADParameters(KeyParameter(key.encoded), POLY1305_TAG_BYTES * 8, nonce))
-
-        val output = ByteArray(aead.getOutputSize(ciphertextBytes.size))
-        var off = aead.processBytes(ciphertextBytes, 0, ciphertextBytes.size, output, 0)
-        off += aead.doFinal(output, off)
-
-        val paddedBytes = output.copyOf(off)
-        val plaintextBytes = unpadPlaintext(paddedBytes)
-        val plaintext = String(plaintextBytes, Charsets.UTF_8)
-
-        nonce.fill(0)
-        ciphertextBytes.fill(0)
-        output.fill(0)
-        paddedBytes.fill(0)
-        plaintextBytes.fill(0)
-        return plaintext
+        val ct = Base64.decode(encryptedData.ciphertext, Base64.NO_WRAP)
+        return FialkaNative.decryptChaCha(nonce, ct, key.encoded).toString(Charsets.UTF_8)
     }
 
     /**
@@ -691,45 +479,28 @@ object CryptoManager {
     )
 
     /**
-     * Encrypt raw file bytes with a fresh random AES-256-GCM key.
+     * Encrypt raw file bytes with a fresh random AES-256-GCM key (via Rust).
      * Returns the ciphertext + key + IV (key/IV are sent via the ratchet).
      */
     fun encryptFile(fileBytes: ByteArray): FileEncryptionResult {
-        val keyBytes = ByteArray(32)
-        secureRandom.nextBytes(keyBytes)
-        val key = SecretKeySpec(keyBytes, "AES")
-        val iv = ByteArray(GCM_IV_LENGTH_BYTES)
-        secureRandom.nextBytes(iv)
-
-        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
-        val encrypted = cipher.doFinal(fileBytes)
-
-        val result = FileEncryptionResult(
-            encryptedBytes = encrypted,
-            keyBase64 = Base64.encodeToString(keyBytes, Base64.NO_WRAP),
-            ivBase64 = Base64.encodeToString(iv, Base64.NO_WRAP)
+        val raw = FialkaNative.encryptFile(fileBytes)   // key(32) || iv(12) || ct
+        val key = raw.copyOfRange(0, 32)
+        val iv  = raw.copyOfRange(32, 44)
+        val ct  = raw.copyOfRange(44, raw.size)
+        return FileEncryptionResult(
+            encryptedBytes = ct,
+            keyBase64 = Base64.encodeToString(key, Base64.NO_WRAP),
+            ivBase64  = Base64.encodeToString(iv,  Base64.NO_WRAP)
         )
-        keyBytes.fill(0)
-        iv.fill(0)
-        return result
     }
 
     /**
-     * Decrypt file bytes using the provided key and IV.
+     * Decrypt file bytes using the provided key and IV (via Rust).
      */
     fun decryptFile(encryptedBytes: ByteArray, keyBase64: String, ivBase64: String): ByteArray {
-        val keyBytes = Base64.decode(keyBase64, Base64.NO_WRAP)
-        val iv = Base64.decode(ivBase64, Base64.NO_WRAP)
-        val key = SecretKeySpec(keyBytes, "AES")
-
-        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
-        cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
-        val decrypted = cipher.doFinal(encryptedBytes)
-
-        keyBytes.fill(0)
-        iv.fill(0)
-        return decrypted
+        val key = Base64.decode(keyBase64, Base64.NO_WRAP)
+        val iv  = Base64.decode(ivBase64,  Base64.NO_WRAP)
+        return FialkaNative.decryptFile(encryptedBytes, key, iv)
     }
 
     // ========================================================================
@@ -776,7 +547,7 @@ object CryptoManager {
         ka.doPhase(recipientPub, true)
         val dhSecret = ka.generateSecret()
 
-        val aesKeyBytes = hkdfExtractExpand(dhSecret, INBOX_HKDF_INFO.toByteArray(Charsets.UTF_8))
+        val aesKeyBytes = FialkaNative.hkdfZeroSalt(dhSecret, INBOX_HKDF_INFO.toByteArray(Charsets.UTF_8))
         dhSecret.fill(0)
 
         val iv = ByteArray(GCM_IV_LENGTH_BYTES).also { secureRandom.nextBytes(it) }
@@ -801,14 +572,12 @@ object CryptoManager {
         val iv = combined.copyOfRange(44, 56)
         val ciphertext = combined.copyOfRange(56, combined.size)
 
-        val kf = KeyFactory.getInstance("X25519")
-        val ephemPub = kf.generatePublic(X509EncodedKeySpec(ephemPubBytes))
-        val ka = KeyAgreement.getInstance("X25519")
-        ka.init(getIdentityPrivateKey())
-        ka.doPhase(ephemPub, true)
-        val dhSecret = ka.generateSecret()
+        val privRaw = getIdentityPrivateKeyRaw()
+        val ephemPubRaw = ephemPubBytes.copyOfRange(X25519_X509_PREFIX.size, X25519_X509_PREFIX.size + 32)
+        val dhSecret = FialkaNative.x25519Dh(privRaw, ephemPubRaw)
+        privRaw.fill(0)
 
-        val aesKeyBytes = hkdfExtractExpand(dhSecret, INBOX_HKDF_INFO.toByteArray(Charsets.UTF_8))
+        val aesKeyBytes = FialkaNative.hkdfZeroSalt(dhSecret, INBOX_HKDF_INFO.toByteArray(Charsets.UTF_8))
         dhSecret.fill(0)
 
         val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
@@ -818,22 +587,7 @@ object CryptoManager {
         return plaintext
     }
 
-    /** HKDF-SHA256 extract+expand → 32 output bytes. Zeros ikm after use. */
-    private fun hkdfExtractExpand(ikm: ByteArray, info: ByteArray): ByteArray {
-        val prk = hmacSha256(ByteArray(32), ikm)
-        ikm.fill(0)
-        val expandInput = ByteArray(info.size + 1)
-        System.arraycopy(info, 0, expandInput, 0, info.size)
-        expandInput[expandInput.size - 1] = 0x01
-        val okm = hmacSha256(prk, expandInput)
-        prk.fill(0)
-        expandInput.fill(0)
-        return okm.copyOf(32)
-    }
 
-    // ========================================================================
-    // 8. EMOJI FINGERPRINT (96-bit)
-    // ========================================================================
 
     private val EMOJI_PALETTE = listOf(
         "🔥", "🐱", "🦄", "🍕", "🌟", "🚀", "💎", "⚡",
@@ -862,11 +616,7 @@ object CryptoManager {
         return hash.joinToString("") { "%02x".format(it) }
     }
 
-    fun hmacSha256(key: ByteArray, data: ByteArray): ByteArray {
-        val mac = javax.crypto.Mac.getInstance("HmacSHA256")
-        mac.init(SecretKeySpec(key, "HmacSHA256"))
-        return mac.doFinal(data)
-    }
+    fun hmacSha256(key: ByteArray, data: ByteArray): ByteArray = FialkaNative.hmacSha256(key, data)
 
     /**
      * Derive a per-conversation pseudonymous sender ID.
@@ -888,96 +638,48 @@ object CryptoManager {
     private const val KEY_SIGNING_PUBLIC = "signing_public_key"
     private const val KEY_SIGNING_PRIVATE = "signing_private_key"
 
-    /** Cached signing key pair — generated once, reused for all signatures. */
+    /** Cached Ed25519 public key bytes (32 bytes raw). */
     @Volatile
-    private var cachedSigningPrivate: Ed25519PrivateKeyParameters? = null
-    @Volatile
-    private var cachedSigningPublic: Ed25519PublicKeyParameters? = null
+    private var cachedSigningPublicBytes: ByteArray? = null
 
     /**
-     * Get the Ed25519 signing key pair.
-     * In the seed-based identity system, signing keys are derived during
-     * generateIdentity() / restoreFromSeed(). This method loads them from prefs.
+     * Get the Ed25519 signing key pair as a JCA KeyPair.
+     * Private = seed bytes (32 bytes). Public = raw Ed25519 pub (32 bytes).
+     * Compatible with TorTransport which uses .encoded on both.
      */
     fun getOrDeriveSigningKeyPair(): KeyPair {
-        // Return cached as JCA KeyPair for API compatibility
-        val priv = cachedSigningPrivate
-        val pub = cachedSigningPublic
-        if (priv != null && pub != null) {
-            return toJcaKeyPair(priv, pub)
+        val cached = cachedSigningPublicBytes
+        val seed = getIdentitySeed()
+        val pubBytes = cached ?: run {
+            val sp = prefs.getString(KEY_SIGNING_PUBLIC, null)
+                ?: Base64.encodeToString(FialkaNative.identityDerive(seed).copyOfRange(0, 32), Base64.NO_WRAP)
+            Base64.decode(sp, Base64.NO_WRAP).also { cachedSigningPublicBytes = it }
         }
-
-        synchronized(this) {
-            val priv2 = cachedSigningPrivate
-            val pub2 = cachedSigningPublic
-            if (priv2 != null && pub2 != null) {
-                return toJcaKeyPair(priv2, pub2)
-            }
-
-            // 1. Try loading from EncryptedSharedPreferences
-            val storedPub = prefs.getString(KEY_SIGNING_PUBLIC, null)
-            val storedPriv = prefs.getString(KEY_SIGNING_PRIVATE, null)
-            if (storedPub != null && storedPriv != null) {
-                try {
-                    val privBytes = Base64.decode(storedPriv, Base64.NO_WRAP)
-                    val pubBytes = Base64.decode(storedPub, Base64.NO_WRAP)
-                    val privateKey = Ed25519PrivateKeyParameters(privBytes, 0)
-                    val publicKey = Ed25519PublicKeyParameters(pubBytes, 0)
-                    cachedSigningPrivate = privateKey
-                    cachedSigningPublic = publicKey
-                    return toJcaKeyPair(privateKey, publicKey)
-                } catch (e: Exception) {
-                    prefs.edit().remove(KEY_SIGNING_PUBLIC).remove(KEY_SIGNING_PRIVATE).apply()
-                }
-            }
-
-            // 2. Derive from Ed25519 seed (should always exist after identity setup)
-            val seedBase64 = prefs.getString(KEY_ED25519_SEED, null)
-                ?: throw IllegalStateException("Identity not initialized — call generateIdentity() first")
-            val seed = Base64.decode(seedBase64, Base64.NO_WRAP)
-            val privateKey = Ed25519PrivateKeyParameters(seed, 0)
-            val publicKey = privateKey.generatePublicKey()
-            seed.fill(0)
-
-            prefs.edit()
-                .putString(KEY_SIGNING_PUBLIC, Base64.encodeToString(publicKey.encoded, Base64.NO_WRAP))
-                .putString(KEY_SIGNING_PRIVATE, Base64.encodeToString(privateKey.encoded, Base64.NO_WRAP))
-                .apply()
-
-            cachedSigningPrivate = privateKey
-            cachedSigningPublic = publicKey
-            return toJcaKeyPair(privateKey, publicKey)
-        }
+        return makeSigningKeyPair(seed, pubBytes)
     }
 
-    /** Convert BC lightweight params to a JCA KeyPair (for API compatibility). */
-    private fun toJcaKeyPair(priv: Ed25519PrivateKeyParameters, pub: Ed25519PublicKeyParameters): KeyPair {
-        // Create a dummy KeyPair — callers only need the encoded bytes
-        val pubEncoded = pub.encoded
-        val privEncoded = priv.encoded
+    private fun makeSigningKeyPair(seedBytes: ByteArray, pubBytes: ByteArray): KeyPair {
         val pubKey = object : PublicKey {
             override fun getAlgorithm() = "Ed25519"
             override fun getFormat() = "RAW"
-            override fun getEncoded() = pubEncoded
+            override fun getEncoded() = pubBytes
         }
         val privKey = object : PrivateKey {
             override fun getAlgorithm() = "Ed25519"
             override fun getFormat() = "RAW"
-            override fun getEncoded() = privEncoded
+            override fun getEncoded() = seedBytes
         }
         return KeyPair(pubKey, privKey)
     }
 
-    /** Get the Ed25519 signing public key as Base64 (X509 encoded). */
-    fun getSigningPublicKeyBase64(): String {
-        val keyPair = getOrDeriveSigningKeyPair()
-        return Base64.encodeToString(keyPair.public.encoded, Base64.NO_WRAP)
-    }
+    /** Get the Ed25519 signing public key as Base64. */
+    fun getSigningPublicKeyBase64(): String =
+        prefs.getString(KEY_SIGNING_PUBLIC, null)
+            ?: throw IllegalStateException("Identity not initialized")
 
     /** Clear cached signing key pair and stored keys (call on logout/account delete). */
     fun clearSigningKeyCache() {
-        cachedSigningPrivate = null
-        cachedSigningPublic = null
+        cachedSigningPublicBytes = null
         prefs.edit()
             .remove(KEY_SIGNING_PUBLIC)
             .remove(KEY_SIGNING_PRIVATE)
@@ -993,19 +695,12 @@ object CryptoManager {
         conversationId: String,
         createdAt: Long
     ): String {
-        val keyPair = getOrDeriveSigningKeyPair()
+        val seed = getIdentitySeed()
         val dataToSign = buildSignedData(ciphertextBase64, conversationId, createdAt)
-
-        val privBytes = keyPair.private.encoded
-        val privateKey = Ed25519PrivateKeyParameters(privBytes, 0)
-        val signer = Ed25519Signer()
-        signer.init(true, privateKey)
-        signer.update(dataToSign, 0, dataToSign.size)
-        val signatureBytes = signer.generateSignature()
-        val signatureBase64 = Base64.encodeToString(signatureBytes, Base64.NO_WRAP)
-
+        val signatureBytes = FialkaNative.ed25519Sign(seed, dataToSign)
+        seed.fill(0)
         dataToSign.fill(0)
-        return signatureBase64
+        return Base64.encodeToString(signatureBytes, Base64.NO_WRAP)
     }
 
     /**
@@ -1020,18 +715,12 @@ object CryptoManager {
         signatureBase64: String
     ): Boolean {
         return try {
-            val pubKeyBytes = Base64.decode(signingPublicKeyBase64, Base64.NO_WRAP)
-            val publicKey = Ed25519PublicKeyParameters(pubKeyBytes, 0)
-
-            val dataToVerify = buildSignedData(ciphertextBase64, conversationId, createdAt)
+            val pubKeyBytes   = Base64.decode(signingPublicKeyBase64, Base64.NO_WRAP)
+            val dataToVerify  = buildSignedData(ciphertextBase64, conversationId, createdAt)
             val signatureBytes = Base64.decode(signatureBase64, Base64.NO_WRAP)
-
-            val verifier = Ed25519Signer()
-            verifier.init(false, publicKey)
-            verifier.update(dataToVerify, 0, dataToVerify.size)
-            val result = verifier.verifySignature(signatureBytes)
+            val result = FialkaNative.ed25519Verify(pubKeyBytes, dataToVerify, signatureBytes)
             dataToVerify.fill(0)
-            result
+            result.isNotEmpty() && result[0] == 1.toByte()
         } catch (_: Exception) {
             false
         }
@@ -1089,14 +778,8 @@ object CryptoManager {
      * @return Pair of (ciphertextBase64, sharedSecretBytes). Zero-wipe secret after use.
      */
     fun mlkemEncaps(recipientPublicKeyBase64: String): Pair<String, ByteArray> {
-        val pubBytes = Base64.decode(recipientPublicKeyBase64, Base64.NO_WRAP)
-        val recipientPub = MLKEMPublicKeyParameters(MLKEMParameters.ml_kem_1024, pubBytes)
-
-        val genResult: SecretWithEncapsulation = MLKEMGenerator(secureRandom).generateEncapsulated(recipientPub)
-        val ciphertextBase64 = Base64.encodeToString(genResult.encapsulation, Base64.NO_WRAP)
-        val sharedSecret = genResult.secret.copyOf()
-        genResult.destroy()
-        return Pair(ciphertextBase64, sharedSecret)
+        val ek = Base64.decode(recipientPublicKeyBase64, Base64.NO_WRAP)
+        return FialkaNative.mlkemEncapsResult(ek)
     }
 
     /**
@@ -1105,16 +788,13 @@ object CryptoManager {
      * @return sharedSecretBytes. Zero-wipe after use.
      */
     fun mlkemDecaps(ciphertextBase64: String): ByteArray {
-        val privBase64 = prefs.getString(KEY_MLKEM_PRIVATE, null)
-            ?: throw IllegalStateException("ML-KEM identity key not initialized")
-
-        val privBytes = Base64.decode(privBase64, Base64.NO_WRAP)
-        val privateKey = MLKEMPrivateKeyParameters(MLKEMParameters.ml_kem_1024, privBytes)
-        privBytes.fill(0)
-
-        val ciphertextBytes = Base64.decode(ciphertextBase64, Base64.NO_WRAP)
-        val kemExtractor = MLKEMExtractor(privateKey)
-        return kemExtractor.extractSecret(ciphertextBytes)
+        val dk = Base64.decode(
+            prefs.getString(KEY_MLKEM_PRIVATE, null)
+                ?: throw IllegalStateException("ML-KEM identity key not initialized"),
+            Base64.NO_WRAP
+        )
+        val ct = Base64.decode(ciphertextBase64, Base64.NO_WRAP)
+        return FialkaNative.mlkemDecaps(dk, ct)
     }
 
     /**
@@ -1124,11 +804,10 @@ object CryptoManager {
     fun deriveRootKeyPQXDH(ssClassic: ByteArray, ssPQ: ByteArray): SecretKey {
         require(ssClassic.size == 32) { "X25519 shared secret must be 32 bytes" }
         require(ssPQ.size == 32) { "ML-KEM shared secret must be 32 bytes" }
-        val combined = ssClassic + ssPQ
+        val rootBytes = FialkaNative.deriveRootKeyPqxdh(ssClassic, ssPQ)
         ssClassic.fill(0)
         ssPQ.fill(0)
-        val key = deriveSymmetricKey(combined)  // deriveSymmetricKey already zeros combined
-        return key
+        return SecretKeySpec(rootBytes, "AES")
     }
 
     // ========================================================================
@@ -1151,135 +830,30 @@ object CryptoManager {
      * @return Base64-encoded ML-DSA-44 signature (2420 bytes raw).
      */
     fun signHandshakeMlDsa44(data: ByteArray): String {
-        val privBase64 = prefs.getString(KEY_MLDSA_PRIVATE, null)
-            ?: throw IllegalStateException("ML-DSA-44 key not initialized — call generateIdentity() first")
-        val privBytes = Base64.decode(privBase64, Base64.NO_WRAP)
-        val privateKey = MLDSAPrivateKeyParameters(MLDSAParameters.ml_dsa_44, privBytes)
-        privBytes.fill(0)
-
-        val signer = MLDSASigner()
-        signer.init(true, privateKey)
-        signer.update(data, 0, data.size)
-        val signatureBytes = signer.generateSignature()
-        return Base64.encodeToString(signatureBytes, Base64.NO_WRAP)
+        val sk = Base64.decode(
+            prefs.getString(KEY_MLDSA_PRIVATE, null)
+                ?: throw IllegalStateException("ML-DSA-44 key not initialized — call generateIdentity() first"),
+            Base64.NO_WRAP
+        )
+        return Base64.encodeToString(FialkaNative.mldsaSign(sk, data), Base64.NO_WRAP)
     }
 
     /**
      * Verify a ML-DSA-44 handshake signature from the remote peer.
-     * @param pubKeyBase64 Remote peer's ML-DSA-44 public key (Base64).
-     * @param data Raw bytes that were signed.
-     * @param signatureBase64 Base64-encoded ML-DSA-44 signature.
-     * @return true if valid, false otherwise.
      */
     fun verifyHandshakeMlDsa44(pubKeyBase64: String, data: ByteArray, signatureBase64: String): Boolean {
         return try {
-            val pubBytes = Base64.decode(pubKeyBase64, Base64.NO_WRAP)
-            val publicKey = MLDSAPublicKeyParameters(MLDSAParameters.ml_dsa_44, pubBytes)
-            val signatureBytes = Base64.decode(signatureBase64, Base64.NO_WRAP)
-
-            val verifier = MLDSASigner()
-            verifier.init(false, publicKey)
-            verifier.update(data, 0, data.size)
-            verifier.verifySignature(signatureBytes)
+            val vk  = Base64.decode(pubKeyBase64,    Base64.NO_WRAP)
+            val sig = Base64.decode(signatureBase64, Base64.NO_WRAP)
+            val res = FialkaNative.mldsaVerify(vk, data, sig)
+            res.isNotEmpty() && res[0] == 1.toByte()
         } catch (_: Exception) {
             false
         }
     }
 
     // ========================================================================
-    // 11. IDENTITY HELPERS — HKDF multi-block, Account ID, Base58, FixedRandom
+    // 11. IDENTITY HELPERS — remaining pure-Kotlin utilities
     // ========================================================================
 
-    /**
-     * HKDF-SHA256 with configurable output length (RFC 5869).
-     * Used for ML-KEM deterministic seed derivation (64 bytes needed).
-     */
-    private fun hkdfSha256(ikm: ByteArray, salt: ByteArray, info: ByteArray, length: Int): ByteArray {
-        require(length in 1..255 * 32) { "HKDF output length must be 1..8160" }
-        // Extract: PRK = HMAC-SHA256(salt, IKM)
-        val prk = hmacSha256(salt, ikm)
-        // Expand: T(1) || T(2) || ... until we have enough bytes
-        val n = (length + 31) / 32
-        val okm = ByteArray(n * 32)
-        var prev = ByteArray(0)
-        for (i in 1..n) {
-            val input = prev + info + byteArrayOf(i.toByte())
-            prev = hmacSha256(prk, input)
-            System.arraycopy(prev, 0, okm, (i - 1) * 32, 32)
-        }
-        prk.fill(0)
-        return okm.copyOf(length)
-    }
-
-    /** SHA3-256(Ed25519 pubkey 32 bytes) → Base58 string. */
-    private fun deriveAccountId(ed25519PubBytes: ByteArray): String {
-        val sha3 = SHA3Digest(256)
-        sha3.update(ed25519PubBytes, 0, ed25519PubBytes.size)
-        val hash = ByteArray(32)
-        sha3.doFinal(hash, 0)
-        return base58Encode(hash)
-    }
-
-    private const val BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
-
-    /** RFC 4648 Base32 encoding (no padding). Used for Tor v3 .onion addresses. */
-    private fun base32Encode(data: ByteArray): String {
-        val sb = StringBuilder()
-        var buffer = 0
-        var bitsLeft = 0
-        for (byte in data) {
-            buffer = (buffer shl 8) or (byte.toInt() and 0xFF)
-            bitsLeft += 8
-            while (bitsLeft >= 5) {
-                bitsLeft -= 5
-                sb.append(BASE32_ALPHABET[(buffer shr bitsLeft) and 0x1F])
-            }
-        }
-        if (bitsLeft > 0) {
-            sb.append(BASE32_ALPHABET[(buffer shl (5 - bitsLeft)) and 0x1F])
-        }
-        return sb.toString()
-    }
-
-    private const val BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-    /** Standard Base58 encoding (no check). */
-    private fun base58Encode(data: ByteArray): String {
-        var num = BigInteger(1, data)
-        val sb = StringBuilder()
-        val base = BigInteger.valueOf(58)
-        while (num > BigInteger.ZERO) {
-            val (quotient, remainder) = num.divideAndRemainder(base)
-            sb.append(BASE58_ALPHABET[remainder.toInt()])
-            num = quotient
-        }
-        // Preserve leading zero bytes as '1'
-        for (b in data) {
-            if (b == 0.toByte()) sb.append('1') else break
-        }
-        return sb.reverse().toString()
-    }
-
-    /**
-     * Deterministic SecureRandom that returns pre-computed bytes.
-     * Used exclusively for ML-KEM-1024 deterministic KeyGen from seed.
-     * BouncyCastle's MLKEMKeyPairGenerator reads exactly 64 bytes (d=32 + z=32).
-     */
-    private class FixedSecureRandom(private val data: ByteArray) : SecureRandom() {
-        private var offset = 0
-
-        override fun nextBytes(bytes: ByteArray) {
-            if (offset + bytes.size > data.size) {
-                throw IllegalStateException("FixedSecureRandom exhausted")
-            }
-            System.arraycopy(data, offset, bytes, 0, bytes.size)
-            offset += bytes.size
-        }
-
-        override fun generateSeed(numBytes: Int): ByteArray {
-            val seed = ByteArray(numBytes)
-            nextBytes(seed)
-            return seed
-        }
-    }
 }

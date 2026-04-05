@@ -106,7 +106,6 @@ dependencies {
 
     // Security / Crypto
     implementation("androidx.biometric:biometric:1.1.0")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.83")  // ML-KEM-1024, CVE fixes vs 1.80
 
     // Tor — Guardian Project Tor binary (BSD) + Briar privacy libs (Apache/BSD)
     implementation("info.guardianproject:tor-android:0.4.9.5.1")
@@ -132,8 +131,6 @@ dependencies {
 
     // Testing
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.robolectric:robolectric:4.14.1")
-    testImplementation("org.bouncycastle:bcprov-jdk18on:1.83")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 }

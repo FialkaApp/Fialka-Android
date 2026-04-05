@@ -381,4 +381,136 @@ class CryptoManagerTest {
         assertTrue(onion.endsWith(".onion"))
         assertEquals(62, onion.length)  // 56 chars + ".onion"
     }
+
+    @Test
+    fun computeOnionFromEd25519IsDeterministic() {
+        val pub = ByteArray(32) { 0x55.toByte() }
+        assertEquals(CryptoManager.computeOnionFromEd25519(pub), CryptoManager.computeOnionFromEd25519(pub))
+    }
+
+    @Test
+    fun computeOnionFromEd25519DifferentKeysYieldDifferentAddresses() {
+        assertNotEquals(
+            CryptoManager.computeOnionFromEd25519(ByteArray(32) { 0x01 }),
+            CryptoManager.computeOnionFromEd25519(ByteArray(32) { 0x02 })
+        )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun computeOnionFromEd25519RejectsNon32ByteKey() {
+        CryptoManager.computeOnionFromEd25519(ByteArray(31))
+    }
+
+    // ========================================================================
+    // HMAC-SHA256
+    // ========================================================================
+
+    @Test
+    fun hmacSha256Rfc4231Tc1Vector() {
+        // RFC 4231 Test Case 1
+        val result = CryptoManager.hmacSha256(
+            ByteArray(20) { 0x0b.toByte() },
+            "Hi There".toByteArray(Charsets.UTF_8)
+        )
+        assertEquals(
+            "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7",
+            result.joinToString("") { "%02x".format(it) }
+        )
+    }
+
+    @Test
+    fun hmacSha256OutputIs32Bytes() {
+        assertEquals(32, CryptoManager.hmacSha256(ByteArray(32), "x".toByteArray()).size)
+    }
+
+    @Test
+    fun hmacSha256IsDeterministic() {
+        val key = ByteArray(32) { 0x55.toByte() }
+        val data = "fialka".toByteArray(Charsets.UTF_8)
+        assertArrayEquals(CryptoManager.hmacSha256(key, data), CryptoManager.hmacSha256(key, data))
+    }
+
+    @Test
+    fun hmacSha256DifferentKeysProduceDifferentMacs() {
+        val data = "same data".toByteArray(Charsets.UTF_8)
+        assertFalse(
+            CryptoManager.hmacSha256(ByteArray(32) { 0x01 }, data)
+                .contentEquals(CryptoManager.hmacSha256(ByteArray(32) { 0x02 }, data))
+        )
+    }
+
+    // ========================================================================
+    // Conversation ID
+    // ========================================================================
+
+    @Test
+    fun deriveConversationIdIsSymmetric() {
+        assertEquals(
+            CryptoManager.deriveConversationId("A", "B"),
+            CryptoManager.deriveConversationId("B", "A")
+        )
+    }
+
+    @Test
+    fun deriveConversationIdDifferentInputsYieldDifferentIds() {
+        assertNotEquals(
+            CryptoManager.deriveConversationId("A", "B"),
+            CryptoManager.deriveConversationId("A", "C")
+        )
+    }
+
+    @Test
+    fun deriveConversationIdReturns64CharHex() {
+        val id = CryptoManager.deriveConversationId("foo", "bar")
+        assertEquals(64, id.length)
+        assertTrue(id.matches(Regex("[0-9a-f]{64}")))
+    }
+
+    // ========================================================================
+    // Shared fingerprint (hex)
+    // ========================================================================
+
+    @Test
+    fun sharedFingerprintHexIsSymmetricAnd64Chars() {
+        val k1 = Base64.encodeToString(ByteArray(44) { 0x55.toByte() }, Base64.NO_WRAP)
+        val k2 = Base64.encodeToString(ByteArray(44) { 0x66.toByte() }, Base64.NO_WRAP)
+        val hex1 = CryptoManager.getSharedFingerprintHex(k1, k2)
+        val hex2 = CryptoManager.getSharedFingerprintHex(k2, k1)
+        assertEquals(hex1, hex2)
+        assertEquals(64, hex1.length)
+        assertTrue(hex1.matches(Regex("[0-9a-f]{64}")))
+    }
+
+    @Test
+    fun sharedFingerprintHexDifferentPairs() {
+        val k1 = Base64.encodeToString(ByteArray(44) { 0x11.toByte() }, Base64.NO_WRAP)
+        val k2 = Base64.encodeToString(ByteArray(44) { 0x22.toByte() }, Base64.NO_WRAP)
+        val k3 = Base64.encodeToString(ByteArray(44) { 0x33.toByte() }, Base64.NO_WRAP)
+        assertNotEquals(
+            CryptoManager.getSharedFingerprintHex(k1, k2),
+            CryptoManager.getSharedFingerprintHex(k1, k3)
+        )
+    }
+
+    // ========================================================================
+    // Ed25519 → X25519 birational map
+    // ========================================================================
+
+    @Test
+    fun ed25519ToX25519RawReturns32Bytes() {
+        // Use the identity's signing public key (stored as raw 32 bytes, Base64-encoded)
+        val edPubB64 = CryptoManager.getSigningPublicKeyBase64()
+        val edPub = Base64.decode(edPubB64, Base64.NO_WRAP)
+        assertEquals(32, CryptoManager.ed25519PublicKeyToX25519Raw(edPub).size)
+    }
+
+    @Test
+    fun ed25519ToX25519RawIsDeterministic() {
+        val edPubB64 = CryptoManager.getSigningPublicKeyBase64()
+        val edPub = Base64.decode(edPubB64, Base64.NO_WRAP)
+        assertArrayEquals(
+            CryptoManager.ed25519PublicKeyToX25519Raw(edPub),
+            CryptoManager.ed25519PublicKeyToX25519Raw(edPub)
+        )
+    }
 }

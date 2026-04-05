@@ -1,0 +1,3 @@
+[submodule "Fialka-Core"]
+	path = Fialka-Core
+	url = https://github.com/FialkaApp/fialka-core.git
