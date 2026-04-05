@@ -231,6 +231,8 @@
 
 ## 🛠 Quick Start
 
+> ⚠️ **Requires Android 13+ (API 33)** — Fialka requires Android 13 minimum to guarantee access to StrongBox (hardware security module) and robust Keystore APIs that protect the SQLCipher passphrase. Approximately 60% of active Android devices are compatible. Devices running Android 12 or lower cannot install the app.
+
 </div>
 
 ```bash

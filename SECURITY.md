@@ -283,6 +283,8 @@ Falcon-512 = **~666 bytes** → 10x smaller than ML-DSA-44. Viable per message. 
 | 6 | **No group chat** | 1-to-1 only for now | Planned for future version |
 | 7 | **Android only** | No iOS or desktop client | iOS version planned (see FialkaApp/Fialka-iOS) |
 | 8 | **Per-message sigs not PQ until V5.0** | Quantum attacker could forge messages in real-time | SPQR protects confidentiality; real-time signature forgery is far less probable than "harvest now, decrypt later" |
+| 9 | **Seed compromise = full identity compromise** | If the 24-word seed phrase is exposed, an attacker can re-derive all identity keys (Ed25519, X25519, ML-KEM, .onion address) and impersonate you indefinitely | Store the seed phrase offline, never digitally. The seed is the only secret that cannot be rotated without creating a new identity. Message confidentiality for past sessions also depends on ratchet state secrecy. |
+| 10 | **ml-dsa crate is pre-release (v0.0.4)** | `ml-dsa 0.0.4` implements FIPS 204 but has not been independently audited; as a 0.x crate it may have breaking API or correctness changes | Monitor [RustCrypto/signatures](https://github.com/RustCrypto/signatures) releases; upgrade to ≥1.0.0 before any public stable release. Mitigated by the hybrid design: Ed25519 continues to authenticate even if ml-dsa has a bug. |
 
 ---
 
@@ -292,8 +294,8 @@ Falcon-512 = **~666 bytes** → 10x smaller than ML-DSA-44. Viable per message. 
 |-----------|----------------|-------|
 | Signal | ~90% | Audited, battle-tested, millions of users |
 | Session | ~73% | Decentralized but limited crypto |
-| **Fialka V4.0.1** (current) | **~85%** | Strong crypto, P2P .onion transport, no Firebase metadata leak, direct Keystore prefs |
-| **Fialka V4.0.1** (target, pre-audit) | **~93%** | Zero Google, full Tor P2P, hybrid PQ |
+| **Fialka V4.1.0** (current) | **~86%** | Ed25519 contact request auth, unit test coverage, migration safety warning |
+| **Fialka V4.1.0** (target, pre-audit) | **~93%** | Zero Google, full Tor P2P, hybrid PQ |
 | **Fialka V5.0** (post-audit, Falcon) | **~95%** | Full PQ signatures, audited, mesh fallback |
 
 ---

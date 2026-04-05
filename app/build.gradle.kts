@@ -13,6 +13,11 @@ if (localPropsFile.exists()) {
     localProps.load(FileInputStream(localPropsFile))
 }
 
+// Single source of truth for app version — edit version.properties only
+val versionProps = Properties().apply {
+    load(FileInputStream(rootProject.file("version.properties")))
+}
+
 android {
     namespace = "com.fialkaapp.fialka"
     compileSdk = 36
@@ -21,8 +26,8 @@ android {
         applicationId = "com.fialkaapp.fialka"
         minSdk = 33
         targetSdk = 36
-        versionCode = 11
-        versionName = "4.0.2-beta"
+        versionCode = versionProps["VERSION_CODE"].toString().toInt()
+        versionName = versionProps["VERSION_NAME"].toString()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

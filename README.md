@@ -230,6 +230,8 @@
 
 </div>
 
+> ⚠️ **Prérequis : Android 13+ (API 33)** — Fialka requiert Android 13 minimum pour garantir l'accès au StrongBox (hardware security module) et aux APIs Keystore robustes qui protègent la passphrase SQLCipher. Environ 60 % du parc Android actif est compatible. Les appareils sous Android 12 ou inférieur ne pourront pas installer l'application.
+
 ```bash
 # 1. Clone
 git clone https://github.com/FialkaApp/Fialka-Android.git

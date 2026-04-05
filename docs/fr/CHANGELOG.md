@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V4.0.2-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/versionCode-10-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V4.1.0--alpha-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/versionCode-11-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -505,6 +505,37 @@
 - [x] **Room** 2.7.1 → **2.8.4**
 - [x] **Coroutines** 1.9.0 → **1.10.2**
 - [x] **Navigation** 2.8.9 → **2.9.7** | **Lifecycle** 2.8.7 → **2.10.0**
+
+</details>
+
+---
+
+<details open>
+<summary><h2>🟡 V4.1.0-alpha — Auth Ed25519, Tests Unitaires & Sécurité Migration</h2></summary>
+
+> `versionCode 11` · `versionName "4.1.0-alpha"` · Correction sécurité + couverture tests + protection UX
+
+### 🔐 Sécurité — Vérification signature Ed25519 sur les demandes de contact
+- [x] **`P2PServer.handleContactRequest()`** — Vérifie maintenant la signature Ed25519 sur les demandes de contact entrantes. Auparavant, `senderSigningPublicKey` était reçu mais jamais vérifié — n'importe qui pouvait usurper une identité.
+- [x] **Données signées canoniques** — `senderPubKey(UTF-8) || 0x00 || conversationId(UTF-8) || createdAt(big-endian 8 octets)` — séparé par domaine, déterministe
+- [x] **`sendContactRequest()`** — Signe maintenant le payload avec `FialkaNative.ed25519Sign()` et inclut le champ `requestSignature`
+- [x] **Rétrocompatible** — Les anciens clients sans `requestSignature` sont encore acceptés (fenêtre de migration progressive)
+
+### 🧪 Tests Unitaires — Couverture Crypto & Ratchet
+- [x] **Robolectric 4.13** ajouté comme dépendance de test
+- [x] **`CryptoManagerPureTest`** — 20 tests : déterminisme/commutativité/unicité de `deriveConversationId`, encodage timestamp `buildSignedData`, pseudonymat cross-conversation `hashSenderUid`
+- [x] **`RatchetSimulationTest`** — 16 tests : ratchet bidirectionnel, unicité 500 clés, intervalle SPQR=10, correction `pqRatchetStep`, symétrie initiator/responder
+- [x] **`DoubleRatchetTest`** — 2 tests JNI marqués `@Ignore` (nécessitent `libfialka_core.so` — à migrer en tests instrumentés)
+- [x] **45 tests unitaires au total, 0 échec**
+
+### 🛡️ Protection UX — Avertissement migration destructive
+- [x] **`FialkaDatabase.needsDestructiveMigration()`** — Détecte quand une mise à jour de schéma Room déclencherait `fallbackToDestructiveMigration` (DROP ALL TABLES)
+- [x] **`MainActivity`** — Affiche un `AlertDialog` bloquant avant tout accès DB lors d'une mise à jour : l'utilisateur doit confirmer explicitement la perte de données ou quitter
+- [x] **`FialkaDatabase.recordCurrentVersion()`** — Persiste la version du schéma dans des `SharedPreferences` simples après ouverture confirmée
+
+### 🛠 Infrastructure Dev
+- [x] **`version.properties`** — Source unique de vérité pour `VERSION_CODE` + `VERSION_NAME` ; `build.gradle.kts` le lit automatiquement — modifier uniquement `version.properties` pour bumper la version
+- [x] **Version V4.1.0-alpha** — `versionCode 11`
 
 </details>
 
