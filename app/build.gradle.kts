@@ -126,7 +126,7 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.4.0")
 
     // SwipeRefreshLayout
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
 
     // QR Code — generation + scanning
     implementation("com.journeyapps:zxing-android-embedded:4.3.0") {
