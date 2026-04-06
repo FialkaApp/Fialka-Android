@@ -63,11 +63,8 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-
 
       # ── 4. Android NDK ───────────────────────────────────────────────────
-      - name: Set up Android NDK
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Install NDK 27
-        run: sdkmanager "ndk;27.2.12479018"
 
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --locked
@@ -75,8 +72,6 @@ jobs:
       # ── 5. Build Fialka-Core .so files ───────────────────────────────────
       - name: Build libfialka_core.so (arm64-v8a + x86_64)
         working-directory: Fialka-Core
-        env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.2.12479018
         run: |
           cargo ndk \
             -t arm64-v8a \
