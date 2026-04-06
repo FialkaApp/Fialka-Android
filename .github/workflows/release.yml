@@ -141,10 +141,8 @@ jobs:
           APK_DIR="app/build/outputs/apk/release"
           HASH_FILE="release-hashes.txt"
 
-          # SHA256 of the release APK
           sha256sum ${APK_DIR}/fialka-*.apk > ${HASH_FILE}
 
-          # PGP clearsign (same format as Session)
           echo "${GPG_PASSPHRASE}" | gpg --batch --yes \
             --passphrase-fd 0 \
             --pinentry-mode loopback \
@@ -152,44 +150,80 @@ jobs:
             --output release-hashes.txt.asc \
             ${HASH_FILE}
 
-          echo "hash_file=${HASH_FILE}" >> $GITHUB_OUTPUT
-          echo "sig_file=release-hashes.txt.asc" >> $GITHUB_OUTPUT
-
-          # Print for log visibility (hashes only, no key material)
           cat release-hashes.txt.asc
+
+      - name: Generate release body
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.name }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+          GIT_SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          ASC=$(cat release-hashes.txt.asc)
+          APK_SHA=$(grep "fialka-" release-hashes.txt | awk '{print $1}')
+
+          cat > release-body.md << EOF
+          ## 🔐 Fialka ${VERSION_NAME} — \`versionCode ${VERSION_CODE}\`
+
+          > ⚠️ Pre-release — requires **Android 13+** (API 33+)
+
+          ---
+
+          ### 📥 Installation
+          1. Download \`fialka-${VERSION_NAME}.apk\` below
+          2. Enable **Install from unknown sources** on your device
+          3. Install the APK
+
+          ---
+
+          ### 🔧 APK Signing
+          Signed with **ECDSA P-256 + SHA-256** (PKCS12)
+          APK schemes **v2 + v3 + v4** enabled — v1 disabled
+
+          \`\`\`
+          sha256: ${APK_SHA}  fialka-${VERSION_NAME}.apk
+          \`\`\`
+
+          ---
+
+          ### 🏗️ Build Provenance
+          Built automatically from commit [\`${GIT_SHA:0:7}\`](https://github.com/FialkaApp/Fialka-Android/commit/${GIT_SHA})
+          via GitHub Actions — source: [Fialka-Android@${REF_NAME}](https://github.com/FialkaApp/Fialka-Android/tree/${REF_NAME})
+
+          Reproducible build: Rust \`fialka-core\` compiled from source via \`cargo-ndk\` at the pinned submodule commit.
+
+          ---
+
+          ### 🔐 Signature de release
+
+          Signed SHA256 hashes of release files.
+          Signed using the Fialka release GPG key:
+          - OpenPGP key servers (\`FialkaApp <devbot1667+fialka@gmail.com>\`, \`0845E4B46420A2EA\`)
+          - \`gpg --keyserver keys.openpgp.org --recv-keys 0845E4B46420A2EA\`
+          - \`curl https://github.com/FialkaApp.gpg | gpg --import\`
+
+          \`\`\`
+          ${ASC}
+          \`\`\`
+
+          **Verify:**
+          \`\`\`bash
+          gpg --keyserver keys.openpgp.org --recv-keys 0845E4B46420A2EA
+          gpg --verify release-hashes.txt.asc
+          sha256sum -c release-hashes.txt
+          \`\`\`
+          EOF
+
+          # Strip leading whitespace from heredoc
+          sed -i 's/^          //' release-body.md
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: "Fialka ${{ steps.version.outputs.name }}"
-          body: |
-            ## Fialka ${{ steps.version.outputs.name }} — `versionCode ${{ steps.version.outputs.code }}`
-
-            ### Installation
-            1. Download `fialka-${{ steps.version.outputs.name }}.apk`
-            2. Enable **Install from unknown sources** on your device
-            3. Install the APK
-
-            > ⚠️ Requires **Android 13+** (API 33) — [why?](README.md#-quick-start)
-
-            ### Build provenance
-            This APK was built automatically from commit `${{ github.sha }}`
-            by GitHub Actions. Source: [Fialka-Android@${{ github.ref_name }}](https://github.com/FialkaApp/Fialka-Android/tree/${{ github.ref_name }})
-
-            ### Verify signature
-            The `release-hashes.txt.asc` file contains SHA256 hashes of all APKs,
-            PGP-signed with the Fialka release key.
-
-            ```bash
-            # 1. Import the public key
-            gpg --keyserver keys.openpgp.org --recv-keys 0845E4B46420A2EA
-            # or: curl https://github.com/FialkaApp.gpg | gpg --import
-
-            # 2. Verify
-            gpg --verify release-hashes.txt.asc
-            sha256sum -c release-hashes.txt
-            ```
+          name: "🔐 Fialka ${{ steps.version.outputs.name }}"
+          body_path: release-body.md
           files: |
             app/build/outputs/apk/release/fialka-*.apk
             release-hashes.txt.asc
