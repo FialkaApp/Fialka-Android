@@ -85,6 +85,9 @@ jobs:
             build --release
 
       # ── 6. Unit tests ─────────────────────────────────────────────────────
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
 
