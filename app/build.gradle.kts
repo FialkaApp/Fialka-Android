@@ -135,7 +135,7 @@ dependencies {
     implementation("com.google.zxing:core:3.5.3")
 
     // Splash Screen
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("androidx.core:core-splashscreen:1.2.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
