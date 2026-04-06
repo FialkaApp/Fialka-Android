@@ -34,10 +34,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file(localProps.getProperty("RELEASE_STORE_FILE", "../fialka-release.p12"))
-            storePassword = localProps.getProperty("RELEASE_STORE_PASSWORD", "")
-            keyAlias = localProps.getProperty("RELEASE_KEY_ALIAS", "")
-            keyPassword = localProps.getProperty("RELEASE_KEY_PASSWORD", "")
+            storeFile = file(System.getenv("RELEASE_STORE_FILE") ?: localProps.getProperty("RELEASE_STORE_FILE", "../fialka-release.p12"))
+            storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: localProps.getProperty("RELEASE_STORE_PASSWORD", "")
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: localProps.getProperty("RELEASE_KEY_ALIAS", "")
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: localProps.getProperty("RELEASE_KEY_PASSWORD", "")
             enableV1Signing = false
             enableV2Signing = true
             enableV3Signing = true

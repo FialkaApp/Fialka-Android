@@ -96,22 +96,21 @@ jobs:
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         run: ./gradlew assembleDebug
 
+      - name: Setup release signing
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 --decode > $RUNNER_TEMP/fialka-release.p12
+
       - name: Build release APK (tag push)
         if: startsWith(github.ref, 'refs/tags/')
-        run: ./gradlew assembleRelease
-
-      # ── 8. Sign release APK ───────────────────────────────────────────────
-      - name: Sign release APK
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: r0adkll/sign-android-release@v1
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-          alias: ${{ secrets.RELEASE_KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.RELEASE_KEY_PASSWORD }}
         env:
-          BUILD_TOOLS_VERSION: "36.0.0"
+          RELEASE_STORE_FILE: ${{ runner.temp }}/fialka-release.p12
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
 
       # ── 9. Publish GitHub Release ─────────────────────────────────────────
       - name: Read version from version.properties
@@ -141,8 +140,8 @@ jobs:
           APK_DIR="app/build/outputs/apk/release"
           HASH_FILE="release-hashes.txt"
 
-          # SHA256 of every APK in the release dir
-          sha256sum ${APK_DIR}/*.apk > ${HASH_FILE}
+          # SHA256 of the release APK
+          sha256sum ${APK_DIR}/app-release.apk > ${HASH_FILE}
 
           # PGP clearsign (same format as Session)
           echo "${GPG_PASSPHRASE}" | gpg --batch --yes \
@@ -191,7 +190,7 @@ jobs:
             sha256sum -c release-hashes.txt
             ```
           files: |
-            app/build/outputs/apk/release/*-signed.apk
+            app/build/outputs/apk/release/app-release.apk
             release-hashes.txt.asc
             release-hashes.txt
           draft: false
