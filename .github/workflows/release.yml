@@ -11,8 +11,8 @@
 #   RELEASE_STORE_PASSWORD    Keystore password
 #   RELEASE_KEY_ALIAS         Key alias inside the keystore
 #   RELEASE_KEY_PASSWORD      Key password
-#   GPG_PRIVATE_KEY           Base64-encoded GPG private key
-#                             Generate: gpg --export-secret-keys YOUR_KEY_ID | base64 -w0
+#   GPG_PRIVATE_KEY           Armored GPG private key (raw ASCII armor)
+#                             Generate: gpg --armor --export-secret-keys YOUR_KEY_ID
 #   GPG_PASSPHRASE            GPG key passphrase
 #
 # The keystore and GPG key NEVER appear in logs or artifacts — only used in memory.
@@ -30,6 +30,8 @@ jobs:
   build:
     name: Build & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed for softprops/action-gh-release to create releases
 
     steps:
       # ── 1. Checkout + submodules ──────────────────────────────────────────
@@ -116,13 +118,17 @@ jobs:
           VERSION_CODE=$(grep "^VERSION_CODE=" version.properties | cut -d= -f2 | tr -d '[:space:]')
           echo "name=${VERSION_NAME}" >> $GITHUB_OUTPUT
           echo "code=${VERSION_CODE}" >> $GITHUB_OUTPUT
+          # Rename APK to include version
+          mv app/build/outputs/apk/release/app-release.apk \
+             app/build/outputs/apk/release/fialka-${VERSION_NAME}.apk
 
       # ── 10. PGP — sign SHA256 hashes of the APK ──────────────────────────
       - name: Import GPG key
         if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode | gpg --batch --import
-          # Trust the key fully
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
           KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d: -f5 | head -1)
           echo "${KEY_ID}:6:" | gpg --batch --import-ownertrust
 
@@ -136,7 +142,7 @@ jobs:
           HASH_FILE="release-hashes.txt"
 
           # SHA256 of the release APK
-          sha256sum ${APK_DIR}/app-release.apk > ${HASH_FILE}
+          sha256sum ${APK_DIR}/fialka-*.apk > ${HASH_FILE}
 
           # PGP clearsign (same format as Session)
           echo "${GPG_PASSPHRASE}" | gpg --batch --yes \
@@ -185,7 +191,7 @@ jobs:
             sha256sum -c release-hashes.txt
             ```
           files: |
-            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/fialka-*.apk
             release-hashes.txt.asc
             release-hashes.txt
           draft: false

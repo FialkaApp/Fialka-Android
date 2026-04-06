@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # ── GitHub Actions ─────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "dependencies"
+    # Dependabot will pin actions to their exact SHA commit hashes
+    # and keep them up to date automatically
+
+  # ── Gradle (Android) ───────────────────────────────────────────────────────
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+    ignore:
+      # Don't auto-bump compileSdk/targetSdk — intentional decisions
+      - dependency-name: "com.android.tools.build:gradle"
+        update-types: ["version-update:semver-major"]
