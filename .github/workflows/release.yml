@@ -1,0 +1,195 @@
+# ============================================================
+# Fialka Android — CI/CD Release Workflow
+# ============================================================
+# Triggers:
+#   - Push of a tag matching v* (e.g. v4.1.0) → builds + signs + publishes release APK
+#   - Push to main branch       → build + test only (no signing, no release)
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   RELEASE_KEYSTORE_BASE64   Base64-encoded .p12 keystore file
+#                             Generate: certutil -encode fialka-release.p12 keystore.b64
+#   RELEASE_STORE_PASSWORD    Keystore password
+#   RELEASE_KEY_ALIAS         Key alias inside the keystore
+#   RELEASE_KEY_PASSWORD      Key password
+#   GPG_PRIVATE_KEY           Base64-encoded GPG private key
+#                             Generate: gpg --export-secret-keys YOUR_KEY_ID | base64 -w0
+#   GPG_PASSPHRASE            GPG key passphrase
+#
+# The keystore and GPG key NEVER appear in logs or artifacts — only used in memory.
+# ============================================================
+
+name: Release
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout + submodules ──────────────────────────────────────────
+      - name: Checkout repository + Fialka-Core submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive   # pulls Fialka-Core at the pinned commit
+
+      # ── 2. Java ───────────────────────────────────────────────────────────
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      # ── 3. Rust toolchain ─────────────────────────────────────────────────
+      - name: Set up Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,x86_64-linux-android
+
+      - name: Cache Rust build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Fialka-Core/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Fialka-Core/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      # ── 4. Android NDK ───────────────────────────────────────────────────
+      - name: Set up Android NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK 27
+        run: sdkmanager "ndk;27.2.12479018"
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      # ── 5. Build Fialka-Core .so files ───────────────────────────────────
+      - name: Build libfialka_core.so (arm64-v8a + x86_64)
+        working-directory: Fialka-Core
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/27.2.12479018
+        run: |
+          cargo ndk \
+            -t arm64-v8a \
+            -t x86_64 \
+            -o ../app/src/main/jniLibs \
+            build --release
+
+      # ── 6. Unit tests ─────────────────────────────────────────────────────
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest
+
+      # ── 7. Build APK ──────────────────────────────────────────────────────
+      - name: Build debug APK (branch push)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: ./gradlew assembleDebug
+
+      - name: Build release APK (tag push)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: ./gradlew assembleRelease
+
+      # ── 8. Sign release APK ───────────────────────────────────────────────
+      - name: Sign release APK
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          alias: ${{ secrets.RELEASE_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        env:
+          BUILD_TOOLS_VERSION: "36.0.0"
+
+      # ── 9. Publish GitHub Release ─────────────────────────────────────────
+      - name: Read version from version.properties
+        if: startsWith(github.ref, 'refs/tags/')
+        id: version
+        run: |
+          VERSION_NAME=$(grep VERSION_NAME version.properties | cut -d= -f2)
+          VERSION_CODE=$(grep VERSION_CODE version.properties | cut -d= -f2)
+          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+      # ── 10. PGP — sign SHA256 hashes of the APK ──────────────────────────
+      - name: Import GPG key
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 --decode | gpg --batch --import
+          # Trust the key fully
+          KEY_ID=$(gpg --list-secret-keys --with-colons | grep '^sec' | cut -d: -f5 | head -1)
+          echo "${KEY_ID}:6:" | gpg --batch --import-ownertrust
+
+      - name: Generate SHA256 hashes + PGP clearsign
+        if: startsWith(github.ref, 'refs/tags/')
+        id: pgp
+        env:
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          APK_DIR="app/build/outputs/apk/release"
+          HASH_FILE="release-hashes.txt"
+
+          # SHA256 of every APK in the release dir
+          sha256sum ${APK_DIR}/*.apk > ${HASH_FILE}
+
+          # PGP clearsign (same format as Session)
+          echo "${GPG_PASSPHRASE}" | gpg --batch --yes \
+            --passphrase-fd 0 \
+            --pinentry-mode loopback \
+            --clearsign \
+            --output release-hashes.txt.asc \
+            ${HASH_FILE}
+
+          echo "hash_file=${HASH_FILE}" >> $GITHUB_OUTPUT
+          echo "sig_file=release-hashes.txt.asc" >> $GITHUB_OUTPUT
+
+          # Print for log visibility (hashes only, no key material)
+          cat release-hashes.txt.asc
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Fialka ${{ steps.version.outputs.name }}"
+          body: |
+            ## Fialka ${{ steps.version.outputs.name }} — `versionCode ${{ steps.version.outputs.code }}`
+
+            ### Installation
+            1. Download `fialka-${{ steps.version.outputs.name }}.apk`
+            2. Enable **Install from unknown sources** on your device
+            3. Install the APK
+
+            > ⚠️ Requires **Android 13+** (API 33) — [why?](README.md#-quick-start)
+
+            ### Build provenance
+            This APK was built automatically from commit `${{ github.sha }}`
+            by GitHub Actions. Source: [Fialka-Android@${{ github.ref_name }}](https://github.com/FialkaApp/Fialka-Android/tree/${{ github.ref_name }})
+
+            ### Verify signature
+            The `release-hashes.txt.asc` file contains SHA256 hashes of all APKs,
+            PGP-signed with the Fialka release key.
+
+            ```bash
+            # 1. Import the public key
+            gpg --keyserver keys.openpgp.org --recv-keys 0845E4B46420A2EA
+            # or: curl https://github.com/FialkaApp.gpg | gpg --import
+
+            # 2. Verify
+            gpg --verify release-hashes.txt.asc
+            sha256sum -c release-hashes.txt
+            ```
+          files: |
+            app/build/outputs/apk/release/*-signed.apk
+            release-hashes.txt.asc
+            release-hashes.txt
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.name, 'alpha') || contains(steps.version.outputs.name, 'beta') }}

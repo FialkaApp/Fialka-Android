@@ -8,7 +8,10 @@ build/
 **/build/
 
 # --- AI / Copilot (local only, never push) ---
-.github/
+.github/copilot-instructions.md
+
+# Workflows ARE tracked (GitHub Actions)
+# .github/workflows/ is NOT ignored
 
 # --- IDE ---
 .idea/
@@ -46,6 +49,10 @@ signing.properties
 
 # --- Logs ---
 *.log
+
+# --- Native binaries (built from Fialka-Core submodule — never commit) ---
+# Run Fialka-Core/build_android.sh to regenerate locally
+app/src/main/jniLibs/**/*.so
 
 # --- OS ---
 .DS_Store
