@@ -27,6 +27,7 @@ Steps:
 
 import getpass
 import glob
+import hashlib
 import json
 import os
 import re
@@ -35,6 +36,11 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+# Force UTF-8 output on Windows (cp1252 console can't render emojis)
+if sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -53,6 +59,8 @@ def read_properties(path: Path) -> dict[str, str]:
         line = line.strip()
         if line and not line.startswith("#") and "=" in line:
             k, _, v = line.partition("=")
+            # Java .properties escapes backslashes (e.g. sdk.dir=C\:\\Users\\...)
+            v = v.replace("\\:", ":").replace("\\\\", "\\")
             props[k.strip()] = v.strip()
     return props
 
@@ -65,9 +73,11 @@ def find_apksigner() -> Path:
     if not sdk_root:
         sys.exit("❌ Android SDK not found. Set ANDROID_HOME or add sdk.dir to local.properties.")
 
+    build_tools = Path(sdk_root) / "build-tools"
     candidates = sorted(
-        glob.glob(str(Path(sdk_root) / "build-tools" / "*" / "apksigner*")),
-        key=lambda p: [int(x) for x in re.findall(r"\d+", Path(p).parent.name)],
+        [p for bt in build_tools.iterdir() if bt.is_dir()
+         for p in bt.iterdir() if p.stem == "apksigner"],
+        key=lambda p: [int(x) for x in re.findall(r"\d+", p.parent.name)],
         reverse=True,
     )
     if not candidates:
@@ -75,9 +85,8 @@ def find_apksigner() -> Path:
     return Path(candidates[0])
 
 
-def run(cmd: list[str], *, cwd=None, input_data: bytes | None = None, check=True) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, cwd=cwd, input=input_data, check=check,
-                          capture_output=False, text=False)
+def run(cmd: list[str], *, cwd=None, check=True) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, cwd=cwd, check=check)
 
 
 def run_output(cmd: list[str], *, cwd=None, check=True) -> str:
@@ -110,6 +119,11 @@ def main():
         else:
             sys.exit("❌ RELEASE_STORE_FILE not found in local.properties and no fallback keystore found.")
 
+    # Resolve relative paths against the repo root
+    keystore_path = str((REPO_ROOT / keystore_path).resolve())
+    if not Path(keystore_path).exists():
+        sys.exit(f"❌ Keystore not found: {keystore_path}")
+
     apksigner = find_apksigner()
 
     print(f"\n🔐 Fialka {version_name} (versionCode {version_code})")
@@ -119,7 +133,7 @@ def main():
 
     # 3. Prompt for password (not echoed, never in process args)
     password = getpass.getpass("\nKeystore password: ")
-    password_stdin = f"{password}\n{password}\n".encode()
+    password_bytes = password.encode("utf-8")
     password = None  # clear from Python string asap (best-effort)
 
     with tempfile.TemporaryDirectory(prefix="fialka-release-") as work_dir:
@@ -166,23 +180,35 @@ def main():
         signed_apk = work / apk_name
         print(f"\n✍️  Signing APK ...")
 
-        run([
-            str(apksigner), "sign",
-            "--ks", keystore_path,
-            "--ks-key-alias", key_alias,
-            "--ks-pass", "stdin",
-            "--key-pass", "stdin",
-            "--v1-signing-enabled", "false",
-            "--v2-signing-enabled", "true",
-            "--v3-signing-enabled", "true",
-            "--v4-signing-enabled", "true",
-            "--out", str(signed_apk),
-            str(unsigned_apk),
-        ], input_data=password_stdin)
+        # Write password to a temp file — stdin is unreliable with .bat wrappers on Windows.
+        # File is zeroed and deleted immediately after signing.
+        pwd_file = work / ".pwd"
+        # apksigner file: paths must use forward slashes on Windows
+        pwd_file_uri = pwd_file.as_posix()
+        try:
+            # apksigner file: mode reads line 1 for ks-pass, line 2 for key-pass
+            pwd_file.write_bytes(password_bytes + b"\n" + password_bytes)
+            run([
+                str(apksigner), "sign",
+                "--ks", keystore_path,
+                "--ks-key-alias", key_alias,
+                "--ks-pass", f"file:{pwd_file_uri}",
+                "--key-pass", f"file:{pwd_file_uri}",
+                "--v1-signing-enabled", "false",
+                "--v2-signing-enabled", "true",
+                "--v3-signing-enabled", "true",
+                "--v4-signing-enabled", "true",
+                "--out", str(signed_apk),
+                str(unsigned_apk),
+            ])
+        finally:
+            # Zero and delete the password file regardless of success/failure
+            pwd_file.write_bytes(b"\x00" * len(password_bytes))
+            pwd_file.unlink(missing_ok=True)
 
-        # Zero the password bytes
-        password_stdin = b"\x00" * len(password_stdin)
-        del password_stdin
+        # Zero the password bytes from memory
+        password_bytes = b"\x00" * len(password_bytes)
+        del password_bytes
 
         # Verify
         run([str(apksigner), "verify", "--verbose", str(signed_apk)])
@@ -190,7 +216,6 @@ def main():
 
         # 6. SHA256
         print(f"\n🔢 Computing SHA256 ...")
-        import hashlib
         digest = hashlib.sha256(signed_apk.read_bytes()).hexdigest()
         hash_file = work / "release-hashes.txt"
         hash_file.write_text(f"{digest}  {apk_name}\n", encoding="utf-8")
