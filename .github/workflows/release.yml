@@ -66,7 +66,7 @@ jobs:
 
       # ── 4. Android NDK ───────────────────────────────────────────────────
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --locked
