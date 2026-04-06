@@ -112,10 +112,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         id: version
         run: |
-          VERSION_NAME=$(grep VERSION_NAME version.properties | cut -d= -f2)
-          VERSION_CODE=$(grep VERSION_CODE version.properties | cut -d= -f2)
-          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
-          echo "code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          VERSION_NAME=$(grep "^VERSION_NAME=" version.properties | cut -d= -f2 | tr -d '[:space:]')
+          VERSION_CODE=$(grep "^VERSION_CODE=" version.properties | cut -d= -f2 | tr -d '[:space:]')
+          echo "name=${VERSION_NAME}" >> $GITHUB_OUTPUT
+          echo "code=${VERSION_CODE}" >> $GITHUB_OUTPUT
 
       # ── 10. PGP — sign SHA256 hashes of the APK ──────────────────────────
       - name: Import GPG key
