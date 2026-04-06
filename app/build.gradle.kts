@@ -107,7 +107,7 @@ dependencies {
 
     // SQLCipher (encrypted Room database)
     implementation("net.zetetic:sqlcipher-android:4.14.1")
-    implementation("androidx.sqlite:sqlite-ktx:2.4.0")
+    implementation("androidx.sqlite:sqlite-ktx:2.6.2")
 
     // Security / Crypto
     implementation("androidx.biometric:biometric:1.1.0")
