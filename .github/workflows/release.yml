@@ -36,7 +36,7 @@ jobs:
     steps:
       # ── 1. Checkout + submodules ──────────────────────────────────────────
       - name: Checkout repository + Fialka-Core submodule
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: recursive   # pulls Fialka-Core at the pinned commit
 
