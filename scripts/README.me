@@ -1,0 +1,19 @@
+Fialka Android — Local Release Signing Script
+==============================================
+Prerequisites:
+  - uv          (https://docs.astral.sh/uv/)
+  - Android SDK (apksigner in build-tools)
+  - GnuPG       (gpg, configured with key 0845E4B46420A2EA)
+  - GitHub CLI  (gh, authenticated)
+
+Usage:
+  uv run scripts/release.py
+
+Steps:
+  1. Read VERSION_NAME / VERSION_CODE from version.properties
+  2. Read RELEASE_STORE_FILE / RELEASE_KEY_ALIAS from local.properties
+  3. Download unsigned APK artifact from the CI run for the current tag
+  4. Sign with apksigner (password via stdin — never in process list)
+  5. Compute SHA256 hash
+  6. GPG clearsign the hash file
+  7. Create GitHub Release with signed APK + hash files
