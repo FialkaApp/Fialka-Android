@@ -305,9 +305,10 @@ object MailboxClientManager {
      */
     fun buildMailboxLink(inviteCode: String? = null): String? {
         val onion = getMailboxOnion() ?: return null
-        val pubkey = getMailboxPubKey() ?: return null
         val type = getMailboxType() ?: "PERSONAL"
-        val base = "fialka://mailbox?onion=${Uri.encode(onion)}&pubkey=${Uri.encode(pubkey)}&type=${Uri.encode(type)}"
+        val pubkey = getMailboxPubKey().orEmpty()
+        var base = "fialka://mailbox?onion=${Uri.encode(onion)}&type=${Uri.encode(type)}"
+        if (pubkey.isNotEmpty()) base += "&pubkey=${Uri.encode(pubkey)}"
         return if (!inviteCode.isNullOrEmpty()) "$base&invite=${Uri.encode(inviteCode)}" else base
     }
 

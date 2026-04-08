@@ -345,7 +345,7 @@ class MailboxSettingsFragment : Fragment() {
         try {
             val json = JSONObject(raw)
             val onion = json.getString("onion")
-            val pubkey = json.getString("pubkey")
+            val pubkey = json.optString("pubkey", "")
             val type = json.optString("type", "PERSONAL")
             val invite = json.optString("invite", "")
             handleJoinMailbox(onion, pubkey, type, invite)
@@ -422,7 +422,7 @@ class MailboxSettingsFragment : Fragment() {
                 return
             }
             val onion = uri.getQueryParameter("onion") ?: throw IllegalArgumentException()
-            val pubkey = uri.getQueryParameter("pubkey") ?: throw IllegalArgumentException()
+            val pubkey = uri.getQueryParameter("pubkey") ?: ""
             val type = uri.getQueryParameter("type") ?: "PERSONAL"
             val invite = uri.getQueryParameter("invite") ?: ""
             handleJoinMailbox(onion, pubkey, type, invite)
