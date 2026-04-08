@@ -155,7 +155,7 @@ class MainActivity : AppCompatActivity() {
         if (uri.scheme?.lowercase() != "fialka" || uri.host != "mailbox") return
 
         val onion = uri.getQueryParameter("onion") ?: return
-        val pubkey = uri.getQueryParameter("pubkey") ?: return
+        val pubkey = uri.getQueryParameter("pubkey") ?: ""
         val type = uri.getQueryParameter("type") ?: "PERSONAL"
         val invite = uri.getQueryParameter("invite") ?: ""
 
