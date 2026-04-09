@@ -118,7 +118,7 @@ class WalletUnitTest {
     @Test
     fun `PaymentMessageData toPlaintext starts with XMR_PAY prefix`() {
         val data = PaymentMessageData(
-            amountPiconero = 500_000_000_000L,
+            piconero = 500_000_000_000L,
             address = "4TestAddressXXX",
             label = "Pizza"
         )
@@ -129,13 +129,13 @@ class WalletUnitTest {
     @Test
     fun `PaymentMessageData round-trip preserves all fields`() {
         val original = PaymentMessageData(
-            amountPiconero = 123_456_789_000L,
+            piconero = 123_456_789_000L,
             address = "4AbcDefGhiJkl90",
             label = "Test payment"
         )
         val roundtripped = PaymentMessageData.fromPlaintext(original.toPlaintext())
         assertNotNull("fromPlaintext should succeed", roundtripped)
-        assertEquals(original.amountPiconero, roundtripped!!.amountPiconero)
+        assertEquals(original.piconero, roundtripped!!.piconero)
         assertEquals(original.address, roundtripped.address)
         assertEquals(original.label, roundtripped.label)
     }
@@ -150,9 +150,9 @@ class WalletUnitTest {
     @Test
     fun `PaymentMessageData amountXmr helper formats correctly`() {
         val data = PaymentMessageData(
-            amountPiconero = 1_000_000_000_000L,
+            piconero = 1_000_000_000_000L,
             address = "4Test",
-            label = null
+            label = ""
         )
         // amountXmr should produce non-empty, non-zero string
         assertTrue(data.amountXmr.isNotEmpty())
@@ -162,7 +162,7 @@ class WalletUnitTest {
     @Test
     fun `PaymentMessageData shortAddress truncates long address`() {
         val long = "4" + "A".repeat(94)  // 95 chars — standard Monero primary address
-        val data = PaymentMessageData(amountPiconero = 1L, address = long, label = null)
+        val data = PaymentMessageData(piconero = 1L, address = long, label = "")
         assertTrue("shortAddress should be shorter than full", data.shortAddress.length < long.length)
     }
 
