@@ -467,6 +467,8 @@
         android:layout_height="wrap_content"
         android:background="?attr/colorToolbarBackground"
         app:menu="@menu/menu_wallet_bottom"
+        app:itemIconTint="@color/nav_icon_tint"
+        app:itemTextColor="@color/nav_icon_tint"
         app:labelVisibilityMode="labeled"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
