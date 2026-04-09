@@ -24,6 +24,8 @@ import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.util.DummyTrafficManager
 import com.fialkaapp.fialka.util.NotificationHelper
+import com.fialkaapp.fialka.wallet.PaymentMessageData
+import com.fialkaapp.fialka.wallet.WalletRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -165,6 +167,37 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _sendError.value = null
             } catch (e: Exception) {
                 _sendError.value = e.message ?: "Échec de l'envoi"
+            }
+        }
+    }
+
+    /**
+     * Generate a fresh XMR subaddress for this conversation and send it as a
+     * payment request message over the existing ratchet channel.
+     *
+     * @param amountPiconero  Requested amount (0 = open / "any amount")
+     * @param label           Optional memo shown on the payment card
+     */
+    fun sendPaymentRequest(amountPiconero: Long = 0L, label: String = "") {
+        if (conversationId.isEmpty()) return
+        if (_isAccepted.value != true) {
+            _sendError.value = "En attente d'acceptation par le contact"
+            return
+        }
+        viewModelScope.launch {
+            try {
+                val walletRepo = WalletRepository(getApplication())
+                val address = walletRepo.getOrGenerateFreshAddress(conversationId)
+                if (address == null) {
+                    _sendError.value = "Impossible de générer une adresse XMR"
+                    return@launch
+                }
+                val plaintext = PaymentMessageData(address, amountPiconero, label).toPlaintext()
+                repository.sendMessage(conversationId, plaintext)
+                DummyTrafficManager.onRealMessageSent()
+                _sendError.value = null
+            } catch (e: Exception) {
+                _sendError.value = e.message ?: "Échec envoi demande de paiement"
             }
         }
     }

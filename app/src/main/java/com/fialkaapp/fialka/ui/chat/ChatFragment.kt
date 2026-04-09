@@ -48,10 +48,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.crypto.WalletSeedManager
 import com.fialkaapp.fialka.data.repository.ChatRepository
+import com.fialkaapp.fialka.databinding.DialogPaymentRequestBinding
 import com.fialkaapp.fialka.databinding.FragmentChatBinding
 import com.fialkaapp.fialka.tor.MailboxClientManager
 import com.fialkaapp.fialka.util.EphemeralManager
+import com.fialkaapp.fialka.wallet.PaymentMessageData
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
@@ -211,6 +214,22 @@ class ChatFragment : Fragment() {
             onResend = { messageId ->
                 viewModel.resendMessage(messageId)
             },
+            onPaymentRequest = { plaintext ->
+                // User tapped "Payer" on a received payment request
+                // Show a dialog with the address and option to copy or navigate to wallet
+                val data = PaymentMessageData.fromPlaintext(plaintext) ?: return@MessagesAdapter
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(getString(R.string.payment_pay_dialog_title))
+                    .setMessage(data.address)
+                    .setPositiveButton(R.string.payment_copy_address) { _, _ ->
+                        val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE)
+                                as ClipboardManager
+                        cm.setPrimaryClip(ClipData.newPlainText("XMR address", data.address))
+                        Toast.makeText(requireContext(), getString(R.string.payment_address_copied), Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            },
             onMessageLongPress = { anchorView, message ->
                 val popup = PopupMenu(requireContext(), anchorView)
                 popup.menuInflater.inflate(R.menu.menu_message_actions, popup.menu)
@@ -300,6 +319,15 @@ class ChatFragment : Fragment() {
         binding.btnPickFile.setOnClickListener {
             collapseAttachmentIcons()
             requestFilePermissionAndPick()
+        }
+        // Payment request button — only visible if this device has an XMR wallet
+        binding.btnPaymentRequest.visibility =
+            if (WalletSeedManager.isWalletEnabled(requireContext()) &&
+                WalletSeedManager.hasWalletSeed(requireContext())
+            ) View.VISIBLE else View.GONE
+        binding.btnPaymentRequest.setOnClickListener {
+            collapseAttachmentIcons()
+            showPaymentRequestDialog()
         }
 
         // Tap anywhere outside icons to dismiss
@@ -393,6 +421,35 @@ class ChatFragment : Fragment() {
         } else {
             expandAttachmentIcons()
         }
+    }
+
+    // ── XMR Payment request dialog ──
+
+    /**
+     * Show a dialog that lets the user optionally specify an amount and label
+     * before sending an XMR payment request to the contact.
+     *
+     * A fresh subaddress is generated per-conversation via [ChatViewModel.sendPaymentRequest].
+     */
+    private fun showPaymentRequestDialog() {
+        val dialogBinding = DialogPaymentRequestBinding.inflate(layoutInflater)
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.payment_request_dialog_title)
+            .setView(dialogBinding.root)
+            .setPositiveButton(R.string.payment_request_send) { _, _ ->
+                val amountStr = dialogBinding.etAmountXmr.text?.toString()?.trim() ?: ""
+                val label = dialogBinding.etLabel.text?.toString()?.trim() ?: ""
+                val piconero = if (amountStr.isNotEmpty()) {
+                    try {
+                        (amountStr.toDouble() * 1_000_000_000_000.0).toLong()
+                    } catch (_: NumberFormatException) {
+                        0L
+                    }
+                } else 0L
+                viewModel.sendPaymentRequest(piconero, label)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun expandAttachmentIcons() {

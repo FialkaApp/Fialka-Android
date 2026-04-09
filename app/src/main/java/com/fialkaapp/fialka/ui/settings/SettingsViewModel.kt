@@ -180,6 +180,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 type = SettingType.ACTION
             ),
             SettingItem(
+                id = "donation",
+                title = app.getString(R.string.donation_settings_title),
+                summary = app.getString(R.string.donation_settings_subtitle),
+                iconRes = R.drawable.ic_monero,
+                category = CATEGORY_ABOUT,
+                type = SettingType.ACTION
+            ),
+            SettingItem(
                 id = "version",
                 title = app.getString(R.string.setting_version),
                 summary = getVersionName(app),

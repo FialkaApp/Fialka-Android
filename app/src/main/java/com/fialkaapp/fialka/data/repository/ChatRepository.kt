@@ -69,6 +69,9 @@ class ChatRepository(private val appContext: Context) {
         /** Prefix for file attachment messages sent via the ratchet. */
         internal const val FILE_PREFIX = "FILE|"
 
+        /** Prefix for XMR payment request messages. Detected by MessagesAdapter for special rendering. */
+        internal const val PAYMENT_PREFIX = "XMR_PAY:"
+
         internal fun getMutex(conversationId: String): Mutex {
             return synchronized(ratchetMutexes) {
                 ratchetMutexes.getOrPut(conversationId) { Mutex() }

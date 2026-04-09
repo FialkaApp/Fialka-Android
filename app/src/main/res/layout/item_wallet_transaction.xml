@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp">
+
+    <!-- Direction icon (↓ incoming green / ↑ outgoing orange) -->
+    <ImageView
+        android:id="@+id/ivDirection"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:scaleType="centerInside"
+        android:importantForAccessibility="no"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:src="@drawable/ic_receive" />
+
+    <!-- Amount -->
+    <TextView
+        android:id="@+id/tvTxAmount"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorTextPrimary"
+        android:layout_marginStart="12dp"
+        app:layout_constraintStart_toEndOf="@id/ivDirection"
+        app:layout_constraintEnd_toStartOf="@id/tvTxStatus"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="+0.012 XMR" />
+
+    <!-- Short txId / label -->
+    <TextView
+        android:id="@+id/tvTxId"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:textSize="11sp"
+        android:fontFamily="monospace"
+        android:textColor="?attr/colorTextSecondary"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:layout_marginStart="12dp"
+        app:layout_constraintStart_toEndOf="@id/ivDirection"
+        app:layout_constraintEnd_toStartOf="@id/tvTxStatus"
+        app:layout_constraintTop_toBottomOf="@id/tvTxAmount"
+        tools:text="a1b2c3d4e5f6…" />
+
+    <!-- Status badge (right column top) -->
+    <TextView
+        android:id="@+id/tvTxStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:textAllCaps="true"
+        android:letterSpacing="0.06"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
+        android:layout_marginStart="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Confirmé"
+        android:background="@drawable/bg_circle_option_green"
+        android:textColor="#FFFFFF" />
+
+    <!-- Date (right column bottom) -->
+    <TextView
+        android:id="@+id/tvTxDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="11sp"
+        android:textColor="?attr/colorTextSecondary"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvTxStatus"
+        tools:text="14 juil." />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="?attr/colorDivider"
+        android:alpha="0.5"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

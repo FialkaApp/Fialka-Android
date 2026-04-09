@@ -120,6 +120,85 @@ object FialkaNative {
 
     external fun ratchetPqStep(rootKey: ByteArray, pqSs: ByteArray): ByteArray
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // ── MONERO (XMR) WALLET ─────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Wire formats:
+    //   xmrGenerateSeed          → [32]  (raw wallet seed entropy)
+    //   xmrDeriveKeys            → spend_pub(32) || view_pub(32) || view_priv(32) = 96 bytes
+    //   xmrPrimaryAddress        → UTF-8 bytes of 95-char mainnet address ("4…")
+    //   xmrSubAddress            → UTF-8 bytes of 95-char subaddress ("8…")
+    //   xmrDeriveDonationSubaddress → UTF-8 bytes of 95-char donation subaddress
+    //
+    // ⚠ spend_priv is NEVER returned — it is zeroized inside Rust before the call returns.
+    // ⚠ xmrDeriveKeys seed parameter must come from xmrGenerateSeed or a validated 25-word
+    //   Monero mnemonic decoded by MoneroMnemonicManager — NEVER the Fialka identity seed.
+
+    /**
+     * Generate 32 bytes of cryptographically secure wallet entropy.
+     *
+     * This seed is **independent** from the Fialka identity seed.
+     * Pass to [xmrDeriveKeys] to get the wallet public keys, or encode with
+     * [MoneroMnemonicManager] to display the 25-word backup phrase.
+     */
+    external fun xmrGenerateSeed(): ByteArray
+
+    /**
+     * Derive Monero public keys from a 32-byte wallet seed.
+     *
+     * Returns **96 bytes**: `spend_pub(32) || view_pub(32) || view_priv(32)`.
+     * - `spend_pub` (bytes 0–31)  : spend public key — shared to receive funds
+     * - `view_pub`  (bytes 32–63) : view public key  — part of the primary address
+     * - `view_priv` (bytes 64–95) : view private key — needed for subaddress derivation
+     *                               and for the donation transparency feature
+     *
+     * ⚠ The spend private key is derived inside Rust and deliberately **not returned**.
+     */
+    external fun xmrDeriveKeys(seed: ByteArray): ByteArray
+
+    /**
+     * Compute the Monero mainnet primary address from spend_pub + view_pub.
+     *
+     * Returns UTF-8 bytes of the 95-character address (starts with `"4"`).
+     * Decode with `String(result, Charsets.UTF_8)`.
+     */
+    external fun xmrPrimaryAddress(spendPub: ByteArray, viewPub: ByteArray): ByteArray
+
+    /**
+     * Derive a Monero subaddress at position (account, index).
+     *
+     * Returns UTF-8 bytes of the 95-character subaddress (starts with `"8"`).
+     * Does NOT require spend_priv — safe for watch-only and donation contexts.
+     *
+     * @param spendPub  32-byte spend public key (from [xmrDeriveKeys] bytes 0–31)
+     * @param viewPriv  32-byte view private key  (from [xmrDeriveKeys] bytes 64–95)
+     * @param account   Account index (typically 0)
+     * @param index     Address index within account (0 = primary equivalent per account)
+     */
+    external fun xmrSubAddress(spendPub: ByteArray, viewPriv: ByteArray, account: Int, index: Int): ByteArray
+
+    /**
+     * Derive a deterministic donation subaddress for a given Fialka AccountID.
+     *
+     * Index = first 4 bytes of SHA-256(accountIdBytes) as little-endian u32, account = 0.
+     *
+     * `spendPub` and `viewPriv` must be the **donation wallet's** keys — hardcoded constants
+     * from [DonationManager], NOT the user's wallet keys.
+     * They are intentionally public: any observer with these values can audit incoming
+     * donation totals using a Monero watch-only wallet (e.g. Feather Wallet), but cannot
+     * spend funds (spend_priv stays offline with the project maintainers).
+     *
+     * @param spendPub       32-byte donation wallet spend_pub (hardcoded APK constant)
+     * @param viewPriv       32-byte donation wallet view_priv (intentionally public)
+     * @param accountIdBytes UTF-8 bytes of the user's Fialka AccountID
+     */
+    external fun xmrDeriveDonationSubaddress(
+        spendPub: ByteArray,
+        viewPriv: ByteArray,
+        accountIdBytes: ByteArray,
+    ): ByteArray
+
     // ── Kotlin helper extensions ─────────────────────────────────────────────
 
     /**

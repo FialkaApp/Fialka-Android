@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_wallet_home"
+        android:icon="@drawable/ic_wallet"
+        android:title="@string/wallet_tab_home" />
+    <item
+        android:id="@+id/nav_wallet_receive"
+        android:icon="@drawable/ic_receive"
+        android:title="@string/wallet_tab_receive" />
+    <item
+        android:id="@+id/nav_wallet_history"
+        android:icon="@drawable/ic_history"
+        android:title="@string/wallet_tab_history" />
+    <item
+        android:id="@+id/nav_wallet_settings"
+        android:icon="@drawable/ic_shield"
+        android:title="@string/wallet_tab_settings" />
+</menu>

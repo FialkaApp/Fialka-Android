@@ -23,4 +23,10 @@
         android:id="@+id/action_reset_account"
         android:title="Supprimer mon compte"
         app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_open_wallet"
+        android:icon="@drawable/ic_wallet"
+        android:title="@string/wallet_home_title"
+        app:showAsAction="ifRoom" />
 </menu>

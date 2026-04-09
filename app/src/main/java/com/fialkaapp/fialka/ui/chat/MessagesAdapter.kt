@@ -31,11 +31,18 @@ import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.widget.FrameLayout
+import androidx.cardview.widget.CardView
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.data.model.MessageLocal
+import com.fialkaapp.fialka.data.repository.ChatRepository
+import com.fialkaapp.fialka.databinding.ItemMessagePaymentBinding
 import com.fialkaapp.fialka.databinding.ItemMessageReceivedBinding
 import com.fialkaapp.fialka.databinding.ItemMessageSentBinding
 import com.fialkaapp.fialka.util.EphemeralManager
+import com.fialkaapp.fialka.wallet.PaymentMessageData
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -55,7 +62,9 @@ class MessagesAdapter(
     private val onRetryDownload: ((String) -> Unit)? = null,
     private val onOneShotOpen: ((String) -> Unit)? = null,
     private val onResend: ((String) -> Unit)? = null,
-    private val onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null
+    private val onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null,
+    /** Called when user taps "Payer" on a received payment request. Receives the raw plaintext. */
+    private val onPaymentRequest: ((plaintext: String) -> Unit)? = null
 ) : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
 
     private var lastAnimatedPosition = -1
@@ -65,6 +74,8 @@ class MessagesAdapter(
         private const val VIEW_TYPE_RECEIVED = 1
         private const val VIEW_TYPE_UNREAD_DIVIDER = 2
         private const val VIEW_TYPE_INFO = 3
+        private const val VIEW_TYPE_PAYMENT_SENT = 4
+        private const val VIEW_TYPE_PAYMENT_RECEIVED = 5
         private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
         /** Format file size to human-readable string. */
@@ -194,7 +205,15 @@ class MessagesAdapter(
         return when (val item = getItem(position)) {
             is ChatItem.UnreadDivider -> VIEW_TYPE_UNREAD_DIVIDER
             is ChatItem.InfoMessage -> VIEW_TYPE_INFO
-            is ChatItem.Message -> if (item.message.isMine) VIEW_TYPE_SENT else VIEW_TYPE_RECEIVED
+            is ChatItem.Message -> {
+                val isPayment = item.message.plaintext.startsWith(ChatRepository.PAYMENT_PREFIX)
+                when {
+                    isPayment && item.message.isMine -> VIEW_TYPE_PAYMENT_SENT
+                    isPayment -> VIEW_TYPE_PAYMENT_RECEIVED
+                    item.message.isMine -> VIEW_TYPE_SENT
+                    else -> VIEW_TYPE_RECEIVED
+                }
+            }
         }
     }
 
@@ -215,6 +234,12 @@ class MessagesAdapter(
                 val view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.item_info_message, parent, false)
                 InfoViewHolder(view)
+            }
+            VIEW_TYPE_PAYMENT_SENT, VIEW_TYPE_PAYMENT_RECEIVED -> {
+                val binding = ItemMessagePaymentBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                PaymentViewHolder(binding)
             }
             else -> {
                 val binding = ItemMessageReceivedBinding.inflate(
@@ -238,6 +263,10 @@ class MessagesAdapter(
             is InfoViewHolder -> {
                 val info = getItem(position) as ChatItem.InfoMessage
                 holder.bind(info.text, if (info.clickable) onFingerprintInfoClick else null)
+            }
+            is PaymentViewHolder -> {
+                val msg = (getItem(position) as ChatItem.Message).message
+                holder.bind(msg, onPaymentRequest)
             }
             is UnreadDividerViewHolder -> { /* static view, nothing to bind */ }
         }
@@ -526,6 +555,61 @@ class MessagesAdapter(
             } else {
                 tvInfoMessage.text = text
                 tvInfoMessage.movementMethod = null
+            }
+        }
+    }
+
+    // ── Payment request ViewHolder ────────────────────────────────────────────
+
+    inner class PaymentViewHolder(
+        private val binding: ItemMessagePaymentBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(message: MessageLocal, onPayRequest: ((String) -> Unit)?) {
+            val data = PaymentMessageData.fromPlaintext(message.plaintext)
+                ?: return // should not happen — type detection already gated on prefix
+
+            binding.tvPaymentTime.text = timeFormat.format(Date(message.timestamp))
+
+            // Align card: sent = end, received = start
+            (binding.cardPayment.layoutParams as FrameLayout.LayoutParams).gravity =
+                if (message.isMine) android.view.Gravity.END else android.view.Gravity.START
+
+            // Amount
+            if (data.piconero > 0L) {
+                binding.tvPaymentAmount.visibility = View.VISIBLE
+                binding.tvPaymentAmount.text = "${data.amountXmr} XMR"
+            } else {
+                binding.tvPaymentAmount.visibility = View.GONE
+            }
+
+            // Label
+            if (data.label.isNotBlank()) {
+                binding.tvPaymentLabel.visibility = View.VISIBLE
+                binding.tvPaymentLabel.text = data.label
+            } else {
+                binding.tvPaymentLabel.visibility = View.GONE
+            }
+
+            // Short address
+            binding.tvPaymentAddress.text = data.shortAddress
+
+            // Copy address button
+            binding.btnCopyAddress.setOnClickListener { v ->
+                val cm = v.context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                        as ClipboardManager
+                cm.setPrimaryClip(ClipData.newPlainText("XMR address", data.address))
+                Toast.makeText(v.context, v.context.getString(R.string.payment_address_copied), Toast.LENGTH_SHORT).show()
+            }
+
+            // "Payer" button — visible only on received messages
+            if (!message.isMine) {
+                binding.btnPay.visibility = View.VISIBLE
+                binding.btnPay.setOnClickListener {
+                    onPayRequest?.invoke(message.plaintext)
+                }
+            } else {
+                binding.btnPay.visibility = View.GONE
             }
         }
     }

@@ -30,6 +30,7 @@ import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.databinding.FragmentConversationProfileBinding
 import com.fialkaapp.fialka.util.EphemeralManager
+import com.fialkaapp.fialka.util.QrCodeGenerator
 import kotlinx.coroutines.launch
 
 /**

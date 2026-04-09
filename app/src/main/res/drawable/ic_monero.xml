@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Simplified Monero (XMR) logo icon — stylised M letterform in the
+  characteristic Monero grey/white, suitable for tinting via app:tint.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="72"
+    android:viewportHeight="72">
+
+    <!-- Circle background -->
+    <path
+        android:fillColor="#FF4C4C4C"
+        android:pathData="M36,4a32,32 0,1 1,0 64a32,32 0,1 1,0 -64Z" />
+
+    <!-- Monero "M" stylised letterform (five-pointed shape) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="
+          M36,16
+          L52,48 L46,48 L36,30 L26,48 L20,48 Z" />
+    <!-- Left leg -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M20,48 L20,56 L26,56 L26,38 L20,48Z" />
+    <!-- Right leg -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M46,56 L52,56 L52,48 L46,38 L46,56Z" />
+
+</vector>

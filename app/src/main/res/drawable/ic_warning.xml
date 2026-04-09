@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Triangle warning icon (material-style) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M1,21L12,2L23,21H1ZM12,18.5m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M11,10h2v4.5h-2Z" />
+</vector>

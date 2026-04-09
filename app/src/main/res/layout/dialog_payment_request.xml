@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- dialog_payment_request.xml — amount + label input before sending a payment request -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="24dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="4dp">
+
+    <!-- XMR amount (optional) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilAmountXmr"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        android:hint="@string/payment_amount_hint"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etAmountXmr"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:maxLength="18"
+            android:imeOptions="actionNext" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Label / memo (optional) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/payment_label_hint"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapSentences"
+            android:maxLength="80"
+            android:imeOptions="actionDone" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Wallet status hint -->
+    <TextView
+        android:id="@+id/tvWalletStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:textSize="11sp"
+        android:alpha="0.6"
+        android:text="@string/payment_wallet_note" />
+
+</LinearLayout>

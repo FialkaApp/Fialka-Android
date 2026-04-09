@@ -199,6 +199,20 @@
             app:popUpToInclusive="true"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out" />
+        <action
+            android:id="@+id/action_conversations_to_walletChoice"
+            app:destination="@id/walletChoiceFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_conversations_to_walletHome"
+            app:destination="@id/walletHomeFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -437,5 +451,83 @@
         android:name="com.fialkaapp.fialka.ui.onboarding.TermsConsentFragment"
         android:label="Conditions d'utilisation"
         tools:layout="@layout/fragment_terms_consent" />
+
+    <!-- ── Wallet onboarding ── -->
+
+    <fragment
+        android:id="@+id/walletChoiceFragment"
+        android:name="com.fialkaapp.fialka.ui.wallet.WalletChoiceFragment"
+        android:label="Portefeuille XMR"
+        tools:layout="@layout/fragment_wallet_choice">
+        <action
+            android:id="@+id/action_walletChoice_to_walletBackupPhrase"
+            app:destination="@id/walletBackupPhraseFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_walletChoice_to_walletRestore"
+            app:destination="@id/walletRestoreFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_walletChoice_to_walletHome"
+            app:destination="@id/walletHomeFragment"
+            app:popUpTo="@id/walletChoiceFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/walletBackupPhraseFragment"
+        android:name="com.fialkaapp.fialka.ui.wallet.WalletBackupPhraseFragment"
+        android:label="Sauvegarde XMR"
+        tools:layout="@layout/fragment_wallet_backup_phrase">
+        <action
+            android:id="@+id/action_walletBackupPhrase_to_walletHome"
+            app:destination="@id/walletHomeFragment"
+            app:popUpTo="@id/walletChoiceFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/walletRestoreFragment"
+        android:name="com.fialkaapp.fialka.ui.wallet.WalletRestoreFragment"
+        android:label="Restaurer XMR"
+        tools:layout="@layout/fragment_wallet_restore">
+        <action
+            android:id="@+id/action_walletRestore_to_walletHome"
+            app:destination="@id/walletHomeFragment"
+            app:popUpTo="@id/walletChoiceFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+    </fragment>
+
+    <!--
+        walletHomeFragment — placeholder for Phase 5 (WalletHomeFragment).
+        Declared here so onboarding nav actions compile immediately.
+        The full wallet home screen (balance, history, send/receive) is
+        created in Phase 5.
+    -->
+    <fragment
+        android:id="@+id/walletHomeFragment"
+        android:name="com.fialkaapp.fialka.ui.wallet.WalletHomeFragment"
+        android:label="Portefeuille"
+        tools:layout="@layout/fragment_wallet_home">
+        <action
+            android:id="@+id/action_walletHome_to_conversations"
+            app:destination="@id/conversationsFragment"
+            app:popUpTo="@id/conversationsFragment"
+            app:popUpToInclusive="false"
+            app:enterAnim="@anim/slide_in_left"
+            app:exitAnim="@anim/slide_out_right" />
+    </fragment>
 
 </navigation>

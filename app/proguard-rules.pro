@@ -35,6 +35,32 @@
     public static *** wtf(...);
 }
 
+# --- Wallet: keep JNI-called external methods on FialkaNative ---
+-keepclasseswithmembernames class com.fialkaapp.fialka.crypto.FialkaNative {
+    native <methods>;
+}
+
+# --- Wallet: keep companion object field names used in DonationConfig.hexToBytes ---
+-keepclassmembers class com.fialkaapp.fialka.wallet.DonationConfig {
+    *;
+}
+
+# --- Wallet: WalletSeedManager accesses EncryptedSharedPreferences by name ---
+-keep class com.fialkaapp.fialka.crypto.WalletSeedManager { *; }
+-keepclassmembers class com.fialkaapp.fialka.crypto.WalletSeedManager$XmrKeys { *; }
+
+# --- Wallet: Room entity + DAO field names must survive shrinking ---
+-keepclassmembers class com.fialkaapp.fialka.data.model.WalletTransaction { *; }
+-keepclassmembers class com.fialkaapp.fialka.data.model.WalletAddress { *; }
+-keepclassmembers class com.fialkaapp.fialka.data.model.WalletSyncState { *; }
+
+# --- WorkManager: MoneroSyncWorker must be instantiated by class name ---
+-keep class com.fialkaapp.fialka.wallet.MoneroSyncWorker { *; }
+
+# --- Strip wallet-related log tags in release (already covered by general Log rule above,
+#     but keep the class names stable for crash reporters) ---
+-keepnames class com.fialkaapp.fialka.wallet.** { *; }
+
 # --- Obfuscation ---
 -repackageclasses 'a'
 -allowaccessmodification

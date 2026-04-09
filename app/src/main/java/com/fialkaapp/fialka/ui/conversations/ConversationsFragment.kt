@@ -39,6 +39,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.crypto.WalletSeedManager
 import com.fialkaapp.fialka.databinding.FragmentConversationsBinding
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.tor.TorState
@@ -177,6 +178,14 @@ class ConversationsFragment : Fragment() {
                 }
                 R.id.action_reset_account -> {
                     showResetAccountDialog()
+                    true
+                }
+                R.id.action_open_wallet -> {
+                    val dest = if (WalletSeedManager.isWalletEnabled(requireContext()))
+                        R.id.action_conversations_to_walletHome
+                    else
+                        R.id.action_conversations_to_walletChoice
+                    findNavController().navigate(dest)
                     true
                 }
                 else -> false

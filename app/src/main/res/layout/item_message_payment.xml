@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  item_message_payment.xml
+  Payment request bubble — used for both sent (gravity=end) and received (gravity=start).
+  The adapter controls gravity via the root FrameLayout child layout_gravity.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="3dp">
+
+    <!-- Card bubble — gravity toggled at runtime (end=sent, start=received) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cardPayment"
+        android:layout_width="280dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="1dp"
+        app:cardBackgroundColor="?attr/colorBubbleSent"
+        xmlns:app="http://schemas.android.com/apk/res-auto">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <!-- Header row: coin icon + "Demande XMR" label + timestamp -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_xmr_coin"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/tvPaymentHeader"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/payment_request_header"
+                    android:textStyle="bold"
+                    android:textSize="13sp"
+                    android:textColor="#F57F17" />
+
+                <TextView
+                    android:id="@+id/tvPaymentTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="?attr/colorBubbleSentText"
+                    android:alpha="0.65"
+                    tools:text="14:32" />
+
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="10dp"
+                android:background="#20808080" />
+
+            <!-- Amount (hidden if 0) -->
+            <TextView
+                android:id="@+id/tvPaymentAmount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorBubbleSentText"
+                android:visibility="gone"
+                tools:text="0.10000 XMR"
+                tools:visibility="visible" />
+
+            <!-- Label (hidden if empty) -->
+            <TextView
+                android:id="@+id/tvPaymentLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:textSize="13sp"
+                android:textColor="?attr/colorBubbleSentText"
+                android:alpha="0.80"
+                android:visibility="gone"
+                tools:text="Pour le café"
+                tools:visibility="visible" />
+
+            <!-- Address row: truncated + copy button -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:id="@+id/tvPaymentAddress"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="11sp"
+                    android:textColor="?attr/colorBubbleSentText"
+                    android:fontFamily="monospace"
+                    android:alpha="0.75"
+                    tools:text="8AbcDef…XYZ012" />
+
+                <ImageView
+                    android:id="@+id/btnCopyAddress"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="4dp"
+                    android:padding="4dp"
+                    android:src="@drawable/ic_attach"
+                    android:tint="?attr/colorBubbleSentText"
+                    android:alpha="0.65"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/payment_copy_address" />
+
+            </LinearLayout>
+
+            <!-- "Payer" CTA — only visible on received messages -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPay"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:text="@string/payment_pay_now"
+                android:textSize="13sp"
+                android:visibility="gone"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                app:strokeColor="#F57F17"
+                app:strokeWidth="1.5dp" />
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+</FrameLayout>

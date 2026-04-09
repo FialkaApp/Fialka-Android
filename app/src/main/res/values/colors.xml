@@ -54,4 +54,8 @@
     <color name="warning_border">#D4A017</color>
     <color name="warning_surface">#FFF8E1</color>
     <color name="warning_text">#7A5800</color>
+
+    <!-- Wallet / material tokens -->
+    <color name="error_container">#4DEF5350</color>
+    <color name="surface_variant">#FF1A1A2E</color>
 </resources>

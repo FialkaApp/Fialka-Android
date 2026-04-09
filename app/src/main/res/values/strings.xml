@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Fialka</string>
+    <string name="back">Retour</string>
 
     <!-- Onboarding -->
     <string name="onboarding_title">Fialka</string>
@@ -306,6 +307,8 @@
     <string name="settings_legal_subtitle">Confidentialite, conditions d\'utilisation et securite.</string>
     <string name="settings_licenses_title">Licences open source</string>
     <string name="settings_licenses_subtitle">Cadre GPLv3 et composants tiers integres.</string>
+    <string name="donation_settings_title">Soutenir Fialka (XMR)</string>
+    <string name="donation_settings_subtitle">Faire un don anonyme en Monero.</string>
     <string name="settings_theme_shortcut_prefix">Theme actif :</string>
     <string name="settings_mailbox_shortcut_normal">Mode normal active. Acces client a la mailbox.</string>
     <string name="settings_mailbox_shortcut_mailbox">Mode mailbox actif. Gestion serveur et acces membres.</string>
@@ -373,4 +376,93 @@
     <string name="backup_share_chooser">Partager la phrase de recuperation</string>
     <string name="backup_export_done">Fichier sauvegarde dans Telechargements.</string>
     <string name="backup_export_failed">Erreur lors de l\'export du fichier.</string>
+
+    <!-- ── Wallet onboarding ── -->
+    <string name="wallet_choice_icon_desc">Logo Monero</string>
+    <string name="wallet_choice_title">Portefeuille XMR</string>
+    <string name="wallet_choice_subtitle">Envoyez et recevez du Monero directement dans Fialka, via Tor.</string>
+    <string name="wallet_choice_warning">Ce portefeuille est non-custodial : vous seul contrôlez vos fonds. Notez vos 25 mots de récupération — si vous les perdez, vos XMR sont irrécupérables.</string>
+    <string name="wallet_choice_btn_create">Créer un nouveau portefeuille</string>
+    <string name="wallet_choice_btn_restore">Restaurer depuis une phrase mnémonique</string>
+
+    <string name="wallet_backup_title">Sauvegardez vos 25 mots</string>
+    <string name="wallet_backup_subtitle">Ces 25 mots sont votre portefeuille XMR. Notez-les dans l\'ordre sur papier, hors ligne.</string>
+    <string name="wallet_backup_warning">Ne partagez jamais ces mots avec personne. Fialka ne peut pas les récupérer si vous les perdez.</string>
+    <string name="wallet_backup_confirm">J\'ai noté mes 25 mots en lieu sûr.</string>
+    <string name="wallet_backup_btn_continue">C\'est fait, activer le portefeuille</string>
+    <string name="wallet_backup_copied">Mots copiés — effacement automatique dans 60 secondes</string>
+    <string name="wallet_backup_dialog_title">Confirmation de sauvegarde</string>
+    <string name="wallet_backup_dialog_message">Avez-vous bien noté vos 25 mots ? Si vous les perdez, vos XMR seront irrécupérables.</string>
+    <string name="yes_ive_saved_it">Oui, je les ai sauvegardés</string>
+
+    <string name="wallet_restore_title">Restaurer un portefeuille XMR</string>
+    <string name="wallet_restore_subtitle">Entrez vos 25 mots Monero dans l\'ordre. La restauration depuis une hauteur de bloc précise est bien plus rapide.</string>
+    <string name="wallet_restore_height_label">Hauteur de restauration (optionnel)</string>
+    <string name="wallet_restore_height_hint_text">Si vous connaissez la date de création de votre portefeuille, entrez le numéro de bloc correspondant pour accélérer la synchronisation. Sinon, laissez vide (scan depuis le début).</string>
+    <string name="wallet_restore_height_hint">Numéro de bloc (ex: 3200000)</string>
+    <string name="wallet_restore_btn">Restaurer le portefeuille</string>
+    <string name="wallet_restore_error_count">Veuillez entrer les 25 mots complets.</string>
+
+    <!-- ── Phase 4 — Payment request strings ─────────────────────────────── -->
+    <string name="payment_request_header">Demande XMR</string>
+    <string name="payment_request_btn_desc">Demande de paiement XMR</string>
+    <string name="payment_request_dialog_title">Demande de paiement XMR</string>
+    <string name="payment_request_send">Envoyer la demande</string>
+    <string name="payment_amount_hint">Montant XMR (optionnel)</string>
+    <string name="payment_label_hint">Motif (optionnel)</string>
+    <string name="payment_wallet_note">Une adresse unique sera générée pour ce contact.</string>
+    <string name="payment_copy_address">Copier l\'adresse</string>
+    <string name="payment_address_copied">Adresse XMR copiée</string>
+    <string name="payment_pay_now">Payer</string>
+    <string name="payment_pay_dialog_title">Adresse XMR</string>
+
+    <!-- ── Wallet Home (Phase 5) ─────────────────────────────────────── -->
+    <string name="wallet_home_title">Portefeuille XMR</string>
+    <string name="wallet_balance_label">SOLDE DISPONIBLE</string>
+    <string name="wallet_block_label">BLOC</string>
+    <string name="wallet_scan_label">SCAN</string>
+    <string name="wallet_recent_title">TRANSACTIONS RÉCENTES</string>
+    <string name="wallet_no_transactions">Aucune transaction pour l\'instant</string>
+    <string name="wallet_home_never_synced">Jamais synchronisé</string>
+
+    <!-- Receive tab -->
+    <string name="wallet_receive_hint">Partagez cette adresse pour recevoir des XMR.</string>
+    <string name="wallet_copy_address">Copier</string>
+    <string name="wallet_share_address">Partager</string>
+    <string name="wallet_address_copied">Adresse copiée</string>
+    <string name="wallet_loading_address">Chargement de l\'adresse…</string>
+
+    <!-- Transaction status -->
+    <string name="wallet_tx_pending">En attente</string>
+    <string name="wallet_tx_confirming">En cours</string>
+    <string name="wallet_tx_confirmed">Confirmé</string>
+    <string name="wallet_tx_failed">Échoué</string>
+
+    <!-- Settings tab -->
+    <string name="wallet_settings_server_title">SERVEUR LWS</string>
+    <string name="wallet_settings_server_hint">http://…</string>
+    <string name="wallet_settings_save_server">Enregistrer</string>
+    <string name="wallet_settings_server_saved">URL du serveur mise à jour</string>
+    <string name="wallet_settings_sync_title">SYNCHRONISATION</string>
+    <string name="wallet_settings_sync_now">Synchroniser maintenant</string>
+    <string name="wallet_settings_syncing">Synchronisation…</string>
+    <string name="wallet_settings_last_sync">Dernière sync : %1$s</string>
+    <string name="wallet_settings_danger_title">ZONE DANGER</string>
+    <string name="wallet_settings_wipe_warning">Cette action supprime votre clé de portefeuille de l\'appareil. Vos XMR restent récupérables avec vos 25 mots de passe.</string>
+    <string name="wallet_settings_wipe_btn">Effacer le portefeuille</string>
+    <string name="wallet_settings_wipe_confirm">Êtes-vous sûr ? Cette action supprime votre seed de l\'appareil. Vos XMR sont récupérables uniquement avec vos 25 mots.</string>
+    <string name="wallet_wiped_toast">Portefeuille effacé</string>
+
+    <!-- Bottom nav tab labels -->
+    <string name="wallet_tab_home">Accueil</string>
+    <string name="wallet_tab_receive">Recevoir</string>
+    <string name="wallet_tab_history">Historique</string>
+    <string name="wallet_tab_settings">Réglages</string>
+
+    <!-- ── Donation (Phase 6) ─────────────────────────────────────────── -->
+    <string name="donation_section_title">💜 Soutenir Fialka</string>
+    <string name="donation_description">Chaque don reçoit une adresse XMR unique — votre contribution est vérifiable publiquement, sans lier votre identité.</string>
+    <string name="donation_copy">Copier l\'adresse</string>
+    <string name="donation_share">Partager</string>
+    <string name="donation_copied">Adresse XMR copiée</string>
 </resources>

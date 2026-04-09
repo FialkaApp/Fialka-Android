@@ -23,7 +23,9 @@ import android.app.NotificationManager
 import android.os.Build
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.MnemonicManager
+import com.fialkaapp.fialka.crypto.WalletSeedManager
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.wallet.MoneroSyncWorker
 import com.fialkaapp.fialka.tor.MailboxClientManager
 import com.fialkaapp.fialka.tor.MailboxServer
 import com.fialkaapp.fialka.tor.OutboxManager
@@ -56,6 +58,10 @@ class FialkaApplication : Application() {
         TorManager.init(this)
         // Tor is mandatory — always start
         TorManager.start()
+        // Schedule Monero background sync if the wallet feature is enabled
+        if (WalletSeedManager.isWalletEnabled(this)) {
+            MoneroSyncWorker.schedule(this)
+        }
         createNotificationChannel()
 
         // Mode-conditional initialization

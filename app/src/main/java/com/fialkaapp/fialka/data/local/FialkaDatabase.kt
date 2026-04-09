@@ -30,6 +30,9 @@ import com.fialkaapp.fialka.data.model.MessageLocal
 import com.fialkaapp.fialka.data.model.OutboxMessage
 import com.fialkaapp.fialka.data.model.RatchetState
 import com.fialkaapp.fialka.data.model.UserLocal
+import com.fialkaapp.fialka.data.model.WalletAddress
+import com.fialkaapp.fialka.data.model.WalletSyncState
+import com.fialkaapp.fialka.data.model.WalletTransaction
 import com.fialkaapp.fialka.util.DeviceSecurityManager
 import androidx.sqlite.db.SupportSQLiteDatabase
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
@@ -53,9 +56,12 @@ import java.security.SecureRandom
         Conversation::class,
         MessageLocal::class,
         RatchetState::class,
-        OutboxMessage::class
+        OutboxMessage::class,
+        WalletTransaction::class,
+        WalletAddress::class,
+        WalletSyncState::class
     ],
-    version = 24,
+    version = 25,
     exportSchema = false
 )
 abstract class FialkaDatabase : RoomDatabase() {
@@ -66,6 +72,9 @@ abstract class FialkaDatabase : RoomDatabase() {
     abstract fun messageLocalDao(): MessageLocalDao
     abstract fun ratchetStateDao(): RatchetStateDao
     abstract fun outboxDao(): OutboxDao
+    abstract fun walletTransactionDao(): WalletTransactionDao
+    abstract fun walletAddressDao(): WalletAddressDao
+    abstract fun walletSyncStateDao(): WalletSyncStateDao
 
     companion object {
         @Volatile
@@ -77,7 +86,7 @@ abstract class FialkaDatabase : RoomDatabase() {
         // Plain (non-encrypted) prefs — only stores the non-sensitive schema version
         private const val META_PREFS = "fialka_meta"
         private const val KEY_DB_VERSION = "db_schema_version"
-        private const val CURRENT_VERSION = 24
+        private const val CURRENT_VERSION = 25
 
         /**
          * Returns true if the database file already exists (i.e. this is an upgrade, not a

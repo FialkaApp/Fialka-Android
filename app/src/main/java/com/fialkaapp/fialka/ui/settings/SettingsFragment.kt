@@ -24,14 +24,19 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.databinding.FragmentSettingsBinding
+import com.fialkaapp.fialka.util.QrCodeGenerator
+import com.fialkaapp.fialka.wallet.DonationManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Main Settings screen with search, category filters and a clean settings list.
@@ -154,6 +159,7 @@ class SettingsFragment : Fragment() {
         when (itemId) {
             "legal" -> showLegalDialog()
             "licenses" -> showLicensesDialog()
+            "donation" -> showDonationDialog()
             "storage" -> showSimpleDialog(
                 title = getString(R.string.setting_storage_management),
                 message = getString(R.string.setting_storage_management_summary)
@@ -294,8 +300,76 @@ class SettingsFragment : Fragment() {
         showScrollableDialog(getString(R.string.settings_licenses_dialog_title), content)
     }
 
-    private fun showScrollableDialog(title: String, content: String) {
-        val scrollView = android.widget.ScrollView(requireContext())
+    private fun showDonationDialog() {
+        if (!DonationManager.isDonationConfigured) {
+            showSimpleDialog(
+                getString(R.string.donation_settings_title),
+                getString(R.string.donation_settings_subtitle)
+            )
+            return
+        }
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val address = DonationManager.getAppDonationAddress()
+            withContext(Dispatchers.Main) {
+                if (_binding == null) return@withContext
+                if (address == null) {
+                    showSimpleDialog(
+                        getString(R.string.donation_settings_title),
+                        getString(R.string.donation_settings_subtitle)
+                    )
+                    return@withContext
+                }
+                val scrollView = android.widget.ScrollView(requireContext())
+                val container = android.widget.LinearLayout(requireContext()).apply {
+                    orientation = android.widget.LinearLayout.VERTICAL
+                    gravity = android.view.Gravity.CENTER_HORIZONTAL
+                    setPadding(48, 32, 48, 32)
+                }
+                val qrView = android.widget.ImageView(requireContext()).apply {
+                    val size = resources.getDimensionPixelSize(android.R.dimen.thumbnail_height) * 2
+                    layoutParams = android.widget.LinearLayout.LayoutParams(size, size)
+                    scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                    setBackgroundColor(android.graphics.Color.WHITE)
+                    setImageBitmap(QrCodeGenerator.generate(address, 512))
+                    (layoutParams as android.widget.LinearLayout.LayoutParams).apply {
+                        bottomMargin = 24
+                    }
+                }
+                val addrView = android.widget.TextView(requireContext()).apply {
+                    text = address
+                    textSize = 10f
+                    typeface = android.graphics.Typeface.MONOSPACE
+                    gravity = android.view.Gravity.CENTER
+                    setTextColor(androidx.core.content.ContextCompat.getColor(
+                        requireContext(), android.R.color.darker_gray
+                    ))
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { bottomMargin = 24 }
+                }
+                container.addView(qrView)
+                container.addView(addrView)
+                scrollView.addView(container)
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.donation_settings_title)
+                    .setView(scrollView)
+                    .setPositiveButton(R.string.donation_copy) { _, _ ->
+                        val clipboard = requireContext()
+                            .getSystemService(Context.CLIPBOARD_SERVICE)
+                                as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText(
+                            "Monero donation address", address
+                        ))
+                        Toast.makeText(requireContext(), R.string.donation_copied, Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton(R.string.settings_action_ok, null)
+                    .show()
+            }
+        }
+    }
+
+    private fun showScrollableDialog(title: String, content: String) {        val scrollView = android.widget.ScrollView(requireContext())
         val textView = android.widget.TextView(requireContext()).apply {
             text = content
             textSize = 13f
