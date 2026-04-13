@@ -113,7 +113,7 @@ dependencies {
     implementation("androidx.biometric:biometric:1.1.0")
 
     // Tor — Guardian Project Tor binary (BSD) + Briar privacy libs (Apache/BSD)
-    implementation("info.guardianproject:tor-android:0.4.9.5.1")
+    implementation("info.guardianproject:tor-android:0.4.9.6")
     implementation("info.guardianproject:jtorctl:0.4.5.7")
     implementation("org.briarproject:socks-socket:0.1")
     implementation("org.briarproject:lyrebird-android:0.6.2")
