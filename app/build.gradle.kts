@@ -144,5 +144,5 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 
     // WorkManager — background wallet sync
-    implementation("androidx.work:work-runtime-ktx:2.10.1")
+    implementation("androidx.work:work-runtime-ktx:2.11.2")
 }
