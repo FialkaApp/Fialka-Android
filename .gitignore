@@ -13,14 +13,19 @@ build/
 # Workflows ARE tracked (GitHub Actions)
 # .github/workflows/ is NOT ignored
 
-# --- IDE ---
+# --- IDE / Editor ---
 .idea/
+.vscode/
 *.iml
 *.iws
 *.ipr
 local.properties
 .DS_Store
 Thumbs.db
+
+# --- Monero local build artifacts (NEVER push — gigabytes of NDK/sources) ---
+.monero-build/
+jni/
 
 # --- Android ---
 *.apk
