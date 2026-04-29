@@ -35,6 +35,13 @@
     public static *** wtf(...);
 }
 
+# --- Monero JNI bridge (wallet/jni) ---
+# libfialka_monero.so calls FindClass() by name at JNI_OnLoad.
+# R8 sees no Kotlin references → strips these classes → SIGABRT ClassNotFoundException.
+# Keep all classes, their fields and constructors used by the C++ JNI layer.
+-keep class com.fialkaapp.fialka.wallet.jni.** { *; }
+-keepclassmembers class com.fialkaapp.fialka.wallet.jni.** { *; }
+
 # --- Obfuscation ---
 -repackageclasses 'a'
 -allowaccessmodification
