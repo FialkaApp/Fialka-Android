@@ -21,6 +21,7 @@ val versionProps = Properties().apply {
 android {
     namespace = "com.fialkaapp.fialka"
     compileSdk = 36
+    ndkVersion = "27.2.12479018"
 
     defaultConfig {
         applicationId = "com.fialkaapp.fialka"
@@ -30,6 +31,9 @@ android {
         versionName = versionProps["VERSION_NAME"].toString()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     signingConfigs {
@@ -54,6 +58,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("CMakeLists.txt")
         }
     }
 

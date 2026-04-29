@@ -120,6 +120,26 @@ object FialkaNative {
 
     external fun ratchetPqStep(rootKey: ByteArray, pqSs: ByteArray): ByteArray
 
+    // ── Monero helpers (Rust FFI) ──────────────────────────────────────────
+
+    external fun xmrGenerateSeed(): ByteArray
+    external fun xmrDeriveKeys(seed: ByteArray): ByteArray
+    external fun xmrPrimaryAddress(spendPub: ByteArray, viewPub: ByteArray, networkType: Int): ByteArray
+    external fun xmrSubAddress(
+        spendPub: ByteArray,
+        viewPriv: ByteArray,
+        account: Int,
+        index: Int,
+        networkType: Int
+    ): ByteArray
+    external fun xmrDeriveDonationSubaddress(
+        spendPub: ByteArray,
+        viewPriv: ByteArray,
+        accountIdBytes: ByteArray,
+        networkType: Int
+    ): ByteArray
+    external fun xmrValidateAddress(address: ByteArray, networkType: Int): Int
+
     // ── Kotlin helper extensions ─────────────────────────────────────────────
 
     /**

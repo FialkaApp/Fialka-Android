@@ -27,6 +27,16 @@ Thumbs.db
 .monero-build/
 jni/
 
+# --- Monero cross-compiled static libs (Docker output — regenerate with make) ---
+# Keep: Dockerfiles, Makefile, build scripts
+# Ignore: compiled output (hundreds of .a files, wallet2_api.h)
+external-libs/arm64-v8a/
+external-libs/x86_64/
+external-libs/include/
+
+# --- CMake build cache (Android Studio generated) ---
+app/.cxx/
+
 # --- Android ---
 *.apk
 *.aab

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_wallet_reveal_seed"
+        android:title="Voir la seed wallet"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_wallet_settings"
+        android:title="Paramètres wallet"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_wallet_delete"
+        android:title="@string/wallet_delete_title"
+        app:showAsAction="never" />
+</menu>

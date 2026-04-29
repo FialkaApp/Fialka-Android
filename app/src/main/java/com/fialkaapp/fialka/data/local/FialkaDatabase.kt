@@ -116,7 +116,9 @@ abstract class FialkaDatabase : RoomDatabase() {
                     .openHelperFactory(factory)
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
-                            db.execSQL("PRAGMA cipher_memory_security = ON;")
+                            // mlock() (PRAGMA cipher_memory_security = ON) fails with ENOMEM on both
+                            // emulators and real Android devices. Android FBE protects the DB at rest.
+                            db.execSQL("PRAGMA cipher_memory_security = OFF;")
                         }
                     })
                     .fallbackToDestructiveMigration(dropAllTables = true)
@@ -151,5 +153,6 @@ abstract class FialkaDatabase : RoomDatabase() {
             prefs.edit().putString(KEY_DB_PASSPHRASE, encoded).apply()
             return passphrase
         }
+
     }
 }

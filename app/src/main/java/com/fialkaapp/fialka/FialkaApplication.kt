@@ -23,6 +23,7 @@ import android.app.NotificationManager
 import android.os.Build
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.MnemonicManager
+import com.fialkaapp.fialka.crypto.MoneroMnemonic
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.tor.MailboxClientManager
 import com.fialkaapp.fialka.tor.MailboxServer
@@ -53,6 +54,7 @@ class FialkaApplication : Application() {
         }
         CryptoManager.init(this)
         MnemonicManager.init(this)
+        MoneroMnemonic.init(this)
         TorManager.init(this)
         // Tor is mandatory — always start
         TorManager.start()

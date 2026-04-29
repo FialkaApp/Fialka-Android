@@ -123,6 +123,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 destination = "securityFragment"
             ),
             SettingItem(
+                id = "wallet",
+                title = app.getString(R.string.settings_wallet_category),
+                summary = app.getString(R.string.setting_wallet_summary),
+                iconRes = R.drawable.ic_wallet,
+                category = CATEGORY_WALLET,
+                type = SettingType.NAVIGATE,
+                destination = "walletSettingsFragment"
+            ),
+            SettingItem(
                 id = "mailbox",
                 title = "Mailbox",
                 summary = app.getString(R.string.setting_mailbox_summary),
@@ -135,9 +144,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 id = "tor_advanced",
                 title = app.getString(R.string.setting_tor_advanced_title_clean),
                 summary = app.getString(R.string.setting_tor_advanced_summary_clean),
-                iconRes = R.drawable.ic_info,
+                iconRes = R.drawable.ic_shield,
                 category = CATEGORY_NETWORK,
-                type = SettingType.ACTION
+                type = SettingType.NAVIGATE,
+                destination = "torSettingsFragment"
             ),
             SettingItem(
                 id = "storage",
@@ -162,6 +172,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 iconRes = R.drawable.ic_file,
                 category = CATEGORY_ABOUT,
                 type = SettingType.ACTION
+            ),
+            SettingItem(
+                id = "donation",
+                title = app.getString(R.string.donation_settings_title),
+                summary = app.getString(R.string.donation_settings_subtitle),
+                iconRes = R.drawable.ic_wallet,
+                category = CATEGORY_ABOUT,
+                type = SettingType.NAVIGATE,
+                destination = "donationFragment"
             ),
             SettingItem(
                 id = "legal",
@@ -206,6 +225,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         const val CATEGORY_NOTIFICATIONS = "notifications"
         const val CATEGORY_PRIVACY = "privacy"
         const val CATEGORY_SECURITY = "security"
+        const val CATEGORY_WALLET = "wallet"
         const val CATEGORY_NETWORK = "network"
         const val CATEGORY_ABOUT = "about"
     }

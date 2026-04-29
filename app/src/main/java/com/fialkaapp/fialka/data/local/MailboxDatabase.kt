@@ -74,7 +74,9 @@ abstract class MailboxDatabase : RoomDatabase() {
                 .openHelperFactory(factory)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onOpen(db: SupportSQLiteDatabase) {
-                        db.execSQL("PRAGMA cipher_memory_security = ON;")
+                        // mlock() fails with ENOMEM on both emulators and real devices.
+                        // Android FBE protects the DB at rest — mlock is redundant here.
+                        db.execSQL("PRAGMA cipher_memory_security = OFF;")
                     }
                 })
                 .fallbackToDestructiveMigration(dropAllTables = true)
@@ -109,5 +111,6 @@ abstract class MailboxDatabase : RoomDatabase() {
             prefs.edit().putString(KEY_DB_PASSPHRASE, encoded).apply()
             return passphrase
         }
+
     }
 }

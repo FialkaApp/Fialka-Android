@@ -29,7 +29,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -43,6 +43,7 @@ import com.fialkaapp.fialka.databinding.FragmentConversationsBinding
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.tor.TorState
 import com.fialkaapp.fialka.util.NotificationHelper
+import com.fialkaapp.fialka.wallet.WalletPreferences
 import kotlinx.coroutines.launch
 
 /**
@@ -64,7 +65,7 @@ class ConversationsFragment : Fragment() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (!granted) {
                 // User denied — explain why it matters
-                AlertDialog.Builder(requireContext())
+                MaterialAlertDialogBuilder(requireContext())
                     .setTitle(getString(R.string.perm_notif_denied_title))
                     .setMessage(getString(R.string.perm_notif_denied_message))
                     .setPositiveButton(getString(R.string.perm_open_settings)) { _, _ ->
@@ -138,6 +139,7 @@ class ConversationsFragment : Fragment() {
         }
 
         // Search icon in toolbar — expands to SearchView on click
+        updateWalletMenuVisibility()
         val searchItem = binding.toolbar.menu.findItem(R.id.action_search)
         val searchView = searchItem?.actionView as? SearchView
         searchView?.queryHint = "Rechercher…"
@@ -167,6 +169,10 @@ class ConversationsFragment : Fragment() {
 
         binding.toolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
+                R.id.action_wallet -> {
+                    findNavController().navigate(R.id.action_conversations_to_walletHome)
+                    true
+                }
                 R.id.action_profile -> {
                     findNavController().navigate(R.id.action_conversations_to_profile)
                     true
@@ -228,7 +234,7 @@ class ConversationsFragment : Fragment() {
     }
 
     private fun showResetAccountDialog() {
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.delete_account_title)
             .setMessage(R.string.delete_account_message)
             .setPositiveButton(R.string.delete_account_confirm) { _, _ ->
@@ -248,46 +254,60 @@ class ConversationsFragment : Fragment() {
     private fun askPermissionsIfNeeded() {
         val prefs = requireContext().getSharedPreferences("fialka_perm_asked", 0)
 
-        // -- 1. POST_NOTIFICATIONS --
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val alreadyGranted = NotificationHelper.hasNotificationPermission(requireContext())
-            val alreadyAsked = prefs.getBoolean("notif_asked", false)
-            if (!alreadyGranted && !alreadyAsked) {
-                prefs.edit().putBoolean("notif_asked", true).apply()
-                AlertDialog.Builder(requireContext())
-                    .setTitle(getString(R.string.perm_notif_title))
-                    .setMessage(getString(R.string.perm_notif_message))
-                    .setPositiveButton(getString(R.string.perm_allow)) { _, _ ->
-                        notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                    .setNegativeButton(getString(R.string.perm_later), null)
-                    .show()
-            }
-        }
+        val needNotif = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && !NotificationHelper.hasNotificationPermission(requireContext())
+                && !prefs.getBoolean("notif_asked", false)
 
-        // -- 2. IGNORE_BATTERY_OPTIMIZATIONS (Android 6+) --
-        val batteryAsked = prefs.getBoolean("battery_asked", false)
-        if (!batteryAsked) {
-            val pm = requireContext().getSystemService(PowerManager::class.java)
-            val isIgnoring = pm.isIgnoringBatteryOptimizations(requireContext().packageName)
-            if (!isIgnoring) {
-                prefs.edit().putBoolean("battery_asked", true).apply()
-                AlertDialog.Builder(requireContext())
-                    .setTitle(getString(R.string.perm_battery_title))
-                    .setMessage(getString(R.string.perm_battery_message))
-                    .setPositiveButton(getString(R.string.perm_allow)) { _, _ ->
-                        try {
-                            startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                                data = Uri.parse("package:${requireContext().packageName}")
-                            })
-                        } catch (_: Exception) {
-                            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-                        }
-                    }
-                    .setNegativeButton(getString(R.string.perm_later), null)
-                    .show()
-            }
+        val pm = requireContext().getSystemService(PowerManager::class.java)
+        val needBattery = !pm.isIgnoringBatteryOptimizations(requireContext().packageName)
+                && !prefs.getBoolean("battery_asked", false)
+
+        if (needNotif) {
+            prefs.edit().putBoolean("notif_asked", true).apply()
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(getString(R.string.perm_notif_title))
+                .setMessage(getString(R.string.perm_notif_message))
+                .setCancelable(false)
+                .setPositiveButton(getString(R.string.perm_allow)) { _, _ ->
+                    notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    if (needBattery) showBatteryDialog(prefs)
+                }
+                .setNegativeButton(getString(R.string.perm_later)) { _, _ ->
+                    if (needBattery) showBatteryDialog(prefs)
+                }
+                .show()
+        } else if (needBattery) {
+            showBatteryDialog(prefs)
         }
+    }
+
+    private fun showBatteryDialog(prefs: android.content.SharedPreferences) {
+        prefs.edit().putBoolean("battery_asked", true).apply()
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.perm_battery_title))
+            .setMessage(getString(R.string.perm_battery_message))
+            .setCancelable(false)
+            .setPositiveButton(getString(R.string.perm_allow)) { _, _ ->
+                try {
+                    startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:${requireContext().packageName}")
+                    })
+                } catch (_: Exception) {
+                    startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                }
+            }
+            .setNegativeButton(getString(R.string.perm_later), null)
+            .show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateWalletMenuVisibility()
+    }
+
+    private fun updateWalletMenuVisibility() {
+        binding.toolbar.menu.findItem(R.id.action_wallet)?.isVisible =
+            WalletPreferences.isWalletEnabled(requireContext())
     }
 
     override fun onDestroyView() {

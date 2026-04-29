@@ -24,6 +24,10 @@ import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.util.DummyTrafficManager
 import com.fialkaapp.fialka.util.NotificationHelper
+import com.fialkaapp.fialka.wallet.MoneroWallet
+import com.fialkaapp.fialka.wallet.WalletPreferences
+import com.fialkaapp.fialka.wallet.WalletRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,6 +68,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _sendError = MutableLiveData<String?>()
     val sendError: LiveData<String?> = _sendError
+
+    /** True while an XMR transaction is being broadcast (JNI blocking call). */
+    private val _xmrSending = MutableLiveData<Boolean>(false)
+    val xmrSending: LiveData<Boolean> = _xmrSending
+
+    /** Non-null after a successful XMR send: Pair(txId, formattedAmount). Consumed once observed. */
+    private val _xmrSendSuccess = MutableLiveData<Pair<String, String>?>(null)
+    val xmrSendSuccess: LiveData<Pair<String, String>?> = _xmrSendSuccess
+
+    /** Call from UI after consuming the success event to reset it. */
+    fun consumeXmrSendSuccess() { _xmrSendSuccess.value = null }
 
     private val _isAccepted = MutableLiveData<Boolean>(true)
     val isAccepted: LiveData<Boolean> = _isAccepted
@@ -196,11 +211,61 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Retry a failed file download.
      */
-    fun retryFileDownload(messageId: String) {
-        viewModelScope.launch {
+    fun retryFileDownload(messageId: String) {        viewModelScope.launch {
             try {
                 repository.retryFileDownload(messageId)
             } catch (_: Exception) { }
+        }
+    }
+
+    /**
+     * Send an XMR payment: broadcast a Monero transaction on-chain,
+     * then send an encrypted XMR_SENT message to notify the contact.
+     *
+     * Runs on IO dispatcher (JNI sendTransaction is blocking).
+     * Amount is a decimal string in XMR (e.g. "0.5").
+     */
+    fun sendXmrPayment(toAddress: String, amountXmr: String, priority: Int = 0) {
+        if (conversationId.isEmpty()) return
+
+        if (_isAccepted.value != true) {
+            _sendError.value = "En attente d'acceptation par le contact"
+            return
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _xmrSending.postValue(true)
+            try {
+                val app = getApplication<Application>()
+                if (!WalletPreferences.isWalletEnabled(app) || !MoneroWallet.isOpen) {
+                    _sendError.postValue("Wallet non disponible — activez-le dans les paramètres")
+                    return@launch
+                }
+                if (!WalletRepository.validateAddress(toAddress)) {
+                    _sendError.postValue("Adresse XMR invalide")
+                    return@launch
+                }
+                val amountDouble = amountXmr.toDoubleOrNull()
+                if (amountDouble == null || amountDouble <= 0.0) {
+                    _sendError.postValue("Montant invalide")
+                    return@launch
+                }
+                val piconero = (amountDouble * 1_000_000_000_000L).toLong()
+                val result = MoneroWallet.sendTransaction(toAddress, piconero, priority)
+                if (result.success) {
+                    val formatted = WalletRepository.formatXmr(piconero)
+                    repository.sendMessage(conversationId, "XMR_SENT|${result.txId}|$formatted|$toAddress")
+                    DummyTrafficManager.onRealMessageSent()
+                    _sendError.postValue(null)
+                    _xmrSendSuccess.postValue(Pair(result.txId ?: "", formatted))
+                } else {
+                    _sendError.postValue("Envoi XMR échoué : ${result.error}")
+                }
+            } catch (e: Exception) {
+                _sendError.postValue("Erreur XMR : ${e.message}")
+            } finally {
+                _xmrSending.postValue(false)
+            }
         }
     }
 

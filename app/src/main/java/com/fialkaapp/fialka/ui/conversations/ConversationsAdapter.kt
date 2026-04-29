@@ -68,6 +68,30 @@ class ConversationsAdapter(
             // Older → "15/03/26"
             return dateFormat.format(Date(timestamp))
         }
+
+        /** Convert raw plaintext to a human-readable conversation preview. */
+        fun formatLastMessage(raw: String): String {
+            return when {
+                raw.startsWith("XMR_SENT|") -> {
+                    val amount = raw.removePrefix("XMR_SENT|").substringBefore("|")
+                    "💸 Paiement XMR : $amount"
+                }
+                raw.startsWith("XMR_REQUEST|") -> {
+                    val parts = raw.removePrefix("XMR_REQUEST|").split("|", limit = 3)
+                    val amount = if (parts.size >= 2) parts[1] else ""
+                    "🔔 Demande XMR${if (amount.isNotEmpty()) " : $amount" else ""}"
+                }
+                raw.startsWith("XMR_ADDR|") -> "💰 Adresse XMR partagée"
+                raw.startsWith("FILE|") -> {
+                    val fileName = raw.split("|").getOrNull(4) ?: ""
+                    when {
+                        fileName.startsWith("IMG_") -> "📷 Image"
+                        else -> "📎 Fichier${if (fileName.isNotEmpty()) " : $fileName" else ""}"
+                    }
+                }
+                else -> raw
+            }
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -94,7 +118,7 @@ class ConversationsAdapter(
                 binding.tvLastMessage.text = "⏳ En attente d'acceptation…"
                 binding.tvLastMessage.setTextColor(0xFFFF9800.toInt())
             } else {
-                binding.tvLastMessage.text = conversation.lastMessage.ifEmpty { "Nouvelle conversation" }
+                binding.tvLastMessage.text = formatLastMessage(conversation.lastMessage).ifEmpty { "Nouvelle conversation" }
                 binding.tvLastMessage.setTextColor(
                     binding.root.context.getColor(R.color.text_secondary)
                 )

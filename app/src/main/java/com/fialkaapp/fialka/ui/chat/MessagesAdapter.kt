@@ -17,6 +17,9 @@
  */
 package com.fialkaapp.fialka.ui.chat
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -26,6 +29,7 @@ import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.webkit.MimeTypeMap
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.DiffUtil
@@ -35,6 +39,8 @@ import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.data.model.MessageLocal
 import com.fialkaapp.fialka.databinding.ItemMessageReceivedBinding
 import com.fialkaapp.fialka.databinding.ItemMessageSentBinding
+import com.fialkaapp.fialka.databinding.ItemMessageXmrReceivedBinding
+import com.fialkaapp.fialka.databinding.ItemMessageXmrSentBinding
 import com.fialkaapp.fialka.util.EphemeralManager
 import java.io.File
 import java.text.SimpleDateFormat
@@ -55,7 +61,10 @@ class MessagesAdapter(
     private val onRetryDownload: ((String) -> Unit)? = null,
     private val onOneShotOpen: ((String) -> Unit)? = null,
     private val onResend: ((String) -> Unit)? = null,
-    private val onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null
+    private val onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null,
+    /** Called when user taps the action button on a received XMR bubble.
+     *  Passes the raw plaintext (XMR_REQUEST|... or XMR_SENT|...). */
+    private val onXmrAction: ((plaintext: String) -> Unit)? = null
 ) : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
 
     private var lastAnimatedPosition = -1
@@ -65,6 +74,103 @@ class MessagesAdapter(
         private const val VIEW_TYPE_RECEIVED = 1
         private const val VIEW_TYPE_UNREAD_DIVIDER = 2
         private const val VIEW_TYPE_INFO = 3
+        private const val VIEW_TYPE_XMR_SENT = 4
+        private const val VIEW_TYPE_XMR_RECEIVED = 5
+
+        // XMR message prefixes (E2E encrypted, same channel as text)
+        const val PREFIX_XMR_ADDR = "XMR_ADDR|"
+        const val PREFIX_XMR_REQUEST = "XMR_REQUEST|"
+        const val PREFIX_XMR_SENT = "XMR_SENT|"
+
+        private fun isXmrMessage(text: String): Boolean =
+            text.startsWith(PREFIX_XMR_ADDR) ||
+            text.startsWith(PREFIX_XMR_REQUEST) ||
+            text.startsWith(PREFIX_XMR_SENT)
+
+        /**
+         * Parse XMR message and bind to the shared bubble views.
+         *
+         * Formats:
+         *  XMR_ADDR|<address>
+         *  XMR_REQUEST|<address>|<amount_or_empty>|<note_or_empty>
+         *  XMR_SENT|<txHash>|<amountFormatted>|<address>
+         */
+        private fun bindXmrContent(
+            plaintext: String,
+            tvTitle: TextView,
+            tvAmount: TextView,
+            tvNote: TextView,
+            tvDetail: TextView,
+            btnCopy: ImageView
+        ) {
+            val ctx = tvTitle.context
+            when {
+                plaintext.startsWith(PREFIX_XMR_ADDR) -> {
+                    val address = plaintext.removePrefix(PREFIX_XMR_ADDR)
+                    tvTitle.text = ctx.getString(R.string.xmr_bubble_addr)
+                    tvAmount.visibility = View.GONE
+                    tvNote.visibility = View.GONE
+                    tvDetail.text = address
+                    setupCopyButton(btnCopy, address, ctx.getString(R.string.xmr_address_copied))
+                }
+                plaintext.startsWith(PREFIX_XMR_REQUEST) -> {
+                    val parts = plaintext.removePrefix(PREFIX_XMR_REQUEST).split("|", limit = 3)
+                    val address = parts.getOrElse(0) { "" }
+                    val amount = parts.getOrElse(1) { "" }
+                    val note = parts.getOrElse(2) { "" }
+                    tvTitle.text = ctx.getString(R.string.xmr_bubble_request)
+                    if (amount.isNotEmpty()) {
+                        tvAmount.visibility = View.VISIBLE
+                        tvAmount.text = "$amount XMR"
+                    } else {
+                        tvAmount.visibility = View.GONE
+                    }
+                    if (note.isNotEmpty()) {
+                        tvNote.visibility = View.VISIBLE
+                        tvNote.text = note
+                    } else {
+                        tvNote.visibility = View.GONE
+                    }
+                    tvDetail.text = address
+                    setupCopyButton(btnCopy, address, ctx.getString(R.string.xmr_address_copied))
+                }
+                plaintext.startsWith(PREFIX_XMR_SENT) -> {
+                    val parts = plaintext.removePrefix(PREFIX_XMR_SENT).split("|", limit = 3)
+                    val txHash = parts.getOrElse(0) { "" }
+                    val amount = parts.getOrElse(1) { "" }
+                    tvTitle.text = ctx.getString(R.string.xmr_bubble_sent)
+                    if (amount.isNotEmpty()) {
+                        tvAmount.visibility = View.VISIBLE
+                        tvAmount.text = amount
+                    } else {
+                        tvAmount.visibility = View.GONE
+                    }
+                    tvNote.visibility = View.GONE
+                    tvDetail.text = txHash
+                    setupCopyButton(btnCopy, txHash, ctx.getString(R.string.xmr_txhash_copied))
+                }
+                else -> {
+                    tvTitle.text = "XMR"
+                    tvAmount.visibility = View.GONE
+                    tvNote.visibility = View.GONE
+                    tvDetail.text = plaintext
+                    btnCopy.visibility = View.GONE
+                }
+            }
+        }
+
+        private fun setupCopyButton(btnCopy: ImageView, content: String, toastMsg: String) {
+            if (content.isEmpty()) {
+                btnCopy.visibility = View.GONE
+                return
+            }
+            btnCopy.visibility = View.VISIBLE
+            btnCopy.setOnClickListener { v ->
+                val clipboard = v.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("xmr", content))
+                Toast.makeText(v.context, toastMsg, Toast.LENGTH_SHORT).show()
+            }
+        }
         private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
         /** Format file size to human-readable string. */
@@ -194,7 +300,12 @@ class MessagesAdapter(
         return when (val item = getItem(position)) {
             is ChatItem.UnreadDivider -> VIEW_TYPE_UNREAD_DIVIDER
             is ChatItem.InfoMessage -> VIEW_TYPE_INFO
-            is ChatItem.Message -> if (item.message.isMine) VIEW_TYPE_SENT else VIEW_TYPE_RECEIVED
+            is ChatItem.Message -> when {
+                isXmrMessage(item.message.plaintext) && item.message.isMine -> VIEW_TYPE_XMR_SENT
+                isXmrMessage(item.message.plaintext) -> VIEW_TYPE_XMR_RECEIVED
+                item.message.isMine -> VIEW_TYPE_SENT
+                else -> VIEW_TYPE_RECEIVED
+            }
         }
     }
 
@@ -205,6 +316,18 @@ class MessagesAdapter(
                     LayoutInflater.from(parent.context), parent, false
                 )
                 SentViewHolder(binding)
+            }
+            VIEW_TYPE_XMR_SENT -> {
+                val binding = ItemMessageXmrSentBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                XmrSentViewHolder(binding)
+            }
+            VIEW_TYPE_XMR_RECEIVED -> {
+                val binding = ItemMessageXmrReceivedBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                XmrReceivedViewHolder(binding)
             }
             VIEW_TYPE_UNREAD_DIVIDER -> {
                 val view = LayoutInflater.from(parent.context)
@@ -234,6 +357,14 @@ class MessagesAdapter(
             is ReceivedViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
                 holder.bind(msg, onRetryDownload, onOneShotOpen, onMessageLongPress)
+            }
+            is XmrSentViewHolder -> {
+                val msg = (getItem(position) as ChatItem.Message).message
+                holder.bind(msg)
+            }
+            is XmrReceivedViewHolder -> {
+                val msg = (getItem(position) as ChatItem.Message).message
+                holder.bind(msg, onXmrAction)
             }
             is InfoViewHolder -> {
                 val info = getItem(position) as ChatItem.InfoMessage
@@ -497,6 +628,63 @@ class MessagesAdapter(
 
             // Signature badge
             bindSignatureBadge(binding.tvSignatureBadge, message.signatureValid)
+        }
+    }
+
+    /**
+     * ViewHolder for XMR sent messages.
+     * Parses XMR_ADDR|, XMR_REQUEST|, XMR_SENT| prefixes and renders a Monero bubble.
+     */
+    class XmrSentViewHolder(
+        private val binding: ItemMessageXmrSentBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(message: MessageLocal) {
+            binding.tvTimeXmrSent.text = timeFormat.format(Date(message.timestamp))
+            bindXmrContent(
+                message.plaintext,
+                binding.tvXmrTitleSent,
+                binding.tvXmrAmountSent,
+                binding.tvXmrNoteSent,
+                binding.tvXmrDetailSent,
+                binding.btnXmrCopySent
+            )
+        }
+    }
+
+    /**
+     * ViewHolder for XMR received messages.
+     */
+    class XmrReceivedViewHolder(
+        private val binding: ItemMessageXmrReceivedBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(message: MessageLocal, onXmrAction: ((String) -> Unit)? = null) {
+            binding.tvTimeXmrReceived.text = timeFormat.format(Date(message.timestamp))
+            bindXmrContent(
+                message.plaintext,
+                binding.tvXmrTitleReceived,
+                binding.tvXmrAmountReceived,
+                binding.tvXmrNoteReceived,
+                binding.tvXmrDetailReceived,
+                binding.btnXmrCopyReceived
+            )
+            // Action button: "Payer" on REQUEST, "Voir la TX" on SENT, hidden on ADDR
+            val actionBtn = binding.btnXmrActionReceived
+            when {
+                message.plaintext.startsWith(PREFIX_XMR_REQUEST) -> {
+                    actionBtn.visibility = View.VISIBLE
+                    actionBtn.text = "Payer"
+                    actionBtn.setOnClickListener { onXmrAction?.invoke(message.plaintext) }
+                }
+                message.plaintext.startsWith(PREFIX_XMR_SENT) -> {
+                    actionBtn.visibility = View.VISIBLE
+                    actionBtn.text = "Voir la transaction"
+                    actionBtn.setOnClickListener { onXmrAction?.invoke(message.plaintext) }
+                }
+                else -> {
+                    actionBtn.visibility = View.GONE
+                    actionBtn.setOnClickListener(null)
+                }
+            }
         }
     }
 

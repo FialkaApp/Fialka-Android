@@ -76,6 +76,7 @@ class SettingsAdapter(
             SettingsViewModel.CATEGORY_NOTIFICATIONS -> context.getString(R.string.settings_group_notifications)
             SettingsViewModel.CATEGORY_PRIVACY -> context.getString(R.string.settings_group_privacy)
             SettingsViewModel.CATEGORY_SECURITY -> context.getString(R.string.settings_group_security)
+            SettingsViewModel.CATEGORY_WALLET -> context.getString(R.string.settings_group_wallet)
             SettingsViewModel.CATEGORY_NETWORK -> context.getString(R.string.settings_group_network)
             SettingsViewModel.CATEGORY_ABOUT -> context.getString(R.string.settings_group_about)
             else -> category
@@ -88,8 +89,9 @@ class SettingsAdapter(
             SettingsViewModel.CATEGORY_NOTIFICATIONS -> 1
             SettingsViewModel.CATEGORY_PRIVACY -> 2
             SettingsViewModel.CATEGORY_SECURITY -> 3
-            SettingsViewModel.CATEGORY_NETWORK -> 4
-            SettingsViewModel.CATEGORY_ABOUT -> 5
+            SettingsViewModel.CATEGORY_WALLET -> 4
+            SettingsViewModel.CATEGORY_NETWORK -> 5
+            SettingsViewModel.CATEGORY_ABOUT -> 6
             else -> 99
         }
     }

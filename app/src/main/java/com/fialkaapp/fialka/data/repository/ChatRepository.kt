@@ -1395,5 +1395,7 @@ class ChatRepository(private val appContext: Context) {
         clearMutexes()
         db.clearAllTables()
         CryptoManager.deleteIdentityKey()
+        // Also wipe the wallet so the user starts fully fresh
+        com.fialkaapp.fialka.wallet.WalletRepository.deleteWallet(appContext)
     }
 }

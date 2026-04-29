@@ -204,6 +204,14 @@
                             app:checkedIconVisible="false" />
 
                         <com.google.android.material.chip.Chip
+                            android:id="@+id/chipWallet"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_wallet_category"
+                            app:checkedIconVisible="false" />
+
+                        <com.google.android.material.chip.Chip
                             android:id="@+id/chipNetwork"
                             style="@style/Widget.Material3.Chip.Filter"
                             android:layout_width="wrap_content"

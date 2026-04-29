@@ -18,7 +18,6 @@
 package com.fialkaapp.fialka.ui.chat
 
 import android.Manifest
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
@@ -52,8 +51,12 @@ import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.databinding.FragmentChatBinding
 import com.fialkaapp.fialka.tor.MailboxClientManager
 import com.fialkaapp.fialka.util.EphemeralManager
+import com.fialkaapp.fialka.wallet.WalletPreferences
+import com.fialkaapp.fialka.wallet.WalletRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
@@ -229,6 +232,14 @@ class ChatFragment : Fragment() {
                     }
                 }
                 popup.show()
+            },
+            onXmrAction = { plaintext ->
+                when {
+                    plaintext.startsWith(MessagesAdapter.PREFIX_XMR_REQUEST) ->
+                        showXmrPayFromRequest(plaintext)
+                    plaintext.startsWith(MessagesAdapter.PREFIX_XMR_SENT) ->
+                        showXmrSentDetail(plaintext)
+                }
             }
         )
         binding.rvMessages.adapter = adapter
@@ -302,6 +313,12 @@ class ChatFragment : Fragment() {
             requestFilePermissionAndPick()
         }
 
+        // Monero XMR payment
+        binding.btnPickMonero.setOnClickListener {
+            collapseAttachmentIcons()
+            openXmrPaymentSheet()
+        }
+
         // Tap anywhere outside icons to dismiss
         binding.attachmentOverlay.setOnClickListener {
             collapseAttachmentIcons()
@@ -310,14 +327,49 @@ class ChatFragment : Fragment() {
         // Error handling
         viewModel.sendError.observe(viewLifecycleOwner) { error ->
             if (error != null) {
-                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
             }
+        }
+
+        // XMR sending — show progress dialog while JNI call is in flight
+        var xmrProgressDialog: android.app.ProgressDialog? = null
+        viewModel.xmrSending.observe(viewLifecycleOwner) { sending ->
+            if (_binding == null) return@observe
+            if (sending) {
+                @Suppress("DEPRECATION")
+                xmrProgressDialog = android.app.ProgressDialog(requireContext()).apply {
+                    setMessage("Envoi XMR en cours…\nCela peut prendre quelques secondes.")
+                    isIndeterminate = true
+                    setCancelable(false)
+                    show()
+                }
+            } else {
+                xmrProgressDialog?.dismiss()
+                xmrProgressDialog = null
+            }
+        }
+
+        // XMR send success — show TX confirmation (one-shot: reset to null after consuming)
+        viewModel.xmrSendSuccess.observe(viewLifecycleOwner) { result ->
+            if (result == null || _binding == null) return@observe
+            val (txId, amount) = result
+            viewModel.consumeXmrSendSuccess()
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("✅ Paiement XMR envoyé")
+                .setMessage("Montant : $amount\n\nTX ID :\n$txId")
+                .setPositiveButton("Copier TX ID") { _, _ ->
+                    val cb = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    cb.setPrimaryClip(ClipData.newPlainText("TX ID", txId))
+                    Toast.makeText(requireContext(), "TX ID copié", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("OK", null)
+                .show()
         }
 
         // Dead conversation detection
         viewModel.conversationDead.observe(viewLifecycleOwner) { dead ->
             if (dead) {
-                AlertDialog.Builder(requireContext())
+                MaterialAlertDialogBuilder(requireContext())
                     .setTitle("Conversation supprimée")
                     .setMessage("Ce contact a supprimé son compte. Cette conversation n'existe plus sur le serveur.")
                     .setCancelable(false)
@@ -610,7 +662,7 @@ class ChatFragment : Fragment() {
             tvFileSize.text = formatFileSize(fileBytes.size.toLong())
         }
 
-        AlertDialog.Builder(requireContext())
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle("Envoyer à $contactName ?")
             .setView(dialogView)
             .setPositiveButton("Envoyer") { _, _ ->
@@ -626,5 +678,133 @@ class ChatFragment : Fragment() {
             bytes < 1024 * 1024 -> "${bytes / 1024} Ko"
             else -> String.format("%.1f Mo", bytes / (1024.0 * 1024.0))
         }
+    }
+
+    // ── XMR payment ──
+
+    /**
+     * Fetch the wallet's receive address on IO (may call JNI / crypto ops),
+     * then show XmrPaymentBottomSheet on the main thread.
+     */
+    private fun openXmrPaymentSheet() {
+        lifecycleScope.launch {
+            val address = withContext(Dispatchers.IO) {
+                try {
+                    WalletRepository.getSnapshot(requireContext()).receiveAddress ?: ""
+                } catch (_: Exception) { "" }
+            }
+            if (_binding == null) return@launch
+            val sheet = XmrPaymentBottomSheet.newInstance(
+                receiveAddress = address,
+                contactName = contactName
+            )
+            sheet.onShareAddress = { addr ->
+                viewModel.sendMessage("XMR_ADDR|$addr")
+            }
+            sheet.onRequestPayment = { addr, amount, note ->
+                viewModel.sendMessage("XMR_REQUEST|$addr|$amount|$note")
+            }
+            sheet.onSendPayment = { toAddr, amtXmr, priority ->
+                viewModel.sendXmrPayment(toAddr, amtXmr, priority)
+            }
+            sheet.show(childFragmentManager, XmrPaymentBottomSheet.TAG)
+        }
+    }
+
+    /**
+     * Called when the user taps "Payer" on a received XMR_REQUEST bubble.
+     * Parses address + amount from the message and opens a pre-filled send dialog.
+     */
+    private fun showXmrPayFromRequest(plaintext: String) {
+        val ctx = requireContext()
+        val parts = plaintext.removePrefix(MessagesAdapter.PREFIX_XMR_REQUEST).split("|", limit = 3)
+        val address = parts.getOrElse(0) { "" }
+        val suggestedAmount = parts.getOrElse(1) { "" }
+        val note = parts.getOrElse(2) { "" }
+
+        val dialogView = android.view.LayoutInflater.from(ctx)
+            .inflate(R.layout.dialog_xmr_send, null)
+        val etAddress = dialogView.findViewById<android.widget.EditText>(R.id.etXmrToAddress)
+        val etAmount  = dialogView.findViewById<android.widget.EditText>(R.id.etXmrSendAmount)
+        val tvBalance = dialogView.findViewById<android.widget.TextView>(R.id.tvXmrSendBalance)
+        val spinner   = dialogView.findViewById<android.widget.Spinner>(R.id.spinnerXmrFee)
+
+        etAddress.setText(address)
+        if (suggestedAmount.isNotEmpty()) etAmount.setText(suggestedAmount)
+
+        // Fee priority options
+        val feeLabels = arrayOf(
+            "Automatique", "Lent (×0.2)", "Normal (×1)", "Rapide (×5)", "Le plus rapide (×200)"
+        )
+        spinner.adapter = android.widget.ArrayAdapter(ctx,
+            android.R.layout.simple_spinner_dropdown_item, feeLabels)
+
+        // Load balance
+        lifecycleScope.launch(Dispatchers.IO) {
+            val balText = try {
+                val snap = WalletRepository.getSnapshot(ctx)
+                val u = snap.unlockedPiconero
+                if (u < 0) "Solde non disponible"
+                else "Disponible : ${WalletRepository.formatXmr(u)}"
+            } catch (_: Exception) { "Solde non disponible" }
+            withContext(Dispatchers.Main) { tvBalance?.text = balText }
+        }
+
+        val title = if (note.isNotEmpty()) "Payer — $note" else "Payer la demande XMR"
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle(title)
+            .setView(dialogView)
+            .setPositiveButton("Envoyer") { _, _ ->
+                val toAddr = etAddress.text.toString().trim()
+                val amt = etAmount.text.toString().trim()
+                val prio = spinner.selectedItemPosition
+                if (toAddr.isEmpty() || amt.isEmpty()) {
+                    Toast.makeText(ctx, "Adresse et montant requis", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                MaterialAlertDialogBuilder(ctx)
+                    .setTitle("Confirmer le paiement")
+                    .setMessage("Envoyer $amt XMR à\n$toAddr\n\nFrais : ${feeLabels[prio]}")
+                    .setPositiveButton("Confirmer") { _, _ ->
+                        viewModel.sendXmrPayment(toAddr, amt, prio)
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /**
+     * Called when the user taps "Voir la transaction" on a received XMR_SENT bubble.
+     * Shows TX details + button to navigate to wallet transactions tab.
+     */
+    private fun showXmrSentDetail(plaintext: String) {
+        val ctx = requireContext()
+        val parts = plaintext.removePrefix(MessagesAdapter.PREFIX_XMR_SENT).split("|", limit = 3)
+        val txHash  = parts.getOrElse(0) { "" }
+        val amount  = parts.getOrElse(1) { "" }
+
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("Paiement XMR reçu")
+            .setMessage(buildString {
+                if (amount.isNotEmpty()) appendLine("Montant : $amount")
+                appendLine()
+                append("TX ID :\n$txHash")
+            })
+            .setPositiveButton("Voir dans le wallet") { _, _ ->
+                try {
+                    findNavController().navigate(R.id.action_chat_to_walletHome)
+                } catch (_: Exception) {
+                    Toast.makeText(ctx, "Ouvrez le wallet depuis l'accueil", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNeutralButton("Copier TX ID") { _, _ ->
+                val cb = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                cb.setPrimaryClip(android.content.ClipData.newPlainText("TX ID", txHash))
+                Toast.makeText(ctx, "TX ID copié", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Fermer", null)
+            .show()
     }
 }

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Logo Monero officiel (getmonero.org / cryptologos.cc)
+    Paths d'origine : viewBox="0 0 3756.09 3756.49", transform="translate(-371.96 -371.75)"
+    Convertis via <group android:translateX/Y> pour Android VectorDrawable
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="3756.09"
+    android:viewportHeight="3756.49">
+
+    <group
+        android:translateX="-371.96"
+        android:translateY="-371.75">
+
+        <!-- Fond blanc (cercle complet) -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M4128,2249.81C4128,3287,3287.26,4127.86,2250,4127.86S372,3287,372,2249.81,1212.76,371.75,2250,371.75,4128,1212.54,4128,2249.81Z" />
+
+        <!-- Orange : coin + bras du M (laisse passer le blanc pour les triangles du M) -->
+        <path
+            android:fillColor="#F26822"
+            android:pathData="M2250,371.75c-1036.89,0-1879.12,842.06-1877.8,1878,0.26,207.26,33.31,406.63,95.34,593.12h561.88V1263L2250,2483.57,3470.52,1263v1579.9h562c62.12-186.48,95-385.85,95.37-593.12C4129.66,1212.76,3287,372,2250,372Z" />
+
+        <!-- Gris foncé : portion basse + bas du M -->
+        <path
+            android:fillColor="#4D4D4D"
+            android:pathData="M1969.3,2764.17l-532.67-532.7v994.14H1029.38l-384.29,0.07c329.63,540.8,925.35,902.56,1604.91,902.56S3525.31,3766.4,3855,3225.6H3063.25V2231.47l-532.7,532.7-280.61,280.61-280.62-280.61h0Z" />
+
+    </group>
+</vector>

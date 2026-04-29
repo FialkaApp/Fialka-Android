@@ -25,6 +25,9 @@ import com.fialkaapp.fialka.data.model.ContactRequest
 import com.fialkaapp.fialka.data.model.P2PMessage
 import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.util.NotificationHelper
+import com.fialkaapp.fialka.wallet.MoneroWallet
+import com.fialkaapp.fialka.wallet.WalletPreferences
+import com.fialkaapp.fialka.wallet.WalletRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -136,6 +139,19 @@ object P2PServer : TorTransport.FrameListener {
                         NotificationHelper.notifyNewMessage(appContext, conversationId, conv.contactDisplayName)
                     }
                 } catch (_: Exception) {}
+
+                // If contact just sent us XMR, trigger an immediate wallet refresh so our
+                // balance updates without waiting for the next polling cycle.
+                if (received.plaintext.startsWith("XMR_SENT|") &&
+                    WalletPreferences.isWalletEnabled(appContext) &&
+                    MoneroWallet.isOpen
+                ) {
+                    try {
+                        WalletRepository.invalidateWalletStateCache()
+                        MoneroWallet.startRefreshAsync()
+                        android.util.Log.i("P2PServer", "XMR_SENT received → wallet refresh triggered")
+                    } catch (_: Exception) {}
+                }
             }
 
             // Mettre à jour le mailboxOnion de l'expéditeur si fourni

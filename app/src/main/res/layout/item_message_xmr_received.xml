@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="3dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:orientation="vertical">
+
+        <!-- XMR bubble -->
+        <LinearLayout
+            android:id="@+id/bubbleXmrReceived"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_bubble_received"
+            android:backgroundTint="?attr/colorBubbleReceived"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:gravity="center_vertical"
+            android:minWidth="200dp"
+            android:maxWidth="300dp">
+
+            <!-- Monero logo -->
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:src="@drawable/ic_monero"
+                android:layout_marginEnd="10dp"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvXmrTitleReceived"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorBubbleReceivedText"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:alpha="0.85" />
+
+                <TextView
+                    android:id="@+id/tvXmrAmountReceived"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorBubbleReceivedText"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="2dp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvXmrNoteReceived"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorBubbleReceivedText"
+                    android:textSize="13sp"
+                    android:layout_marginTop="2dp"
+                    android:visibility="gone" />
+
+                <!-- Detail: address or txHash (truncated, tap to copy) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="6dp">
+
+                    <TextView
+                        android:id="@+id/tvXmrDetailReceived"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="?attr/colorBubbleReceivedText"
+                        android:textSize="11sp"
+                        android:alpha="0.7"
+                        android:maxLines="1"
+                        android:ellipsize="middle"
+                        android:fontFamily="monospace" />
+
+                    <ImageView
+                        android:id="@+id/btnXmrCopyReceived"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginStart="6dp"
+                        android:src="@drawable/ic_copy"
+                        android:tint="?attr/colorBubbleReceivedText"
+                        android:alpha="0.6"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Copier" />
+                </LinearLayout>
+
+                <!-- Action button: "Payer" for REQUEST, "Voir TX" for SENT, hidden for ADDR -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnXmrActionReceived"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="36dp"
+                    android:layout_marginTop="8dp"
+                    android:textSize="13sp"
+                    android:visibility="gone"
+                    android:text="Payer" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Timestamp -->
+        <TextView
+            android:id="@+id/tvTimeXmrReceived"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="11sp"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+</FrameLayout>

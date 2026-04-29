@@ -199,6 +199,13 @@
             app:popUpToInclusive="true"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out" />
+        <action
+            android:id="@+id/action_conversations_to_walletHome"
+            app:destination="@id/walletHomeFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -222,6 +229,13 @@
         <action
             android:id="@+id/action_chat_to_fingerprint"
             app:destination="@id/fingerprintFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_chat_to_walletHome"
+            app:destination="@id/walletHomeFragment"
             app:enterAnim="@anim/slide_in_right"
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
@@ -322,7 +336,89 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settings_to_walletSettings"
+            app:destination="@id/walletSettingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settings_to_torSettings"
+            app:destination="@id/torSettingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settings_to_donation"
+            app:destination="@id/donationFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
+
+    <fragment
+        android:id="@+id/donationFragment"
+        android:name="com.fialkaapp.fialka.ui.donation.DonationFragment"
+        android:label="Soutenir Fialka"
+        tools:layout="@layout/fragment_donation">
+        <action
+            android:id="@+id/action_donation_to_walletHome"
+            app:destination="@id/walletHomeFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/torSettingsFragment"
+        android:name="com.fialkaapp.fialka.ui.settings.TorSettingsFragment"
+        android:label="Paramètres Tor avancés"
+        tools:layout="@layout/fragment_tor_settings" />
+
+    <fragment
+        android:id="@+id/walletSettingsFragment"
+        android:name="com.fialkaapp.fialka.ui.wallet.WalletSettingsFragment"
+        android:label="Wallet"
+        tools:layout="@layout/fragment_wallet_settings">
+        <action
+            android:id="@+id/action_walletSettings_to_walletHome"
+            app:destination="@id/walletHomeFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/walletHomeFragment"
+        android:name="com.fialkaapp.fialka.ui.wallet.WalletHomeFragment"
+        android:label="Wallet"
+        tools:layout="@layout/fragment_wallet_home">
+        <action
+            android:id="@+id/action_walletHome_to_walletSettings"
+            app:destination="@id/walletSettingsFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_walletHome_to_seedBackup"
+            app:destination="@id/walletSeedBackupFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/walletSeedBackupFragment"
+        android:name="com.fialkaapp.fialka.ui.wallet.WalletSeedBackupFragment"
+        android:label="Seed Wallet"
+        tools:layout="@layout/fragment_wallet_seed_backup" />
 
     <fragment
         android:id="@+id/appearanceFragment"

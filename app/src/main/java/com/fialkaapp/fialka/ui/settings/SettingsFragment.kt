@@ -99,6 +99,7 @@ class SettingsFragment : Fragment() {
                 R.id.chipNotifications -> SettingsViewModel.CATEGORY_NOTIFICATIONS
                 R.id.chipPrivacy -> SettingsViewModel.CATEGORY_PRIVACY
                 R.id.chipSecurity -> SettingsViewModel.CATEGORY_SECURITY
+                R.id.chipWallet -> SettingsViewModel.CATEGORY_WALLET
                 R.id.chipNetwork -> SettingsViewModel.CATEGORY_NETWORK
                 R.id.chipAbout -> SettingsViewModel.CATEGORY_ABOUT
                 else -> SettingsViewModel.CATEGORY_ALL
@@ -140,6 +141,8 @@ class SettingsFragment : Fragment() {
                     "securityFragment" -> navigateTo(R.id.action_settings_to_security)
                     "ephemeralSettingsFragment" -> navigateTo(R.id.action_settings_to_ephemeral)
                     "mailboxSettingsFragment" -> navigateTo(R.id.action_settings_to_mailboxSettings)
+                    "walletSettingsFragment" -> navigateTo(R.id.action_settings_to_walletSettings)
+                    "torSettingsFragment" -> navigateTo(R.id.action_settings_to_torSettings)
                     else -> getNavigationAction(item.destination)?.let(::navigateTo)
                 }
             }
@@ -165,10 +168,6 @@ class SettingsFragment : Fragment() {
             )
 
             "import_backup" -> findNavController().navigate(R.id.restoreFragment)
-            "tor_advanced" -> showSimpleDialog(
-                title = getString(R.string.setting_tor_advanced),
-                message = getString(R.string.setting_tor_advanced_summary)
-            )
         }
     }
 
@@ -180,6 +179,8 @@ class SettingsFragment : Fragment() {
             "ephemeralSettingsFragment" -> R.id.action_settings_to_ephemeral
             "privacyFragment" -> R.id.action_settings_to_privacy
             "mailboxSettingsFragment" -> R.id.action_settings_to_mailboxSettings
+            "walletSettingsFragment" -> R.id.action_settings_to_walletSettings
+            "donationFragment" -> R.id.action_settings_to_donation
             else -> null
         }
     }
@@ -354,6 +355,7 @@ class SettingsFragment : Fragment() {
             SettingsViewModel.CATEGORY_NOTIFICATIONS -> getString(R.string.settings_notifications_category)
             SettingsViewModel.CATEGORY_PRIVACY -> getString(R.string.settings_privacy_category)
             SettingsViewModel.CATEGORY_SECURITY -> getString(R.string.settings_security_category)
+            SettingsViewModel.CATEGORY_WALLET -> getString(R.string.settings_wallet_category)
             SettingsViewModel.CATEGORY_NETWORK -> getString(R.string.settings_network_category)
             SettingsViewModel.CATEGORY_ABOUT -> getString(R.string.settings_about_category)
             else -> getString(R.string.settings_all)

@@ -146,6 +146,18 @@
         app:layout_constraintEnd_toEndOf="@id/inputBar"
         android:layout_marginEnd="56dp">
 
+        <!-- Monero XMR (toujours visible, wallet check au tap) -->
+        <ImageButton
+            android:id="@+id/btnPickMonero"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/bg_circle_option_orange"
+            android:contentDescription="Paiement XMR"
+            android:src="@drawable/ic_monero"
+            android:scaleType="centerInside"
+            android:padding="4dp" />
+
         <!-- File -->
         <ImageButton
             android:id="@+id/btnPickFile"

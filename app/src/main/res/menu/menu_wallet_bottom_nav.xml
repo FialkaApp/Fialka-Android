@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/wallet_tab_home"
+        android:icon="@drawable/ic_wallet"
+        android:title="@string/wallet_tab_home" />
+
+    <item
+        android:id="@+id/wallet_tab_send"
+        android:icon="@drawable/ic_send"
+        android:title="@string/wallet_tab_send" />
+
+    <item
+        android:id="@+id/wallet_tab_receive"
+        android:icon="@drawable/ic_qr_scan"
+        android:title="@string/wallet_tab_receive" />
+
+    <item
+        android:id="@+id/wallet_tab_transactions"
+        android:icon="@drawable/ic_notifications"
+        android:title="@string/wallet_tab_transactions" />
+
+</menu>
