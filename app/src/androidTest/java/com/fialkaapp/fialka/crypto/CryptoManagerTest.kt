@@ -64,6 +64,28 @@ class CryptoManagerTest {
         assertEquals(originalPub, restoredPub)
     }
 
+    @Test
+    fun deleteIdentityKey_clearsAllStateIncludingSeedVerification() {
+        // Ensure identity is present and seed is marked verified
+        if (!CryptoManager.hasIdentity()) {
+            CryptoManager.generateIdentity()
+        }
+        CryptoManager.markSeedVerified()
+        assertTrue("Seed must be verified before delete", CryptoManager.isSeedVerified())
+        assertTrue("hasIdentity must be true before delete", CryptoManager.hasIdentity())
+
+        // Delete
+        CryptoManager.deleteIdentityKey()
+
+        // hasIdentity() = KEY_ED25519_SEED != null && isSeedVerified()
+        // Both must be gone — a new generateIdentity() must not skip onboarding
+        assertFalse("isSeedVerified must be false after deleteIdentityKey", CryptoManager.isSeedVerified())
+        assertFalse("hasIdentity must be false after deleteIdentityKey", CryptoManager.hasIdentity())
+
+        // Regenerate so the @Before of other tests still works
+        CryptoManager.generateIdentity()
+    }
+
     // ========================================================================
     // AES-256-GCM encrypt / decrypt
     // ========================================================================

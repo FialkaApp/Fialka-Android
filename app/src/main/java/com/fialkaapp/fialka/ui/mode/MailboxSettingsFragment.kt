@@ -289,12 +289,13 @@ class MailboxSettingsFragment : Fragment() {
                     put("invite", code)
                 }.toString()
 
-                val bitmap = com.fialkaapp.fialka.util.QrCodeGenerator.generate(qrData, 512)
+                val bitmap = com.fialkaapp.fialka.util.QrCodeGenerator.generate(qrData, 400)
                 if (bitmap == null) {
                     Toast.makeText(requireContext(), R.string.mailbox_owner_invite_failed, Toast.LENGTH_SHORT).show()
                     return@launch
                 }
 
+                val sizePx = (200 * resources.displayMetrics.density).toInt()
                 val container = android.widget.LinearLayout(requireContext()).apply {
                     orientation = android.widget.LinearLayout.VERTICAL
                     gravity = android.view.Gravity.CENTER
@@ -302,6 +303,8 @@ class MailboxSettingsFragment : Fragment() {
                 }
                 val iv = android.widget.ImageView(requireContext()).apply {
                     setImageBitmap(bitmap)
+                    layoutParams = android.widget.LinearLayout.LayoutParams(sizePx, sizePx)
+                    scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
                 }
                 container.addView(iv)
                 val tvExpiry = android.widget.TextView(requireContext()).apply {

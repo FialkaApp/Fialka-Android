@@ -331,6 +331,8 @@ private const val HKDF_INFO = "Fialka-v2-message-key"
             .remove(KEY_MLKEM_PRIVATE)
             .remove(KEY_MLDSA_PUBLIC)
             .remove(KEY_MLDSA_PRIVATE)
+            .remove(KEY_SEED_VERIFIED)
+            .remove(KEY_SEED_PROMPT_INDEXES)
             .apply()
         clearSigningKeyCache()
     }

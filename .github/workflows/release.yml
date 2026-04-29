@@ -6,7 +6,10 @@
 #   - Push of a tag v*     → Rust build + unit tests + unsigned release APK (artifact)
 #
 # NO secrets required. Signing is done locally by the developer.
-# See scripts/release.ps1 for the local signing + publish workflow.
+# See scripts/release.py for the local signing + publish workflow.
+#
+# Monero static libs (external-libs/) are cached by Dockerfile hash.
+# Cache miss triggers a full Docker rebuild (~2h arm64 + ~30min x86_64).
 # ============================================================
 
 name: Release
@@ -59,6 +62,9 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
 
+      - name: Install Android NDK 27.2.12479018
+        run: sdkmanager "ndk;27.2.12479018"
+
       - name: Install cargo-ndk
         run: cargo install cargo-ndk --locked
 
@@ -72,14 +78,32 @@ jobs:
             -o ../app/src/main/jniLibs \
             build --release
 
-      # ── 6. Unit tests ─────────────────────────────────────────────────────
+      # ── 6. Monero static libs (cached by Dockerfile hash) ─────────────────
+      # Cache key: hash of both Dockerfiles + MONERO_TAG from Makefile
+      # Cache miss = full Docker rebuild (~2h arm64 + ~30min x86_64)
+      - name: Cache Monero static libs
+        id: cache-monero
+        uses: actions/cache@v5
+        with:
+          path: |
+            external-libs/arm64-v8a
+            external-libs/x86_64
+            external-libs/include
+          key: monero-libs-${{ hashFiles('external-libs/android64.Dockerfile', 'external-libs/android64_x86.Dockerfile', 'external-libs/Makefile') }}
+
+      - name: Build Monero static libs via Docker (cache miss only)
+        if: steps.cache-monero.outputs.cache-hit != 'true'
+        working-directory: external-libs
+        run: make all
+
+      # ── 7. Unit tests ─────────────────────────────────────────────────────
       - name: Make gradlew executable
         run: chmod +x gradlew
 
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest
 
-      # ── 7. Build APK ──────────────────────────────────────────────────────
+      # ── 8. Build APK ──────────────────────────────────────────────────────
       - name: Build debug APK (branch push)
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         run: ./gradlew assembleDebug
@@ -88,9 +112,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: ./gradlew assembleRelease
 
-      # ── 8. Upload unsigned APK as artifact ────────────────────────────────
+      # ── 9. Upload unsigned APK as artifact ────────────────────────────────
       # Developer downloads this artifact, signs locally with apksigner,
-      # then publishes with scripts/release.ps1
+      # then publishes with scripts/release.py
       - name: Upload unsigned APK
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4

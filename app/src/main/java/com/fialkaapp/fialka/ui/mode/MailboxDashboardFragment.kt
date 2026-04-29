@@ -227,7 +227,8 @@ class MailboxDashboardFragment : Fragment() {
 
             if (_binding == null) return@launch
 
-            val bitmap = QrCodeGenerator.generate(qrData, 512) ?: return@launch
+            val bitmap = QrCodeGenerator.generate(qrData, 400) ?: return@launch
+            val sizePx = (200 * resources.displayMetrics.density).toInt()
             val container = LinearLayout(requireContext()).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = android.view.Gravity.CENTER
@@ -235,6 +236,8 @@ class MailboxDashboardFragment : Fragment() {
             }
             val iv = android.widget.ImageView(requireContext()).apply {
                 setImageBitmap(bitmap)
+                layoutParams = LinearLayout.LayoutParams(sizePx, sizePx)
+                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
             }
             container.addView(iv)
             val tvExpiry = TextView(requireContext()).apply {

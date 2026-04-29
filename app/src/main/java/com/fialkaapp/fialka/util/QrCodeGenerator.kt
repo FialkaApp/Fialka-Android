@@ -192,21 +192,13 @@ object QrCodeGenerator {
      * @return A Bitmap containing the QR code, or null if the content is too large to encode.
      */
     fun generate(content: String, size: Int = 512): Bitmap? {
-        val useLargeVersion = content.length > 200
-
-        val hints: Map<EncodeHintType, Any> = if (useLargeVersion) {
-            mapOf(
-                EncodeHintType.MARGIN           to 1,
-                EncodeHintType.CHARACTER_SET    to "ISO-8859-1",  // binary mode — max capacity
-                EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.L,
-                EncodeHintType.QR_VERSION       to 40
-            )
-        } else {
-            mapOf(
-                EncodeHintType.MARGIN        to 1,
-                EncodeHintType.CHARACTER_SET to "UTF-8"
-            )
-        }
+        // Let ZXing auto-select the minimum version needed. Forcing QR_VERSION=40 was
+        // producing an unreadable 177×177-module code for content slightly over 200 chars.
+        val hints: Map<EncodeHintType, Any> = mapOf(
+            EncodeHintType.MARGIN           to 1,
+            EncodeHintType.CHARACTER_SET    to "UTF-8",
+            EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.L
+        )
 
         return try {
             val bitMatrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, size, size, hints)
