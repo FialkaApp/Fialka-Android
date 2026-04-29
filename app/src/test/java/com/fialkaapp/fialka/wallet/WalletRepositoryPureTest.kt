@@ -51,10 +51,10 @@ class WalletRepositoryPureTest {
     }
 
     @Test
-    fun `formatXmr sub-minimum amount rounds to zero in 6 decimals`() {
-        // 999_999 piconero < 0.000001 XMR — should display as 0.000000 (not negative)
+    fun `formatXmr sub-minimum amount rounds to 0_000001 with standard rounding`() {
+        // 999_999 piconero = 0.000000999999 XMR — String.format("%.6f") rounds UP to 0.000001
         val result = WalletRepository.formatXmr(999_999L)
-        assertTrue("Should display ~0.000000 XMR, got: $result", result.startsWith("0.000000"))
+        assertTrue("Should display ~0.000001 XMR, got: $result", result.startsWith("0.000001"))
     }
 
     @Test
