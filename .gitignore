@@ -25,7 +25,8 @@ Thumbs.db
 
 # --- Monero local build artifacts (NEVER push — gigabytes of NDK/sources) ---
 .monero-build/
-jni/
+# Only ignore the top-level app/jni/ NDK build dir, NOT wallet/jni/ Kotlin sources
+app/jni/
 
 # --- Monero cross-compiled static libs (Docker output — regenerate with make) ---
 # Keep: Dockerfiles, Makefile, build scripts
