@@ -5,7 +5,7 @@ ARG NPROC=4
 
 RUN set -x && apt-get update && apt-get install -y \
     unzip automake build-essential curl file pkg-config git \
-    python-is-python3 libtool libtinfo5 ca-certificates
+    python-is-python3 libtool libtinfo5 ca-certificates bison
 
 WORKDIR /opt/android
 
