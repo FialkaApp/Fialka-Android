@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Foreground pour adaptive icon Horloge analogique.
+  Viewport 108x108 (safe zone 72x72 centrée).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Cadran blanc -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,18 m-36,0 a36,36 0 1,0 72,0 a36,36 0 1,0 -72,0" />
+
+    <!-- Bordure extérieure -->
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M54,18 m-36,0 a36,36 0 1,0 72,0 a36,36 0 1,0 -72,0 M54,22 m-32,0 a32,32 0 1,1 64,0 a32,32 0 1,1 -64,0"
+        android:fillType="evenOdd" />
+
+    <!-- Graduations heures -->
+    <!-- 12h -->
+    <path android:fillColor="#424242" android:pathData="M52,22 L56,22 L56,28 L52,28 Z" />
+    <!-- 3h -->
+    <path android:fillColor="#424242" android:pathData="M80,52 L86,52 L86,56 L80,56 Z" />
+    <!-- 6h -->
+    <path android:fillColor="#424242" android:pathData="M52,80 L56,80 L56,86 L52,86 Z" />
+    <!-- 9h -->
+    <path android:fillColor="#424242" android:pathData="M22,52 L28,52 L28,56 L22,56 Z" />
+
+    <!-- Graduations minutes (petites) -->
+    <path android:fillColor="#9E9E9E" android:pathData="M36,25 L37.5,27.6 L34.5,27.6 Z" />
+    <path android:fillColor="#9E9E9E" android:pathData="M71,25 L72.5,27.6 L69.5,27.6 Z" />
+    <path android:fillColor="#9E9E9E" android:pathData="M83,37 L80.4,38.5 L80.4,35.5 Z" />
+    <path android:fillColor="#9E9E9E" android:pathData="M83,71 L80.4,72.5 L80.4,69.5 Z" />
+    <path android:fillColor="#9E9E9E" android:pathData="M36,83 L37.5,80.4 L34.5,80.4 Z" />
+    <path android:fillColor="#9E9E9E" android:pathData="M71,83 L72.5,80.4 L69.5,80.4 Z" />
+    <path android:fillColor="#9E9E9E" android:pathData="M25,37 L27.6,38.5 L27.6,35.5 Z" />
+    <path android:fillColor="#9E9E9E" android:pathData="M25,71 L27.6,72.5 L27.6,69.5 Z" />
+
+    <!-- Aiguille des heures (10h) — épaisse -->
+    <path
+        android:fillColor="#212121"
+        android:pathData="M54,54 L51,36 Q54,33 57,36 Z" />
+
+    <!-- Aiguille des minutes (2h) — plus longue et fine -->
+    <path
+        android:fillColor="#212121"
+        android:pathData="M54,54 L68,28 Q54,24 52,28 Z" />
+
+    <!-- Trotteuse rouge (6h) -->
+    <path
+        android:fillColor="#F44336"
+        android:pathData="M54,54 L53,80 Q54,82 55,80 Z" />
+
+    <!-- Centre -->
+    <path
+        android:fillColor="#F44336"
+        android:pathData="M54,54 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+
+    <!-- Rivet centre blanc -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54 m-2,0 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0" />
+
+</vector>

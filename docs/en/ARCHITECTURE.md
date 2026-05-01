@@ -154,10 +154,10 @@ Fialka supports **two distinct and mutually exclusive modes** on the same device
 |-------|------|-----------|
 | **UI** | Screens, navigation, interactions | `ui/` — Fragments, ViewModels, Adapters (Material 3) |
 | **Repository** | Local/crypto/remote coordination | `data/repository/ChatRepository.kt` |
-| **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519, PQXDH (ML-KEM-1024) | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt` |
+| **Crypto** | X25519, ECDH, AES-GCM, Double Ratchet, BIP-39, Ed25519, PQXDH (ML-KEM-1024), local XMR wallet | `crypto/CryptoManager.kt`, `DoubleRatchet.kt`, `MnemonicManager.kt`, `WalletManager.kt` |
 | **Local DB** | Room v24 — users, contacts, messages, ratchet (composite indexes) | `data/local/` — DAOs, Database (SQLCipher) |
 | **Remote** | Tor Hidden Services P2P (.onion transport, ciphertext only) | `data/remote/TorTransport.kt` |
-| **Util** | QR, 5 themes, app lock, ephemeral, dummy traffic, DeviceSecurityManager | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt`, `DeviceSecurityManager.kt` |
+| **Util** | QR, 5 themes, app lock, ephemeral, dummy traffic, DeviceSecurityManager, .fialka backup, storage management | `util/ThemeManager.kt`, `AppLockManager.kt`, `DummyTrafficManager.kt`, `DeviceSecurityManager.kt`, `BackupManager.kt` |
 
 ---
 
@@ -289,6 +289,33 @@ Anti-bypass:
   • DB flag is set BEFORE opening the viewer Intent
   • Even if user leaves the conversation, the flag is already in DB
   • On return, bubble shows "Ephemeral already viewed / Expired"
+```
+
+---
+
+## Monero XMR Wallet — Local Payment Layer
+
+```
+WalletPreferences (encrypted SharedPreferences)
+  ├── wallet_network_type : Int  (STAGENET=2 [default], MAINNET=0)
+  ├── wallet_node_url     : String (network-dependent default)
+  └── wallet_restore_height : Long (network-dependent default)
+
+WalletRepository (Singleton)
+  ├── getNetworkType(context) → WalletPreferences.getNetworkType()
+  ├── openOrCreate(context) → MoneroWallet.open/create(networkType)
+  ├── validateAddress(context, address) → validates address against active network
+  └── deleteWallet() → deletes local wallet files (required before switching network)
+
+Security rule: Stagenet ≠ Mainnet
+  → Each network has its own keys, its own wallet, its own funds
+  → Switching networks REQUIRES deleting the existing wallet (no migration)
+  → WalletPreferences.isWalletCreated() blocks the switch with a confirmation dialog
+
+Network badges in UI:
+  WalletHomeFragment     → tvNetworkBadge     (red = STAGENET, green = MAINNET)
+  WalletSettingsFragment → tvStagenetBanner   (full-width, hidden on MAINNET)
+  WalletSeedBackupFragment → tvSeedNetworkBadge (during wallet creation)
 ```
 
 ---

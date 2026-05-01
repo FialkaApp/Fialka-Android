@@ -357,7 +357,34 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settings_to_backupExport"
+            app:destination="@id/backupExportFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settings_to_backupImport"
+            app:destination="@id/backupImportFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_settings_to_storage"
+            app:destination="@id/storageFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
+
+    <fragment
+        android:id="@+id/storageFragment"
+        android:name="com.fialkaapp.fialka.ui.settings.StorageFragment"
+        android:label="Gestion du stockage"
+        tools:layout="@layout/fragment_storage" />
 
     <fragment
         android:id="@+id/donationFragment"
@@ -436,7 +463,21 @@
         android:id="@+id/securityFragment"
         android:name="com.fialkaapp.fialka.ui.settings.SecurityFragment"
         android:label="Sécurité"
-        tools:layout="@layout/fragment_settings_security" />
+        tools:layout="@layout/fragment_settings_security">
+        <action
+            android:id="@+id/action_securityFragment_to_appDisguiseFragment"
+            app:destination="@id/appDisguiseFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/appDisguiseFragment"
+        android:name="com.fialkaapp.fialka.ui.disguise.AppDisguiseFragment"
+        android:label="@string/disguise_screen_title"
+        tools:layout="@layout/fragment_app_disguise" />
 
     <fragment
         android:id="@+id/privacyFragment"
@@ -533,5 +574,25 @@
         android:name="com.fialkaapp.fialka.ui.onboarding.TermsConsentFragment"
         android:label="Conditions d'utilisation"
         tools:layout="@layout/fragment_terms_consent" />
+
+    <fragment
+        android:id="@+id/backupExportFragment"
+        android:name="com.fialkaapp.fialka.ui.settings.BackupExportFragment"
+        android:label="Créer une sauvegarde"
+        tools:layout="@layout/fragment_backup_export" />
+
+    <fragment
+        android:id="@+id/backupImportFragment"
+        android:name="com.fialkaapp.fialka.ui.settings.BackupImportFragment"
+        android:label="Restaurer une sauvegarde"
+        tools:layout="@layout/fragment_backup_import">
+        <action
+            android:id="@+id/action_backupImport_to_torBootstrap"
+            app:destination="@id/torBootstrapFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
+    </fragment>
 
 </navigation>

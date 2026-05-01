@@ -27,7 +27,11 @@ import com.fialkaapp.fialka.tor.OutboxManager
 import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.tor.TorTransport
 import com.fialkaapp.fialka.util.EphemeralManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.UUID
@@ -203,6 +207,18 @@ class ChatRepository(private val appContext: Context) {
             val conv = conversationDao.getConversationByParticipantPublicKey(publicKey)
             if (conv != null && conv.participantMailboxOnion != mailboxOnion) {
                 conversationDao.updateConversation(conv.copy(participantMailboxOnion = mailboxOnion))
+            }
+        }
+    }
+
+    /** Clear a contact's mailbox onion address (called when contact explicitly signals they left their mailbox). */
+    suspend fun clearContactMailbox(publicKey: String) {
+        val contact = contactDao.getContactByPublicKey(publicKey) ?: return
+        if (contact.mailboxOnion != null) {
+            contactDao.insertContact(contact.copy(mailboxOnion = null))
+            val conv = conversationDao.getConversationByParticipantPublicKey(publicKey)
+            if (conv != null && conv.participantMailboxOnion.isNotEmpty()) {
+                conversationDao.updateConversation(conv.copy(participantMailboxOnion = ""))
             }
         }
     }
@@ -481,10 +497,10 @@ class ChatRepository(private val appContext: Context) {
                 put("kemCiphertext", kemToSend)
                 put("mldsaSignature", mldsaSignature)
                 put("conversationId", conversationId)
-                // Inclure notre mailboxOnion pour que le destinataire puisse nous joindre
-                // même si on est offline, et mettre à jour sa DB si on a changé de mailbox
-                val myMailbox = com.fialkaapp.fialka.tor.MailboxClientManager.getMailboxOnion()
-                if (myMailbox != null) put("senderMailboxOnion", myMailbox)
+                // Toujours inclure senderMailboxOnion — même vide — pour que le destinataire
+                // puisse mettre à jour sa DB : non-vide = adresse mailbox, vide = on a quitté la mailbox.
+                // Si le champ est absent, les anciens clients ne le connaissent pas (backward compat).
+                put("senderMailboxOnion", com.fialkaapp.fialka.tor.MailboxClientManager.getMailboxOnion() ?: "")
             }
             val frame = TorTransport.Frame(
                 TorTransport.TYPE_MESSAGE,
@@ -958,7 +974,6 @@ class ChatRepository(private val appContext: Context) {
                     recvIndex = foundIndex + 1
                 )
                 ratchetDao.insertOrUpdate(ratchetState)
-
                 // PQXDH deferred upgrade (responder side):
                 // Now that the message carrying kemCiphertext has been successfully
                 // decrypted with the classic chain, upgrade rootKey to the combined
@@ -1008,17 +1023,37 @@ class ChatRepository(private val appContext: Context) {
                 }
 
                 // Delete-after-delivery not needed — P2P messages are ephemeral on the wire
+            } else {
+                // ── Auto-heal: ratchet desync detected (all trial decryptions failed) ──
+                // This happens after a backup restore — our ratchet state diverged from the
+                // sender's. Wipe our stale state so both sides can re-initialize a fresh
+                // PQXDH session on the next message exchange.
+                ratchetDao.deleteState(conversationId)
+                synchronized(ratchetMutexes) { ratchetMutexes.remove(conversationId) }
+                val senderOnion = conversation.participantOnionAddress
+                if (senderOnion.isNotEmpty()) {
+                    // Fire-and-forget — don't hold the ratchet mutex for a network call
+                    CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+                        sendSessionReset(conversationId, senderOnion)
+                    }
+                }
+                android.util.Log.w("ChatRepository", "Ratchet desync for $conversationId — auto-heal triggered, session reset sent")
             }
 
-            // Verify ML-DSA-44 handshake signature (PQ authentication on first PQXDH message)
+            // Verify ML-DSA-44 handshake signature (PQ authentication on first PQXDH message).
+            // A failed ML-DSA check = potential MITM on the PQXDH key exchange.
+            // The ratchet has already advanced (PFS preserved), but we flag the message
+            // so the UI can warn the user. mldsaSignatureValid = false overrides signatureValid.
+            var mldsaSignatureValid: Boolean? = null
             if (p2pMessage.mldsaSignature.isNotEmpty() && p2pMessage.kemCiphertext.isNotEmpty()) {
                 val contact0 = contactDao.getContactByPublicKey(conversation.participantPublicKey)
                 val mldsaKey = contact0?.mldsaPublicKey
                 if (mldsaKey != null) {
                     val handshakeData = (p2pMessage.kemCiphertext + p2pMessage.ephemeralKey)
                         .toByteArray(Charsets.UTF_8)
-                    val mldsaValid = CryptoManager.verifyHandshakeMlDsa44(mldsaKey, handshakeData, p2pMessage.mldsaSignature)
-                    if (!mldsaValid) {
+                    mldsaSignatureValid = CryptoManager.verifyHandshakeMlDsa44(mldsaKey, handshakeData, p2pMessage.mldsaSignature)
+                    if (mldsaSignatureValid == false) {
+                        android.util.Log.e("ChatRepository", "⚠️ ML-DSA-44 PQXDH signature INVALID for conv $conversationId — possible MITM on key exchange")
                     }
                 }
             }
@@ -1044,6 +1079,10 @@ class ChatRepository(private val appContext: Context) {
                 null
             }
 
+            // If ML-DSA-44 PQXDH signature failed, override signatureValid to false regardless
+            // of the Ed25519 per-message signature result.
+            val finalSignatureValid: Boolean? = if (mldsaSignatureValid == false) false else signatureValid
+
             // Silently drop dummy traffic messages (used to mask real activity patterns)
             if (decryptedPlaintext != null && decryptedPlaintext.startsWith(DUMMY_PREFIX)) {
                 return@withLock null
@@ -1053,7 +1092,7 @@ class ChatRepository(private val appContext: Context) {
             if (decryptedPlaintext != null && decryptedPlaintext.startsWith(FILE_PREFIX)) {
                 return@withLock handleReceivedFile(
                     conversationId, conversation, decryptedPlaintext,
-                    p2pMessage.createdAt, signatureValid
+                    p2pMessage.createdAt, finalSignatureValid
                 )
             }
 
@@ -1074,7 +1113,7 @@ class ChatRepository(private val appContext: Context) {
                 isMine = false,
                 ephemeralDuration = ephDuration,
                 expiresAt = expiresAt,
-                signatureValid = signatureValid
+                signatureValid = finalSignatureValid
             )
             messageDao.insertMessage(localMessage)
             updateConversationLastMessage(conversationId, localMessage.plaintext)
@@ -1397,5 +1436,38 @@ class ChatRepository(private val appContext: Context) {
         CryptoManager.deleteIdentityKey()
         // Also wipe the wallet so the user starts fully fresh
         com.fialkaapp.fialka.wallet.WalletRepository.deleteWallet(appContext)
+    }
+
+    // ========================================================================
+    // SESSION RESET (ratchet desync recovery — e.g. after backup restore)
+    // ========================================================================
+
+    /**
+     * Send a TYPE_SESSION_RESET frame to a single contact via best-effort direct P2P.
+     * Fire-and-forget: if the contact is offline the auto-heal on their next incoming
+     * decryption failure will trigger the symmetric reset on their side.
+     */
+    private suspend fun sendSessionReset(conversationId: String, recipientOnion: String) {
+        try {
+            val payload = org.json.JSONObject()
+                .apply { put("conversationId", conversationId) }
+                .toString()
+                .toByteArray(Charsets.UTF_8)
+            val frame = TorTransport.Frame(TorTransport.TYPE_SESSION_RESET, payload)
+            TorTransport.sendFrame(recipientOnion, frame = frame)
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Broadcast a session reset to every accepted conversation.
+     * Called after a backup restore (once Tor is back online) so all contacts
+     * also wipe their stale ratchet state and re-initialize on next message.
+     */
+    suspend fun broadcastSessionResets() {
+        val conversations = conversationDao.getAcceptedConversations()
+        for (conv in conversations) {
+            val onion = conv.participantOnionAddress.ifEmpty { continue }
+            sendSessionReset(conv.conversationId, onion)
+        }
     }
 }

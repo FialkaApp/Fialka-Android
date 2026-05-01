@@ -231,20 +231,32 @@ object OutboxManager {
      * Also embeds our mailboxOnion so contacts can update their fallback address.
      * Fire-and-forget — not queued, best-effort only.
      * After broadcast, immediately flushes outbox entries for each reachable contact.
+     *
+     * @param overrideMailboxOnion if not null, use this value instead of reading from MailboxClientManager.
+     *   Pass empty string "" to explicitly signal that we have no mailbox (so contacts clear stale data).
      */
-    fun broadcastPresence() {
+    fun broadcastPresence(overrideMailboxOnion: String? = null) {
         scope.launch {
             try {
                 val db = FialkaDatabase.getInstance(appContext)
                 val conversations = db.conversationDao().getAcceptedConversations()
-                val myMailbox = MailboxClientManager.getMailboxOnion()
+                val myMailbox = overrideMailboxOnion ?: MailboxClientManager.getMailboxOnion()
                 val myPubKey = CryptoManager.getPublicKey() ?: return@launch
                 val mySigningPub = CryptoManager.getSigningPublicKeyBase64()
+
+                // Check if this presence broadcast is from a just-restored account
+                val isAccountRestored = appContext
+                    .getSharedPreferences("fialka_flags", android.content.Context.MODE_PRIVATE)
+                    .getBoolean("needs_session_reset", false)
 
                 val presencePayload = JSONObject().apply {
                     put("senderPublicKey", myPubKey)
                     put("signingPublicKey", mySigningPub)
-                    if (myMailbox != null) put("mailboxOnion", myMailbox)
+                    // Always include the mailboxOnion field — even as empty string — so contacts
+                    // can clear stale data when we leave a mailbox. Omitting the field entirely
+                    // (backward-compat path) means "no change", whereas "" means "cleared".
+                    put("mailboxOnion", myMailbox ?: "")
+                    if (isAccountRestored) put("accountRestored", true)
                 }.toString().toByteArray(Charsets.UTF_8)
 
                 for (conv in conversations) {
@@ -261,6 +273,20 @@ object OutboxManager {
                 // Sweep the full outbox for contacts that didn't respond (offline).
                 // This triggers mailbox deposit for any queued messages that have a fallbackOnion.
                 try { processOutbox() } catch (_: Exception) {}
+
+                // After a backup restore, send TYPE_SESSION_RESET to all contacts so both
+                // sides wipe their stale ratchet state and re-initialize from scratch.
+                val prefs = appContext.getSharedPreferences("fialka_flags", android.content.Context.MODE_PRIVATE)
+                if (prefs.getBoolean("needs_session_reset", false)) {
+                    prefs.edit().remove("needs_session_reset").apply()
+                    try {
+                        // accountRestored=true was already embedded in the presence payload
+                        // broadcast above (all contacts online received it).
+                        // For contacts that were offline, broadcastSessionResets sends
+                        // TYPE_SESSION_RESET frames directly.
+                        com.fialkaapp.fialka.data.repository.ChatRepository(appContext).broadcastSessionResets()
+                    } catch (_: Exception) {}
+                }
             } catch (e: Exception) {
                 android.util.Log.w("OutboxManager", "broadcastPresence failed: ${e.message}")
             }

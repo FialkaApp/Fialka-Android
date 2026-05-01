@@ -241,7 +241,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     _sendError.postValue("Wallet non disponible — activez-le dans les paramètres")
                     return@launch
                 }
-                if (!WalletRepository.validateAddress(toAddress)) {
+                if (!WalletRepository.validateAddress(app, toAddress)) {
                     _sendError.postValue("Adresse XMR invalide")
                     return@launch
                 }

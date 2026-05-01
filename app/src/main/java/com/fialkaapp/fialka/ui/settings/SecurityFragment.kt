@@ -27,9 +27,17 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.databinding.FragmentSettingsSecurityBinding
+import com.fialkaapp.fialka.ui.disguise.AppDisguiseManager
 import com.fialkaapp.fialka.ui.settings.DurationSelectorBottomSheet
 import com.fialkaapp.fialka.util.AppLockManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import android.graphics.Color
+import android.os.Build
+import com.fialkaapp.fialka.util.AndroidOs
+import com.fialkaapp.fialka.util.DeviceSecurityManager
+import com.fialkaapp.fialka.util.SecurityLevel
+import com.fialkaapp.fialka.util.StrongBoxStatus
+import com.fialkaapp.fialka.util.UserProfileType
 
 class SecurityFragment : Fragment() {
 
@@ -51,6 +59,16 @@ class SecurityFragment : Fragment() {
         setupPin()
         setupBiometric()
         setupAutoLock()
+        setupDisguise()
+        setupDeviceSecurityCard()
+    }
+
+    private fun setupDisguise() {
+        val active = AppDisguiseManager.getActive(requireContext())
+        binding.tvDisguiseCurrentLabel.text = getString(active.labelRes)
+        binding.cardDisguise.setOnClickListener {
+            findNavController().navigate(R.id.action_securityFragment_to_appDisguiseFragment)
+        }
     }
 
     private fun setupAutoLock() {
@@ -166,6 +184,50 @@ class SecurityFragment : Fragment() {
             "✅ Activé — utilisez votre empreinte ou visage"
         } else {
             "Empreinte digitale, reconnaissance faciale…"
+        }
+    }
+
+    private fun setupDeviceSecurityCard() {
+        val profile = DeviceSecurityManager.getSecurityProfile(requireContext())
+
+        // Security level — green for Maximum, orange for Standard
+        binding.tvHwSecurityLevel.text = when (profile.securityLevel) {
+            SecurityLevel.MAXIMUM  -> "Maximum"
+            SecurityLevel.STANDARD -> "Standard"
+        }
+        binding.tvHwSecurityLevel.setTextColor(
+            if (profile.isStrongBoxAvailable) Color.parseColor("#4CAF50")
+            else Color.parseColor("#FF9800")
+        )
+
+        // StrongBox
+        binding.tvHwStrongBox.text = when (profile.strongBoxStatus) {
+            StrongBoxStatus.AVAILABLE                 -> "Disponible ✅"
+            StrongBoxStatus.DECLARED_BUT_UNAVAILABLE  -> "Déclaré, non fonctionnel ⚠️"
+            StrongBoxStatus.NOT_AVAILABLE             -> "Non disponible"
+        }
+
+        // OS
+        binding.tvHwAndroidOs.text = when (profile.androidOs) {
+            AndroidOs.GRAPHENEOS -> "GrapheneOS"
+            AndroidOs.CALYXOS    -> "CalyxOS"
+            AndroidOs.LINEAGEOS  -> "LineageOS"
+            AndroidOs.CUSTOM     -> "ROM personnalisée"
+            AndroidOs.STOCK      -> "Android"
+        }
+
+        // Android version
+        binding.tvHwAndroidVersion.text =
+            "Android ${Build.VERSION.RELEASE}  ·  API ${Build.VERSION.SDK_INT}"
+
+        // Device model
+        binding.tvHwDeviceModel.text = profile.deviceName
+
+        // User profile
+        binding.tvHwUserProfile.text = when (profile.userProfileType) {
+            UserProfileType.OWNER     -> "Propriétaire"
+            UserProfileType.SECONDARY -> "Profil secondaire ⚠️"
+            UserProfileType.UNKNOWN   -> "Inconnu"
         }
     }
 

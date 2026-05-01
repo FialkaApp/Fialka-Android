@@ -92,6 +92,13 @@ object TorTransport {
     // Payload: optional JSON {"mailboxOnion":"..."}  (can be empty = 0 bytes).
     const val TYPE_PRESENCE: Byte = 0x13
 
+    // ── Session Reset ──
+    // Sent when one side detects ratchet desync (e.g. after backup restore).
+    // Payload: JSON {"conversationId":"..."}
+    // Receiver deletes the ratchet state for that conversation so both sides
+    // re-initialize a fresh session on the next message exchange.
+    const val TYPE_SESSION_RESET: Byte = 0x14
+
     // ── Status codes ──
     const val ACK_OK: Byte = 0x00
     const val ACK_ERROR: Byte = 0x01

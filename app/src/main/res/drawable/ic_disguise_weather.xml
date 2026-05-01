@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Foreground pour adaptive icon météo.
+  Viewport 108x108 (safe zone 72x72 centrée).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Soleil corps -->
+    <path
+        android:fillColor="#FFF176"
+        android:pathData="M54,28 m-14,0 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0" />
+
+    <!-- Rayons soleil -->
+    <path
+        android:strokeColor="#FFF176"
+        android:strokeWidth="3"
+        android:pathData="M54,10 L54,16" />
+    <path
+        android:strokeColor="#FFF176"
+        android:strokeWidth="3"
+        android:pathData="M54,40 L54,46" />
+    <path
+        android:strokeColor="#FFF176"
+        android:strokeWidth="3"
+        android:pathData="M36,28 L30,28" />
+    <path
+        android:strokeColor="#FFF176"
+        android:strokeWidth="3"
+        android:pathData="M78,28 L72,28" />
+    <path
+        android:strokeColor="#FFF176"
+        android:strokeWidth="3"
+        android:pathData="M41,15 L37,11" />
+    <path
+        android:strokeColor="#FFF176"
+        android:strokeWidth="3"
+        android:pathData="M71,15 L75,11" />
+    <path
+        android:strokeColor="#FFF176"
+        android:strokeWidth="3"
+        android:pathData="M41,41 L37,45" />
+    <path
+        android:strokeColor="#FFF176"
+        android:strokeWidth="3"
+        android:pathData="M71,41 L75,45" />
+
+    <!-- Nuage principal (blanc) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M76,72 Q80,72 80,68 Q80,64 76,64 Q75,58 69,58 Q67,58 66,59 Q64,54 58,54 Q50,54 48,61 Q44,61 42,64 Q40,67 42,70 Q40,73 42,76 Q44,80 48,80 L76,80 Q82,80 82,74 Q82,72 76,72 Z" />
+
+    <!-- Ombre/fond nuage légère -->
+    <path
+        android:fillColor="#E3F2FD"
+        android:pathData="M74,76 Q78,76 78,72 Q78,68 74,68 Q73,63 68,63 Q66,63 65,64 Q63,60 58,60 Q51,60 50,66 Q46,66 44,69 Q43,72 45,74 Q43,77 46,80 L74,80 Q79,80 79,76 Z" />
+
+    <!-- Nuage blanc par dessus -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M72,78 Q77,78 77,73 Q77,68 72,68 Q71,62 65,62 Q63,62 62,63 Q60,58 54,58 Q47,58 46,65 Q42,65 40,68 Q38,72 41,75 Q39,78 42,82 L72,82 Q78,82 78,78 Z" />
+
+</vector>

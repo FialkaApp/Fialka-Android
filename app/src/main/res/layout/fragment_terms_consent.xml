@@ -180,6 +180,42 @@
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="13sp" />
 
+            <!-- Section: Monero wallet -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="@string/terms_section_wallet_title"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="@string/terms_section_wallet_body"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp" />
+
+            <!-- Section: Backup & Restore -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="@string/terms_section_backup_title"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="@string/terms_section_backup_body"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textSize="13sp" />
+
             <!-- Full terms link -->
             <TextView
                 android:layout_width="match_parent"

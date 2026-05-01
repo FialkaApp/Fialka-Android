@@ -27,11 +27,32 @@ import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.ui.cover.CoverCalculatorActivity
+import com.fialkaapp.fialka.ui.disguise.AppDisguiseManager
 
 class SplashActivity : AppCompatActivity() {
 
+    companion object {
+        /** Set to true by CoverCalculatorActivity when unlocking — skips cover redirect. */
+        const val EXTRA_BYPASS_COVER = "bypass_cover"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ── Cover mode routing ──────────────────────────────────────────────
+        // If the calculator cover is enabled AND this launch is NOT coming from
+        // CoverCalculatorActivity (bypass flag absent), redirect immediately.
+        val bypass = intent.getBooleanExtra(EXTRA_BYPASS_COVER, false)
+        if (!bypass
+            && AppDisguiseManager.isCoverModeEnabled(this)
+            && AppDisguiseManager.getActive(this) == AppDisguiseManager.Disguise.CALCULATOR
+        ) {
+            startActivity(Intent(this, CoverCalculatorActivity::class.java))
+            finish()
+            return
+        }
+        // ───────────────────────────────────────────────────────────────────
 
         // Full screen, no status bar
         WindowCompat.setDecorFitsSystemWindows(window, false)

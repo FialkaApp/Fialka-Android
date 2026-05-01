@@ -59,6 +59,17 @@ class WalletSeedBackupFragment : Fragment() {
 
         words = mnemonic.split(Regex("\\s+")).filter { it.isNotBlank() }
 
+        // Network badge
+        val isStagenet = com.fialkaapp.fialka.wallet.WalletPreferences.isStagenet(requireContext())
+        binding.tvSeedNetworkBadge.visibility = View.VISIBLE
+        if (isStagenet) {
+            binding.tvSeedNetworkBadge.text = getString(R.string.wallet_network_stagenet_badge)
+            binding.tvSeedNetworkBadge.setBackgroundColor(android.graphics.Color.parseColor("#CC0000"))
+        } else {
+            binding.tvSeedNetworkBadge.text = getString(R.string.wallet_network_mainnet_label)
+            binding.tvSeedNetworkBadge.setBackgroundColor(android.graphics.Color.parseColor("#1B5E20"))
+        }
+
         binding.rvWords.layoutManager = LinearLayoutManager(requireContext())
         binding.rvWords.adapter = WordAdapter(words)
 
@@ -69,6 +80,7 @@ class WalletSeedBackupFragment : Fragment() {
         binding.btnContinue.setOnClickListener {
             // User confirmed they saved the seed — activate the wallet and go back to home.
             com.fialkaapp.fialka.wallet.WalletPreferences.setWalletEnabled(requireContext(), true)
+            com.fialkaapp.fialka.wallet.WalletPreferences.setWalletCreated(requireContext(), true)
             WalletRepository.invalidateSeedCache()
             findNavController().navigateUp()
         }

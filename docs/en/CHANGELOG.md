@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V4.1.0--alpha-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/versionCode-11-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V4.3.0--alpha-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/versionCode-13-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -510,7 +510,86 @@
 ---
 
 <details open>
-<summary><h2>🟡 V4.1.0-alpha — Ed25519 Contact Auth, Unit Tests & Migration Safety</h2></summary>
+<summary><h2>🔐 V4.3.0-alpha — .fialka E2E Backup, Monero Stagenet/Mainnet Network, Storage Management & Legal Update</h2></summary>
+
+> `versionCode 13` · `versionName "4.3.0-alpha"` · Full encrypted backup, Monero network selection (Stagenet/Mainnet), storage management screen, CATEGORY_DATA in settings, V5 legal update
+
+### 🌐 Monero Network — Stagenet/Mainnet Selection
+- [x] **`WalletPreferences`** — `MAINNET = 0` / `STAGENET = 2` constants, `getNetworkType()`, `setNetworkType()`, `getNetworkLabel()`, `isStagenet()`
+- [x] **Smart per-network defaults** — node `127.0.0.1:38081` (stagenet) vs `127.0.0.1:18081` (mainnet), network-aware restore height
+- [x] **`WalletRepository`** — removed hardcoded `NETWORK_TYPE = 2`, all 4 usages replaced with `WalletPreferences.getNetworkType(context)`
+- [x] **"Delete to switch" dialog** — if a wallet exists, switching network triggers a confirmation dialog with wallet deletion (no grayed-out buttons)
+- [x] **Network badges** — red STAGENET / green MAINNET badge in `WalletHomeFragment`, `WalletSettingsFragment`, `WalletSeedBackupFragment`
+- [x] **STAGENET banner** — full-width warning banner in wallet settings for testnet funds awareness
+- [x] **Critical fix: `setWalletCreated(true)`** — now called after creation (seed backup) AND restore (seed import), lock properly triggerable
+
+### 🐛 Bug Fixes
+- [x] **Fix "Data" label in Settings** — `SettingsAdapter.getCategoryTitle()` was missing the `CATEGORY_DATA` case, displaying the raw key `"data"` instead of `"💾 Données"`
+- [x] **Fix `validateAddress(context, address)`** — signature updated in `ChatViewModel` after `WalletRepository` refactoring
+
+### 💾 Backup & Restore — .fialka Format
+- [x] **.fialka format** — Magic bytes `0xF1A15A5E` + PBKDF2-HMAC-SHA256 (600K iterations + 16-byte salt) + AES-256-GCM (12-byte nonce + 16-byte tag)
+- [x] **Backup contents** — identity (Ed25519 keys), contacts, XMR wallet (optional) — **NO message history** (privacy by design)
+- [x] **Encrypted export** — passphrase known only to the user; developers have zero access
+- [x] **Import with validation** — magic bytes check + decryption + full identity restore
+- [x] **Access via Settings → Data** — export and import accessible from the new CATEGORY_DATA section
+
+### 🗄️ Storage Management — StorageFragment
+- [x] **`StorageFragment.kt`** — real-time storage management screen
+- [x] **Real-time stats** — message count, file count, DB size (SQLCipher WAL+SHM), cache size
+- [x] **Cleanup actions** — clear cache, delete file messages (with count confirmation), purge expired messages
+- [x] **Danger zone** — delete all messages (with double confirmation)
+- [x] **`refreshStats()`** called after every action
+- [x] **New DAO queries** — `getTotalMessageCount`, `getFileMessageCount`, `deleteFileMessages`, `deleteAllMessages`, `getTotalConversationCount`, `deleteAllConversations`
+
+### ⚙️ Settings — CATEGORY_DATA
+- [x] **New "Data" category** (`chipData`) in Settings — groups storage, backup export, backup import
+- [x] **Storage** migrated from `ACTION` → `NAVIGATE` to `storageFragment`
+- [x] **Navigation** — `action_settings_to_storage` + `storageFragment` node in `nav_graph.xml`
+
+### 📚 Legal Update — TermsManager V5
+- [x] **`CURRENT_TERMS_VERSION = 5`** — forces re-consent for all existing users
+- [x] **TERMS.md V5** — Full Section 6: XMR wallet legality (France/AMF/PSAN, EU/MiCA 2023/1114, US/FinCEN/OFAC/IRS, other jurisdictions)
+- [x] **Section 13** — .fialka backup legal notice
+- [x] **PRIVACY.md** — Section 4.1 XMR wallet (local data only), Section 5.1 backup
+- [x] **strings.xml** — `terms_section_wallet_title/body`, `terms_section_backup_title/body` added
+- [x] **Version V4.3.0-alpha** — `versionCode 13`
+
+### 🎭 App Disguise — Calculator Cover Screen
+- [x] **`AppDisguiseFragment.kt`** — Disguise selection settings (Calculator, Notes, Weather, Clock)
+- [x] **`AppDisguiseManager.kt`** — Activity-alias management, dynamic enable/disable via `PackageManager`
+- [x] **`CoverCalculatorActivity.kt`** — Functional fake calculator (realistic cover)
+- [x] **`CoverSecretSetupBottomSheet.kt`** — Secret code setup to access the real chat
+- [x] **Disguise icons** — `ic_disguise_calculator`, `ic_disguise_clock`, `ic_disguise_notes`, `ic_disguise_weather`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>🟢 V4.2.0-alpha — Monero XMR Wallet, Tor Settings & Seed Backup</h2></summary>
+
+> `versionCode 12` · `versionName "4.2.0-alpha"` · Local non-custodial Monero wallet, XMR in-chat payments, Tor improvements
+
+### 💰 Monero (XMR) Wallet — Non-custodial
+- [x] **Local XMR wallet** — private keys generated and stored exclusively on device (SQLCipher)
+- [x] **Derived from seed** — 1 Ed25519 seed → XMR wallet (deterministic)
+- [x] **XMR in-chat payments** — send XMR amounts directly from a conversation
+- [x] **Donation address** — XMR sub-address to support development
+- [x] **Zero custody** — developers have no visibility into any funds
+- [x] **Legal compliance** — non-custodial wallet outside PSAN (AMF) scope and MiCA scope (Art. 2, Regulation 2023/1114)
+
+### 🧅 Tor & Network Improvements
+- [x] **Advanced Tor settings** — bridges, excluded countries, configurable timeouts
+- [x] **Tor bandwidth indicator** — real-time throughput display
+- [x] **Version V4.2.0-alpha** — `versionCode 12`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>�🟡 V4.1.0-alpha — Ed25519 Contact Auth, Unit Tests & Migration Safety</h2></summary>
 
 > `versionCode 11` · `versionName "4.1.0-alpha"` · Security fix + test coverage + UX safety
 

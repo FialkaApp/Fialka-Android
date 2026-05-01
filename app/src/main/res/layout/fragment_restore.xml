@@ -26,69 +26,300 @@
             android:textSize="24sp"
             android:textStyle="bold" />
 
-        <!-- Subtitle -->
-        <TextView
-            android:id="@+id/tvSubtitle"
+        <!-- Mode toggle -->
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/toggleMode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:gravity="center"
-            android:text="Saisissez vos 24 mots de récupération"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
+            android:layout_marginTop="20dp"
+            app:singleSelection="true"
+            app:selectionRequired="true">
 
-        <!-- Word counter -->
-        <TextView
-            android:id="@+id/tvWordCount"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnModeSeed"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Seed 24 mots"
+                android:textSize="13sp"
+                app:cornerRadius="12dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnModeFile"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Fichier .fialka"
+                android:textSize="13sp"
+                app:cornerRadius="12dp" />
+
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <!-- ══════════════════ MODE SEED ══════════════════ -->
+        <LinearLayout
+            android:id="@+id/sectionSeed"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:text="0 / 24 mots"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp" />
+            android:orientation="vertical">
 
-        <!-- 24-word grid: 3 columns x 8 rows -->
-        <GridLayout
-            android:id="@+id/gridWords"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:columnCount="3"
-            android:rowCount="8"
-            android:useDefaultMargins="false" />
-
-        <!-- Display name -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilDisplayName"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etDisplayName"
+            <!-- Subtitle -->
+            <TextView
+                android:id="@+id/tvSubtitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/enter_display_name"
-                android:inputType="textPersonName"
-                android:maxLength="30" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:text="Saisissez vos 24 mots de récupération"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
 
-        <!-- Restore button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnRestore"
+            <!-- Word counter -->
+            <TextView
+                android:id="@+id/tvWordCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:text="0 / 24 mots"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
+            <!-- 24-word grid: 3 columns x 8 rows -->
+            <GridLayout
+                android:id="@+id/gridWords"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:columnCount="3"
+                android:rowCount="8"
+                android:useDefaultMargins="false" />
+
+            <!-- Display name (seed mode) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilDisplayName"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etDisplayName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/enter_display_name"
+                    android:inputType="textPersonName"
+                    android:maxLength="30" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Restore seed button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRestore"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="20dp"
+                android:text="@string/restore_button"
+                android:textAllCaps="false"
+                android:textColor="?android:attr/textColorPrimaryInverse"
+                android:textSize="16sp"
+                app:backgroundTint="?attr/colorPrimary"
+                app:cornerRadius="28dp" />
+
+        </LinearLayout>
+
+        <!-- ══════════════════ MODE FICHIER ══════════════════ -->
+        <LinearLayout
+            android:id="@+id/sectionFile"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="20dp"
-            android:text="@string/restore_button"
-            android:textAllCaps="false"
-            android:textColor="?android:attr/textColorPrimaryInverse"
-            android:textSize="16sp"
-            app:backgroundTint="?attr/colorPrimary"
-            app:cornerRadius="28dp" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
 
-        <!-- Progress -->
+            <!-- Step 1: choose file -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:letterSpacing="0.1"
+                        android:text="FICHIER"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnChooseFile"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Choisir un fichier .fialka"
+                        app:cornerRadius="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvFileName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Step 2: passphrase (shown after file chosen) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardFilePassphrase"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:letterSpacing="0.1"
+                        android:text="PASSPHRASE"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/tilFilePassphrase"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="Passphrase de déchiffrement"
+                        app:endIconMode="password_toggle">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etFilePassphrase"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textPassword"
+                            android:textColor="@color/text_primary" />
+
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Step 3: preview (shown after decryption) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardFilePreview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:letterSpacing="0.1"
+                        android:text="CONTENU DÉTECTÉ"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tvPreviewIdentity"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:textSize="14sp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tvPreviewWallet"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:textSize="14sp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tvPreviewContacts"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:textSize="14sp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tvPreviewConversations"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:textSize="14sp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/tvPreviewMessages"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:textSize="14sp"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="⚠ La restauration remplacera votre identité et vos données actuelles."
+                        android:textColor="@color/error"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Restore file button (shown after preview) -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRestoreFile"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="20dp"
+                android:text="Restaurer la sauvegarde"
+                android:textAllCaps="false"
+                android:textColor="?android:attr/textColorPrimaryInverse"
+                android:textSize="16sp"
+                android:visibility="gone"
+                app:backgroundTint="?attr/colorPrimary"
+                app:cornerRadius="28dp" />
+
+        </LinearLayout>
+
+        <!-- Shared: progress + error -->
         <ProgressBar
             android:id="@+id/progressBar"
             android:layout_width="wrap_content"
@@ -97,7 +328,6 @@
             android:layout_marginTop="12dp"
             android:visibility="gone" />
 
-        <!-- Error -->
         <TextView
             android:id="@+id/tvError"
             android:layout_width="match_parent"

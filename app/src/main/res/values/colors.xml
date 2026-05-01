@@ -54,4 +54,10 @@
     <color name="warning_border">#D4A017</color>
     <color name="warning_surface">#FFF8E1</color>
     <color name="warning_text">#7A5800</color>
+
+    <!-- App disguise launcher backgrounds -->
+    <color name="disguise_bg_calculator">#37474F</color>
+    <color name="disguise_bg_weather">#1565C0</color>
+    <color name="disguise_bg_notes">#F57F17</color>
+    <color name="disguise_bg_clock">#1A1A2E</color>
 </resources>

@@ -65,7 +65,6 @@ object WalletRepository {
     private const val KEY_LAST_EVENT_AT = "last_event_at"
     private const val KEY_SYNC_ENABLED = "sync_enabled"
 
-    const val NETWORK_TYPE = 2  // Stagenet
     private const val WALLET_DIR = "xmr_wallet"
     private const val WALLET_FILE = "wallet"
 
@@ -98,7 +97,7 @@ object WalletRepository {
     /** True while the wallet init thread is running (setDaemon DIAG loop). */
     fun isWalletInitializing(): Boolean = walletInitializing
 
-    /** Main entry â€” must be called from Dispatchers.IO. */
+    /** Main entry — must be called from Dispatchers.IO. */
     fun getSnapshot(context: Context): WalletSnapshot {
         val configuredNodeUrl = WalletPreferences.getNodeUrl(context)
         val runtimeNodeUrl = resolveRuntimeNodeUrl(configuredNodeUrl)
@@ -217,7 +216,7 @@ object WalletRepository {
         val password = deriveWalletPassword(context) ?: return
 
         if (File("$walletPath.keys").exists()) {
-            val opened = MoneroWallet.openWallet(walletPath, password, NETWORK_TYPE)
+            val opened = MoneroWallet.openWallet(walletPath, password, WalletPreferences.getNetworkType(context))
             if (!opened) {
                 Log.e(TAG, "openWallet failed: ${MoneroWallet.getLastError()}")
                 return
@@ -229,8 +228,8 @@ object WalletRepository {
             // Must be strictly above the JNI fast-sync boundary. At exactly 2100000 the DIAG
             // loop always gets status=1 (synthetic header mismatch). Use 2100001 as minimum.
             val safeH = if (requestedH <= JNI_FAST_SYNC_BOUNDARY) JNI_FAST_SYNC_BOUNDARY + 1L else requestedH
-            Log.i(TAG, "Creating wallet (net=$NETWORK_TYPE, requestedH=$requestedH safeH=$safeH)")
-            val created = MoneroWallet.createWallet(walletPath, password, mnemonic, NETWORK_TYPE, safeH)
+            Log.i(TAG, "Creating wallet (net=${WalletPreferences.getNetworkType(context)}, requestedH=$requestedH safeH=$safeH)")
+            val created = MoneroWallet.createWallet(walletPath, password, mnemonic, WalletPreferences.getNetworkType(context), safeH)
             if (!created) {
                 Log.e(TAG, "createWallet failed: ${MoneroWallet.getLastError()}")
                 return
@@ -317,9 +316,9 @@ object WalletRepository {
         }
     }
 
-    fun validateAddress(address: String): Boolean {
+    fun validateAddress(context: Context, address: String): Boolean {
         return try {
-            FialkaNative.xmrValidateAddress(address.toByteArray(Charsets.UTF_8), NETWORK_TYPE) > 0
+            FialkaNative.xmrValidateAddress(address.toByteArray(Charsets.UTF_8), WalletPreferences.getNetworkType(context)) > 0
         } catch (_: Throwable) {
             false
         }
@@ -379,7 +378,7 @@ object WalletRepository {
             if (keys.size < 96) return null
             val spendPub = keys.copyOfRange(0, 32)
             val viewPub = keys.copyOfRange(32, 64)
-            val addrBytes = FialkaNative.xmrPrimaryAddress(spendPub, viewPub, NETWORK_TYPE)
+            val addrBytes = FialkaNative.xmrPrimaryAddress(spendPub, viewPub, WalletPreferences.getNetworkType(context))
             String(addrBytes, Charsets.UTF_8)
         } catch (_: Throwable) {
             null

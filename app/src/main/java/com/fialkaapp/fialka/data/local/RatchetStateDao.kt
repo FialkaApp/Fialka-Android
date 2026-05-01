@@ -30,4 +30,10 @@ interface RatchetStateDao {
 
     @Query("DELETE FROM ratchet_state WHERE conversationId = :conversationId")
     suspend fun deleteState(conversationId: String)
+
+    @Query("DELETE FROM ratchet_state")
+    suspend fun deleteAllStates()
+
+    @Query("SELECT conversationId FROM ratchet_state")
+    suspend fun getAllConversationIds(): List<String>
 }

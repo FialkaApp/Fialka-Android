@@ -1,14 +1,14 @@
 ﻿/*
- * Fialka â€” Post-quantum encrypted messenger
- * Copyright (C) 2024-2026 DevBot667 â€” GPL-3.0
+ * Fialka — Post-quantum encrypted messenger
+ * Copyright (C) 2024-2026 DevBot667 — GPL-3.0
  *
- * MoneroWallet â€” compatibility facade over WalletManager + Wallet (wallet/jni/).
+ * MoneroWallet — compatibility facade over WalletManager + Wallet (wallet/jni/).
  *
- * All methods are BLOCKING â€” must be called from a background thread (Dispatchers.IO).
+ * All methods are BLOCKING — must be called from a background thread (Dispatchers.IO).
  *
  * Migration note: previously backed by libmonero_jni.so (BUILD=16) with custom DIAG loop.
  * Now backed by libfialka_monero.so built from official Monero v0.18.3.4 source.
- * setDaemon() no longer runs a blocking DIAG loop â€” it calls wallet->init() non-blocking.
+ * setDaemon() no longer runs a blocking DIAG loop — it calls wallet->init() non-blocking.
  * Sync is driven entirely by startRefreshAsync() â†’ wallet->startRefresh().
  */
 package com.fialkaapp.fialka.wallet
@@ -77,7 +77,7 @@ object MoneroWallet {
 
     /**
      * Connect to daemon. NON-BLOCKING. No DIAG loop.
-     * Previously nativeSetDaemon() triggered a blocking 1-pass DIAG refresh â€”
+     * Previously nativeSetDaemon() triggered a blocking 1-pass DIAG refresh —
      * that caused the status=1 infinite loop at block 2100000. This does not.
      */
     fun setDaemon(url: String, proxy: String = ""): Boolean {

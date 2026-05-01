@@ -38,6 +38,22 @@
             android:textSize="11sp" />
 
         <TextView
+            android:id="@+id/tvNetworkBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="#FFCC0000"
+            android:paddingStart="6dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="2dp"
+            android:text="@string/wallet_network_stagenet_badge"
+            android:textColor="#FFFFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/tvSyncStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

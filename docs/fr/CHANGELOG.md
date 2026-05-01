@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V4.1.0--alpha-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/versionCode-11-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V4.3.0--alpha-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/versionCode-13-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -511,7 +511,86 @@
 ---
 
 <details open>
-<summary><h2>🟡 V4.1.0-alpha — Auth Ed25519, Tests Unitaires & Sécurité Migration</h2></summary>
+<summary><h2>🔐 V4.3.0-alpha — Backup .fialka E2E, Réseau Monero Stagenet/Mainnet, Gestion du stockage & Mise à jour légale</h2></summary>
+
+> `versionCode 13` · `versionName "4.3.0-alpha"` · Backup chiffré complet, sélection réseau Monero (Stagenet/Mainnet), écran de gestion du stockage, CATEGORY_DATA dans les paramètres, mise à jour légale V5
+
+### 🌐 Réseau Monero — Sélection Stagenet/Mainnet
+- [x] **`WalletPreferences`** — constantes `MAINNET = 0` / `STAGENET = 2`, `getNetworkType()`, `setNetworkType()`, `getNetworkLabel()`, `isStagenet()`
+- [x] **Defaults intelligents par réseau** — node `127.0.0.1:38081` (stagenet) vs `127.0.0.1:18081` (mainnet), restore height adaptée
+- [x] **`WalletRepository`** — suppression du `NETWORK_TYPE = 2` codé en dur, tout passe par `WalletPreferences.getNetworkType(context)` (4 usages)
+- [x] **Dialog "Supprimer pour changer"** — si un wallet existe, changer de réseau déclenche une confirmation avec suppression du wallet existant (pas de griser les boutons)
+- [x] **Badges réseau** — badge rouge STAGENET / vert MAINNET dans `WalletHomeFragment`, `WalletSettingsFragment`, `WalletSeedBackupFragment`
+- [x] **Banner STAGENET** — bannière pleine largeur dans les paramètres wallet pour avertir des fonds fictifs
+- [x] **Fix critique : `setWalletCreated(true)`** — maintenant appelé après création (seed backup) ET restauration (import seed), lock déclenchable correctement
+
+### 🐛 Corrections
+- [x] **Fix label "Données" dans les Paramètres** — `SettingsAdapter.getCategoryTitle()` manquait le case `CATEGORY_DATA`, affichait la clé brute `"data"` au lieu de `"💾 Données"`
+- [x] **Fix `validateAddress(context, address)`** — signature mise à jour dans `ChatViewModel` après refactoring `WalletRepository`
+
+### 💾 Backup & Restauration — Format .fialka
+- [x] **Format `.fialka`** — Magic bytes `0xF1A15A5E` + PBKDF2-HMAC-SHA256 (600K itérations + salt 16 bytes) + AES-256-GCM (nonce 12 bytes + tag 16 bytes)
+- [x] **Contenu du backup** — identité (clés Ed25519), contacts, wallet XMR (optionnel) — **PAS les messages** (confidentialité par conception)
+- [x] **Export chiffré** — phrase de passe connue de l'utilisateur uniquement, les développeurs n'ont aucun accès
+- [x] **Import avec validation** — vérification magic bytes + déchiffrement + restauration complète de l'identité
+- [x] **Accès via Paramètres → Données** — export et import accessibles depuis la nouvelle catégorie CATEGORY_DATA
+
+### 🗄️ Gestion du stockage — StorageFragment
+- [x] **`StorageFragment.kt`** — écran de gestion du stockage en temps réel
+- [x] **Stats en temps réel** — nombre de messages, nombre de fichiers, taille DB (SQLCipher WAL+SHM), taille cache
+- [x] **Actions de nettoyage** — vider le cache, supprimer les messages fichiers (avec confirmation count), purger les messages expirés
+- [x] **Zone sensible** — supprimer tous les messages (avec double confirmation)
+- [x] **`refreshStats()`** appelé après chaque action
+- [x] **Nouvelles requêtes DAO** — `getTotalMessageCount`, `getFileMessageCount`, `deleteFileMessages`, `deleteAllMessages`, `getTotalConversationCount`, `deleteAllConversations`
+
+### ⚙️ Paramètres — CATEGORY_DATA
+- [x] **Nouvelle catégorie "Données"** (`chipData`) dans les Paramètres — regroupe stockage, export backup, import backup
+- [x] **Stockage** migré de type `ACTION` → `NAVIGATE` vers `storageFragment`
+- [x] **Navigation** — `action_settings_to_storage` + node `storageFragment` dans `nav_graph.xml`
+
+### 📚 Mise à jour légale — TermsManager V5
+- [x] **`CURRENT_TERMS_VERSION = 5`** — force le re-consentement pour tous les utilisateurs existants
+- [x] **TERMS.md V5** — Section 6 complète : légalité wallet XMR (France/AMF/PSAN, UE/MiCA 2023/1114, US/FinCEN/OFAC/IRS, autres juri)
+- [x] **Section 13** — notice légale backup .fialka
+- [x] **PRIVACY.md** — Section 4.1 wallet XMR (données locales uniquement), Section 5.1 backup
+- [x] **strings.xml** — `terms_section_wallet_title/body`, `terms_section_backup_title/body` ajoutés
+- [x] **Version V4.3.0-alpha** — `versionCode 13`
+
+### 🎭 App Disguise — Écran de couverture calculatrice
+- [x] **`AppDisguiseFragment.kt`** — Paramètre de sélection du déguisement (Calculatrice, Notes, Météo, Horloge)
+- [x] **`AppDisguiseManager.kt`** — Gestion des activity-alias, enable/disable dynamique via `PackageManager`
+- [x] **`CoverCalculatorActivity.kt`** — Fausse calculatrice fonctionnelle (couverture réaliste)
+- [x] **`CoverSecretSetupBottomSheet.kt`** — Configuration du code secret d'accès au vrai chat
+- [x] **Icônes de déguisement** — `ic_disguise_calculator`, `ic_disguise_clock`, `ic_disguise_notes`, `ic_disguise_weather`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>🟢 V4.2.0-alpha — Wallet Monero XMR, Paramètres Tor & Seed Backup</h2></summary>
+
+> `versionCode 12` · `versionName "4.2.0-alpha"` · Wallet Monero non-custodial local, paiements XMR in-chat, améliorations Tor
+
+### 💰 Wallet Monero (XMR) — Non-custodial
+- [x] **Wallet XMR local** — clés privées générées et stockées exclusivement sur l'appareil (SQLCipher)
+- [x] **Dérivé depuis le seed** — 1 seed Ed25519 → wallet XMR (déterministe)
+- [x] **Paiements XMR in-chat** — envoi de montants XMR directement depuis une conversation
+- [x] **Adresse de donation** — sous-adresse XMR pour soutenir le développement
+- [x] **Zéro custody** — les développeurs n'ont aucune visibilité sur les fonds
+- [x] **Conformité légale** — wallet non-custodial hors champ PSAN (AMF) et MiCA (Art. 2, 2023/1114)
+
+### 🧅 Améliorations Tor & Réseau
+- [x] **Paramètres Tor avancés** — bridges, pays exclus, timeouts configurables
+- [x] **Indicateur de bande passante Tor** — affichage du débit en temps réel
+- [x] **Version V4.2.0-alpha** — `versionCode 12`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>�🟡 V4.1.0-alpha — Auth Ed25519, Tests Unitaires & Sécurité Migration</h2></summary>
 
 > `versionCode 11` · `versionName "4.1.0-alpha"` · Correction sécurité + couverture tests + protection UX
 

@@ -22,6 +22,7 @@ import android.util.Base64
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.fialkaapp.fialka.util.DeviceSecurityManager
 import com.fialkaapp.fialka.util.FialkaSecurePrefs
 import com.fialkaapp.fialka.data.model.MailboxBlob
 import com.fialkaapp.fialka.data.model.MailboxInvite
@@ -65,6 +66,7 @@ abstract class MailboxDatabase : RoomDatabase() {
             System.loadLibrary("sqlcipher")
             val passphrase = getOrCreatePassphrase(context)
             val factory = SupportOpenHelperFactory(passphrase)
+            passphrase.fill(0)  // SupportOpenHelperFactory copies internally; zero the original
 
             return Room.databaseBuilder(
                 context.applicationContext,
@@ -95,9 +97,11 @@ abstract class MailboxDatabase : RoomDatabase() {
         }
 
         private fun getOrCreatePassphrase(context: Context): ByteArray {
+            val profile = DeviceSecurityManager.getSecurityProfile(context.applicationContext)
             val prefs = FialkaSecurePrefs.open(
                 context.applicationContext,
-                PREFS_FILE
+                PREFS_FILE,
+                strongBox = profile.isStrongBoxAvailable
             )
 
             val existing = prefs.getString(KEY_DB_PASSPHRASE, null)

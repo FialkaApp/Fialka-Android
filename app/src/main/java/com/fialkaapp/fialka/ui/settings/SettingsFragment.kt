@@ -1,5 +1,5 @@
-/*
- * Fialka â€” Post-quantum encrypted messenger
+﻿/*
+ * Fialka — Post-quantum encrypted messenger
  * Copyright (C) 2024-2026 DevBot667
  *
  * This program is free software: you can redistribute it and/or modify
@@ -101,6 +101,7 @@ class SettingsFragment : Fragment() {
                 R.id.chipSecurity -> SettingsViewModel.CATEGORY_SECURITY
                 R.id.chipWallet -> SettingsViewModel.CATEGORY_WALLET
                 R.id.chipNetwork -> SettingsViewModel.CATEGORY_NETWORK
+                R.id.chipData -> SettingsViewModel.CATEGORY_DATA
                 R.id.chipAbout -> SettingsViewModel.CATEGORY_ABOUT
                 else -> SettingsViewModel.CATEGORY_ALL
             }
@@ -143,6 +144,7 @@ class SettingsFragment : Fragment() {
                     "mailboxSettingsFragment" -> navigateTo(R.id.action_settings_to_mailboxSettings)
                     "walletSettingsFragment" -> navigateTo(R.id.action_settings_to_walletSettings)
                     "torSettingsFragment" -> navigateTo(R.id.action_settings_to_torSettings)
+                    "storageFragment" -> navigateTo(R.id.action_settings_to_storage)
                     else -> getNavigationAction(item.destination)?.let(::navigateTo)
                 }
             }
@@ -157,17 +159,8 @@ class SettingsFragment : Fragment() {
         when (itemId) {
             "legal" -> showLegalDialog()
             "licenses" -> showLicensesDialog()
-            "storage" -> showSimpleDialog(
-                title = getString(R.string.setting_storage_management),
-                message = getString(R.string.setting_storage_management_summary)
-            )
-
-            "backup_export" -> showSimpleDialog(
-                title = getString(R.string.setting_backup_export),
-                message = getString(R.string.setting_backup_export_summary)
-            )
-
-            "import_backup" -> findNavController().navigate(R.id.restoreFragment)
+            "backup_export" -> navigateTo(R.id.action_settings_to_backupExport)
+            "import_backup" -> navigateTo(R.id.action_settings_to_backupImport)
         }
     }
 
@@ -232,7 +225,7 @@ class SettingsFragment : Fragment() {
     private fun showLegalDialog() {
         val content = buildString {
             appendLine("TERMES D'UTILISATION")
-            appendLine("Version 4 — Applicable depuis le 03/04/2026")
+            appendLine("Version 5 — Applicable depuis le 30/04/2026 (V4.2.0-alpha)")
             appendLine()
             appendLine("1. OUTIL — PAS UN SERVICE")
             appendLine("Fialka est un outil logiciel distribue sous GPLv3. Les developpeurs n'operent aucune infrastructure, ne stockent aucune donnee et ne peuvent acceder a aucun message.")
@@ -248,6 +241,22 @@ class SettingsFragment : Fragment() {
             appendLine()
             appendLine("5. CONTROLE DES EXPORTATIONS")
             appendLine("Ce logiciel contient de la cryptographie soumise aux reglementations Wassenaar, ECCN 5D002.C.1 (US BIS) et UE 2021/821. En tant que logiciel open source GPLv3, il est exempte en France et dans l'UE. Verifiez les lois de votre pays.")
+            appendLine()
+            appendLine("6. WALLET MONERO (XMR)")
+            appendLine("Fialka inclut un wallet Monero local et non-custodial. Vos cles privees restent exclusivement sur votre appareil. Les developpeurs n'ont aucun acces sur vos fonds.")
+            appendLine()
+            appendLine("Fialka ne preleve AUCUN frais, AUCUN pourcentage sur vos transactions. Les seuls frais sont les frais de reseau Monero (verses aux mineurs), affiches avant confirmation.")
+            appendLine()
+            appendLine("France : Le regime PSAN (AMF / Loi PACTE 2019-486) ne s'applique pas aux wallets self-hosted. Vous etes responsable de la declaration de vos plus-values (PFU 30%, Art. 150 VH bis CGI).")
+            appendLine()
+            appendLine("UE : MiCA (Reglement 2023/1114) exclut explicitement les wallets non-custodiaux.")
+            appendLine()
+            appendLine("USA : FinCEN FIN-2019-G001 — wallet non-custodial n'est pas un MSB. Vous etes responsable du respect des sanctions OFAC et de la declaration IRS (Notice 2014-21, Form 8949).")
+            appendLine()
+            appendLine("Fialka ne fournit aucun conseil juridique ou fiscal. Verifiez les lois de votre juridiction.")
+            appendLine()
+            appendLine("7. SAUVEGARDE ET RESTAURATION")
+            appendLine("Les fichiers de sauvegarde .fialka sont chiffres AES-256-GCM avec une cle derivee via PBKDF2-HMAC-SHA256 (600 000 iterations). Ils ne contiennent PAS les messages. La phrase de passe est connue de vous seul(e).")
             appendLine()
             appendLine("POLITIQUE DE CONFIDENTIALITE")
             appendLine("Fialka ne collecte, ne stocke ni ne transmet aucune donnee personnelle. Toutes les donnees restent sur votre appareil. Aucune telemetrie, aucun compte, aucun serveur central.")
@@ -289,6 +298,14 @@ class SettingsFragment : Fragment() {
             appendLine("SQLCipher for Android")
             appendLine("Licence : BSD")
             appendLine("https://www.zetetic.net/sqlcipher/")
+            appendLine()
+            appendLine("Monero Wallet Libraries")
+            appendLine("Licence : BSD / MIT")
+            appendLine("https://github.com/monero-project/monero")
+            appendLine()
+            appendLine("ZXing Android Embedded")
+            appendLine("Licence : Apache License 2.0")
+            appendLine("https://github.com/journeyapps/zxing-android-embedded")
             appendLine()
             appendLine("Texte complet : github.com/FialkaApp/Fialka-Android/blob/main/LICENSE")
         }

@@ -40,4 +40,7 @@ interface ContactDao {
 
     @Delete
     suspend fun deleteContact(contact: Contact)
+
+    @Query("SELECT * FROM contacts")
+    suspend fun getAllContactsList(): List<Contact>
 }

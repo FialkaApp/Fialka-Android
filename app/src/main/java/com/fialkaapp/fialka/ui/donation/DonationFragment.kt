@@ -1,5 +1,5 @@
 ﻿/*
- * Fialka â€” Post-quantum encrypted messenger
+ * Fialka — Post-quantum encrypted messenger
  * Copyright (C) 2024-2026 DevBot667
  *
  * This program is free software: you can redistribute it and/or modify
@@ -163,7 +163,7 @@ class DonationFragment : Fragment() {
     private fun bindBalanceCard(snapshot: WalletSnapshot) {
         if (!snapshot.enabled || !snapshot.hasSeed) {
             binding.tvDonBalance.text = "-- XMR"
-            binding.tvDonUnlocked.text = "Wallet non configurÃ©"
+            binding.tvDonUnlocked.text = "Wallet non configuré"
         } else {
             binding.tvDonBalance.text = WalletRepository.formatXmr(snapshot.balancePiconero)
             binding.tvDonUnlocked.text = if (
@@ -235,7 +235,7 @@ class DonationFragment : Fragment() {
                 binding.layoutAddressLoading.isVisible = false
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle("Adresse indisponible")
-                    .setMessage("Impossible de gÃ©nÃ©rer l'adresse de don. VÃ©rifiez que votre identitÃ© Fialka est configurÃ©e.")
+                    .setMessage("Impossible de générer l'adresse de don. Vérifiez que votre identité Fialka est configurée.")
                     .setPositiveButton("OK", null)
                     .show()
                 return@launch
@@ -297,8 +297,8 @@ class DonationFragment : Fragment() {
             .setMessage(
                 "Vous allez envoyer\n\n" +
                 WalletRepository.formatXmr(amountPico) +
-                "\n\nPrioritÃ© des frais : $feeLabel\n\n" +
-                "Adresse :\n${addr.take(32)}â€¦"
+                "\n\nPriorité des frais : $feeLabel\n\n" +
+                "Adresse :\n${addr.take(32)}…"
             )
             .setPositiveButton("Envoyer") { _, _ ->
                 doSend(addr, amountPico, priority)
@@ -350,7 +350,7 @@ class DonationFragment : Fragment() {
                     renderState()
                 } else {
                     MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("Envoi Ã©chouÃ©")
+                        .setTitle("Envoi échoué")
                         .setMessage(result.error ?: "Erreur inconnue")
                         .setPositiveButton("OK", null)
                         .show()
@@ -410,7 +410,7 @@ class DonationFragment : Fragment() {
         val status = when {
             tx.isPending -> "En attente"
             tx.confirmations < 10 -> "${tx.confirmations} confirmation(s)"
-            else -> "ConfirmÃ©"
+            else -> "Confirmé"
         }
 
         leftCol.addView(TextView(ctx).apply {
@@ -452,7 +452,7 @@ class DonationFragment : Fragment() {
         val ctx = requireContext()
         val dateStr = if (tx.timestamp > 0L) {
             DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(tx.timestamp * 1000L))
-        } else "â€”"
+        } else "—"
 
         val text = buildString {
             appendLine("Montant   : - ${WalletRepository.formatXmr(tx.amount)}")
@@ -460,7 +460,7 @@ class DonationFragment : Fragment() {
             appendLine("Statut    : ${when {
                 tx.isPending -> "En attente"
                 tx.confirmations < 10 -> "${tx.confirmations} confirmation(s)"
-                else -> "ConfirmÃ© (${tx.confirmations})"
+                else -> "Confirmé (${tx.confirmations})"
             }}")
             if (tx.height > 0L) appendLine("Hauteur   : ${tx.height}")
             appendLine("Date      : $dateStr")
@@ -477,12 +477,12 @@ class DonationFragment : Fragment() {
         val sv = android.widget.ScrollView(ctx).also { it.addView(tv) }
 
         MaterialAlertDialogBuilder(ctx)
-            .setTitle("DÃ©tails de la transaction")
+            .setTitle("Détails de la transaction")
             .setView(sv)
             .setPositiveButton("Copier TX ID") { _, _ ->
                 val clipboard = ctx.getSystemService(ClipboardManager::class.java)
                 clipboard.setPrimaryClip(ClipData.newPlainText("TX ID", tx.txId))
-                Toast.makeText(ctx, "TX ID copiÃ©", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, "TX ID copié", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Fermer", null)
             .show()

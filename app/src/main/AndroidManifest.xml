@@ -45,15 +45,89 @@
             android:filterTouchesWhenObscured="true"
             android:theme="@style/Theme.Fialka" />
 
+        <!-- SplashActivity n'a PLUS de launcher intent-filter direct.
+             C'est DisguiseFialkaAlias (enabled=true par défaut) qui est l'entrée
+             du lanceur. Ainsi un seul alias est actif à la fois → une seule icône. -->
         <activity
             android:name=".ui.SplashActivity"
             android:exported="true"
-            android:theme="@style/Theme.Fialka.Splash">
+            android:theme="@style/Theme.Fialka.Splash" />
+
+        <!-- App Disguise: UN SEUL alias enabled à la fois = une seule icône lanceur -->
+
+        <!-- Alias Fialka par défaut — enabled="true" au démarrage -->
+        <activity-alias
+            android:name=".ui.disguise.DisguiseFialkaAlias"
+            android:label="@string/app_name"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:targetActivity=".ui.SplashActivity"
+            android:enabled="true"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".ui.disguise.DisguiseCalculatorAlias"
+            android:label="Calculatrice"
+            android:icon="@mipmap/ic_launcher_disguise_calc"
+            android:targetActivity=".ui.SplashActivity"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".ui.disguise.DisguiseWeatherAlias"
+            android:label="M\u00e9t\u00e9o"
+            android:icon="@mipmap/ic_launcher_disguise_weather"
+            android:targetActivity=".ui.SplashActivity"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".ui.disguise.DisguiseNotesAlias"
+            android:label="Notes"
+            android:icon="@mipmap/ic_launcher_disguise_notes"
+            android:targetActivity=".ui.SplashActivity"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".ui.disguise.DisguiseClockAlias"
+            android:label="Horloge"
+            android:icon="@mipmap/ic_launcher_disguise_clock"
+            android:targetActivity=".ui.SplashActivity"
+            android:enabled="false"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Cover Calculator activity — not exported, launched only from SplashActivity routing -->
+        <activity
+            android:name=".ui.cover.CoverCalculatorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Fialka"
+            android:excludeFromRecents="false" />
 
         <activity
             android:name=".ui.MainActivity"

@@ -19,6 +19,7 @@
 [![Android](https://img.shields.io/badge/Android-33%2B-a855f7?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-7c3aed?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![E2E](https://img.shields.io/badge/PQXDH-X25519%20%2B%20ML--KEM--1024-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/en/CRYPTO.md)
+[![Version](https://img.shields.io/badge/Version-V4.3.0--alpha-a855f7?style=for-the-badge)](version.properties)
 [![License](https://img.shields.io/badge/GPLv3-License-8b5cf6?style=for-the-badge)](LICENSE)
 [![Terms](https://img.shields.io/badge/Terms-Conditions-8b5cf6?style=for-the-badge)](TERMS.md)
 [![Privacy](https://img.shields.io/badge/Privacy-Policy-8b5cf6?style=for-the-badge)](PRIVACY.md)
@@ -139,6 +140,7 @@
 | 📎 | **E2E file sharing** | Per-file AES-256-GCM, P2P transfer via Tor |
 | ✍️ | **Ed25519 Signatures** | Every message signed, ✅/⚠️ badge anti-forgery |
 | 📸 | **One-shot photos** | View once (sender + receiver), 2-phase secure deletion |
+| 💰 | **Monero (XMR) Wallet** | Local, non-custodial — private keys on device only, XMR in-chat payments, Stagenet/Mainnet switchable network (Section 6, TERMS.md) |
 | 🚫 | **Zero Google** | No Firebase, no FCM, no Google services |
 
 </details>
@@ -158,7 +160,7 @@
 | 📁 | **E2E file sharing** | AES-256-GCM encrypted, P2P via Tor |
 | 👻 | **Dummy traffic** | Indistinguishable cover messages to mask activity |
 | 📬 | **Fialka Mailbox** | Distinct server mode (requires 2 phones) — 4 modes — E2E store/transit/purge — ZERO decryption |
-| �💀 | **Dead convo detection** | Auto-detect + clean up + re-invite |
+| 💀 | **Dead convo detection** | Auto-detect + clean up + re-invite |
 
 </details>
 
@@ -188,6 +190,8 @@
 | ⏰ | **Auto-lock** | Configurable timeout (5s → 5min) |
 | 🔑 | **BIP-39 Backup** | 24 words to backup identity key |
 | ♻️ | **Restore** | Autocomplete 24-word grid + recover on new device |
+| 💾 | **.fialka Backup** | E2E encrypted export/import (identity + wallet + contacts) — AES-256-GCM, PBKDF2 600K |
+| 🗄️ | **Storage Management** | Real-time DB/cache stats, purge cache/files/messages |
 | 🗑️ | **Full deletion** | Wipes local data + Mailbox + signing keys |
 | 📵 | **Anonymous** | Zero number, zero email, zero Google, zero tracking |
 
@@ -324,8 +328,11 @@ cd Fialka-Android
 | **V4.0** | Kill Firebase — P2P .onion + Mailbox store-and-forward, invite QR, deep links | ✅ Done |
 | **V4.0.1** | Direct Keystore (FialkaSecurePrefs), SQLCipher 4.14.1, transport reliability (15s retry, Mailbox fallback, adaptive fetch) | ✅ Done |
 | **V4.0.2** | Fialka-Core Rust JNI — 30-function JNI bridge, BouncyCastle removed, 100% native Rust crypto, git submodule | ✅ Done |
-| **V4.1** | UX — App disguise (icon + cover screen), Dual PIN + Panic Button, E2E voice messages (Opus), reply/quote | 🔜 |
-| **V4.2** | Sealed Sender (VXEdDSA), multi-device Sesame, **third-party security audit** (Cure53 / Trail of Bits) | 🔜 |
+| **V4.1.0** | Ed25519 contact auth, unit tests, DB migration warning | ✅ Done |
+| **V4.2.0** | Non-custodial Monero XMR wallet, XMR in-chat payments, donation address, advanced Tor settings, wallet seed backup | ✅ Done |
+| **V4.3.0-alpha** | .fialka E2E encrypted backup, Stagenet/Mainnet switchable network, StorageFragment, CATEGORY_DATA, App disguise (calculator cover), XMR wallet legality (TermsManager V5) | 🚧 Alpha |
+| **V4.3.x** | Dual PIN + Panic Button, E2E voice messages (Opus), reply/quote | 🔜 |
+| **V4.4** | Real Sealed Sender (VXEdDSA), multi-device Sesame, **third-party security audit** (Cure53 / Trail of Bits) | 🔜 |
 | **V5.0** | Long-term — **Falcon-512** per-message PQ signatures, decentralized Mailbox network, Bluetooth/WiFi fallback | 🔮 |
 
 > 📖 **Details** — [Full Changelog](docs/en/CHANGELOG.md)
@@ -485,7 +492,7 @@ The U.S. Government Department of Commerce, Bureau of Industry and Security (BIS
 
 <br/>
 
-<img src="https://img.shields.io/badge/Fialka-V4.0.2-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/Fialka-V4.3.0--alpha-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

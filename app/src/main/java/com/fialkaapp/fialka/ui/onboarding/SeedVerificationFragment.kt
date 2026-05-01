@@ -1,5 +1,5 @@
-/*
- * Fialka â€” Post-quantum encrypted messenger
+﻿/*
+ * Fialka — Post-quantum encrypted messenger
  * Copyright (C) 2024-2026 DevBot667
  *
  * This program is free software: you can redistribute it and/or modify

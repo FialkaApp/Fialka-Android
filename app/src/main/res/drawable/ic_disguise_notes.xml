@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Foreground pour adaptive icon Notes.
+  Viewport 108x108 (safe zone 72x72 centrée).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Corps du carnet -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,22 L76,22 Q80,22 80,26 L80,86 Q80,90 76,90 L36,90 Q32,90 32,86 L32,26 Q32,22 36,22 Z" />
+
+    <!-- Bande jaune en haut -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M32,22 L80,22 L80,34 Q80,34 76,34 L36,34 Q32,34 32,34 Z" />
+
+    <!-- Reliure spirale gauche -->
+    <path
+        android:fillColor="#FF8F00"
+        android:pathData="M36,22 L36,90"
+        android:strokeColor="#FF8F00"
+        android:strokeWidth="2" />
+
+    <!-- Trous de reliure -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M34,30 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M34,44 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M34,58 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M34,72 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+
+    <!-- Titre dans la bande -->
+    <path
+        android:fillColor="#E65100"
+        android:pathData="M42,26 L74,26 L74,29 L42,29 Z" />
+
+    <!-- Lignes de texte -->
+    <path
+        android:fillColor="#BDBDBD"
+        android:pathData="M42,40 L74,40 L74,42 L42,42 Z" />
+    <path
+        android:fillColor="#BDBDBD"
+        android:pathData="M42,48 L74,48 L74,50 L42,50 Z" />
+    <path
+        android:fillColor="#BDBDBD"
+        android:pathData="M42,56 L74,56 L74,58 L42,58 Z" />
+    <path
+        android:fillColor="#BDBDBD"
+        android:pathData="M42,64 L68,64 L68,66 L42,66 Z" />
+    <path
+        android:fillColor="#BDBDBD"
+        android:pathData="M42,72 L60,72 L60,74 L42,74 Z" />
+
+    <!-- Crayon décoratif coin bas-droit -->
+    <path
+        android:fillColor="#FFB300"
+        android:pathData="M68,78 L76,70 L78,72 L70,80 Z" />
+    <path
+        android:fillColor="#FFECB3"
+        android:pathData="M76,70 L80,66 L82,70 L78,72 Z" />
+    <path
+        android:fillColor="#795548"
+        android:pathData="M80,66 L82,62 L84,66 L82,70 Z" />
+
+</vector>

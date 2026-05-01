@@ -27,6 +27,20 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- Stagenet warning banner — shown only when stagenet is active -->
+            <TextView
+                android:id="@+id/tvStagenetBanner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="#FFCC0000"
+                android:padding="12dp"
+                android:text="@string/wallet_network_stagenet_banner"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
             <!-- Enable wallet toggle -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -71,6 +85,65 @@
                         android:id="@+id/switchWalletEnabled"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Network selector card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="10dp"
+                        android:text="@string/wallet_network_section_title"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <RadioGroup
+                        android:id="@+id/rgNetwork"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <RadioButton
+                            android:id="@+id/rbStagenet"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/wallet_network_stagenet_radio" />
+
+                        <RadioButton
+                            android:id="@+id/rbMainnet"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/wallet_network_mainnet_radio" />
+
+                    </RadioGroup>
+
+                    <TextView
+                        android:id="@+id/tvNetworkSwitchBlocked"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/wallet_network_switch_blocked"
+                        android:textColor="?attr/colorError"
+                        android:textSize="12sp"
+                        android:visibility="gone" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

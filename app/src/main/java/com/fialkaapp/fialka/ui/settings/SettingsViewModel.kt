@@ -1,5 +1,5 @@
-/*
- * Fialka â€” Post-quantum encrypted messenger
+﻿/*
+ * Fialka — Post-quantum encrypted messenger
  * Copyright (C) 2024-2026 DevBot667
  *
  * This program is free software: you can redistribute it and/or modify
@@ -154,15 +154,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 title = app.getString(R.string.setting_storage_title_clean),
                 summary = app.getString(R.string.setting_storage_summary_clean),
                 iconRes = R.drawable.ic_delete,
-                category = CATEGORY_ABOUT,
-                type = SettingType.ACTION
+                category = CATEGORY_DATA,
+                type = SettingType.NAVIGATE,
+                destination = "storageFragment"
             ),
             SettingItem(
                 id = "backup_export",
                 title = app.getString(R.string.setting_backup_export_title_clean),
                 summary = app.getString(R.string.setting_backup_export_summary_clean),
                 iconRes = R.drawable.ic_file,
-                category = CATEGORY_ABOUT,
+                category = CATEGORY_DATA,
                 type = SettingType.ACTION
             ),
             SettingItem(
@@ -170,7 +171,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 title = app.getString(R.string.setting_import_backup_title_clean),
                 summary = app.getString(R.string.setting_import_backup_summary_clean),
                 iconRes = R.drawable.ic_file,
-                category = CATEGORY_ABOUT,
+                category = CATEGORY_DATA,
                 type = SettingType.ACTION
             ),
             SettingItem(
@@ -227,6 +228,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         const val CATEGORY_SECURITY = "security"
         const val CATEGORY_WALLET = "wallet"
         const val CATEGORY_NETWORK = "network"
+        const val CATEGORY_DATA = "data"
         const val CATEGORY_ABOUT = "about"
     }
 }

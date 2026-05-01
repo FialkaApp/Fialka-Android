@@ -127,7 +127,26 @@ Fialka/
 │       │           ├── EphemeralSettingsFragment.kt
 │       │           ├── PinSetupDialogFragment.kt
 │       │           ├── ThemeSelectorBottomSheet.kt   # Visual 5-theme picker
-│       │           └── DurationSelectorBottomSheet.kt # Ephemeral message duration selector
+│       │           ├── DurationSelectorBottomSheet.kt # Ephemeral message duration selector
+│       │           ├── StorageFragment.kt            # Storage management (real-time stats, cleanup, danger zone)
+│       │           ├── BackupExportFragment.kt       # Encrypted .fialka backup export (PBKDF2 + AES-256-GCM)
+│       │           └── BackupImportFragment.kt       # .fialka backup import + validation
+│       │
+│       ├── wallet/                           # Non-custodial Monero XMR wallet
+│       │   ├── MoneroWallet.kt               # JNI facade to libfialka_monero.so
+│       │   ├── WalletRepository.kt           # Wallet source of truth (dynamic network via WalletPreferences)
+│       │   ├── WalletPreferences.kt          # Wallet prefs: network (STAGENET/MAINNET), node, restore height
+│       │   ├── WalletSnapshot.kt             # Snapshot state (balance, sync, enabled, hasSeed)
+│       │   └── DonationKeys.kt               # XMR donation address (network independent from user wallet)
+│       │
+│       ├── ui/
+│       │   ├── wallet/                       # Wallet screens
+│       │   │   ├── WalletHomeFragment.kt     # Wallet dashboard + network badge (red/green)
+│       │   │   ├── WalletSettingsFragment.kt # Wallet settings + Stagenet/Mainnet selection + delete dialog
+│       │   │   ├── WalletSeedBackupFragment.kt # Wallet seed backup + network badge
+│       │   │   └── WalletHomeViewModel.kt
+│       │   └── donation/
+│       │       └── DonationFragment.kt       # XMR donation send + transaction history
 │       │
 │       └── res/
 │           ├── anim/                         # 14 animations (slide, fade, bubble, cascade, bottom sheet)

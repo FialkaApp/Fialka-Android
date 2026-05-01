@@ -162,6 +162,18 @@ class WalletHomeFragment : Fragment() {
     private fun renderState() {
         val ctx = requireContext().applicationContext
         binding.tvSyncStatus.text = getString(R.string.wallet_node_connecting)
+
+        // Network badge — shown immediately without waiting for snapshot
+        val isStagenet = WalletPreferences.isStagenet(requireContext())
+        binding.tvNetworkBadge.visibility = View.VISIBLE
+        if (isStagenet) {
+            binding.tvNetworkBadge.text = getString(R.string.wallet_network_stagenet_badge)
+            binding.tvNetworkBadge.setBackgroundColor(android.graphics.Color.parseColor("#CC0000"))
+        } else {
+            binding.tvNetworkBadge.text = getString(R.string.wallet_network_mainnet_label)
+            binding.tvNetworkBadge.setBackgroundColor(android.graphics.Color.parseColor("#1B5E20"))
+        }
+
         lifecycleScope.launch(Dispatchers.IO) {
             val snapshot = WalletRepository.getSnapshot(ctx)
             withContext(Dispatchers.Main) {
@@ -577,6 +589,7 @@ class WalletHomeFragment : Fragment() {
                     if (!importOk) return@launch
 
                     WalletPreferences.setWalletEnabled(appCtx, true)
+                    WalletPreferences.setWalletCreated(appCtx, true)
                     WalletRepository.invalidateAllCaches()
 
                     // Full sync — returns when done (may take 5-30s depending on restoreHeight)

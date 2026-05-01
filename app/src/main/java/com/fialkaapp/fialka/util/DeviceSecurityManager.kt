@@ -33,12 +33,14 @@ import javax.crypto.KeyGenerator
 enum class StrongBoxStatus { AVAILABLE, NOT_AVAILABLE, DECLARED_BUT_UNAVAILABLE }
 enum class UserProfileType { OWNER, SECONDARY, UNKNOWN }
 enum class SecurityLevel { MAXIMUM, STANDARD }
+enum class AndroidOs { STOCK, GRAPHENEOS, CALYXOS, LINEAGEOS, CUSTOM }
 
 data class SecurityProfile(
     val strongBoxStatus: StrongBoxStatus,
     val userProfileType: UserProfileType,
     val deviceName: String,
-    val securityLevel: SecurityLevel
+    val securityLevel: SecurityLevel,
+    val androidOs: AndroidOs = AndroidOs.STOCK
 ) {
     val isStrongBoxAvailable: Boolean get() = strongBoxStatus == StrongBoxStatus.AVAILABLE
     val isSecondaryProfile: Boolean   get() = userProfileType == UserProfileType.SECONDARY
@@ -80,6 +82,7 @@ object DeviceSecurityManager {
         val strongBox     = probeStrongBox(context)
         val userProfile   = detectUserProfile()
         val deviceName    = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
+        val androidOs     = detectAndroidOs(context)
         val securityLevel = if (strongBox == StrongBoxStatus.AVAILABLE) {
             SecurityLevel.MAXIMUM
         } else {
@@ -89,7 +92,8 @@ object DeviceSecurityManager {
             strongBoxStatus    = strongBox,
             userProfileType    = userProfile,
             deviceName         = deviceName,
-            securityLevel      = securityLevel
+            securityLevel      = securityLevel,
+            androidOs          = androidOs
         )
     }
 
@@ -155,5 +159,31 @@ object DeviceSecurityManager {
         } catch (e: Exception) {
             UserProfileType.UNKNOWN
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // OS detection (GrapheneOS, CalyxOS, LineageOS, custom ROM)
+    // -------------------------------------------------------------------------
+
+    private fun detectAndroidOs(context: Context): AndroidOs {
+        val fp = Build.FINGERPRINT.lowercase()
+        return when {
+            fp.contains("lineage") -> AndroidOs.LINEAGEOS
+            fp.contains("calyx")   -> AndroidOs.CALYXOS
+            isPackageInstalled(context, "app.grapheneos.camera") ||
+            isPackageInstalled(context, "app.grapheneos.apps")   -> AndroidOs.GRAPHENEOS
+            isPackageInstalled(context, "org.calyxos.setup")     -> AndroidOs.CALYXOS
+            // Fingerprint not from a known OEM prefix → likely a custom ROM
+            !fp.startsWith("google/")   && !fp.startsWith("samsung/") &&
+            !fp.startsWith("huawei/")   && !fp.startsWith("xiaomi/")  &&
+            !fp.startsWith("oneplus/")  && !fp.startsWith("motorola/") &&
+            !fp.startsWith("sony/")     && !fp.startsWith("oppo/") &&
+            !fp.startsWith("realme/")   && !fp.startsWith("nothing/") -> AndroidOs.CUSTOM
+            else -> AndroidOs.STOCK
+        }
+    }
+
+    private fun isPackageInstalled(context: Context, pkg: String): Boolean {
+        return try { context.packageManager.getPackageInfo(pkg, 0); true } catch (_: Exception) { false }
     }
 }

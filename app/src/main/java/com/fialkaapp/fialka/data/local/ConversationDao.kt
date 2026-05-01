@@ -70,4 +70,10 @@ interface ConversationDao {
 
     @Delete
     suspend fun deleteConversation(conversation: Conversation)
+
+    @Query("SELECT COUNT(*) FROM conversations")
+    suspend fun getTotalConversationCount(): Int
+
+    @Query("DELETE FROM conversations")
+    suspend fun deleteAllConversations()
 }

@@ -59,6 +59,9 @@ interface MessageLocalDao {
     @Query("UPDATE messages SET oneShotOpened = 1, localFilePath = NULL WHERE localId = :messageId")
     suspend fun markOneShotOpened(messageId: String)
 
+    @Query("SELECT * FROM messages ORDER BY timestamp ASC")
+    suspend fun getAllMessages(): List<MessageLocal>
+
     @Query("UPDATE messages SET oneShotOpened = 1 WHERE localId = :messageId")
     suspend fun flagOneShotOpened(messageId: String)
 
@@ -88,4 +91,16 @@ interface MessageLocalDao {
      */
     @Query("UPDATE messages SET deliveryStatus = ${MessageLocal.DELIVERY_PENDING} WHERE deliveryStatus = ${MessageLocal.DELIVERY_SENDING}")
     suspend fun migrateSendingToPending()
+
+    @Query("SELECT COUNT(*) FROM messages")
+    suspend fun getTotalMessageCount(): Int
+
+    @Query("SELECT COUNT(*) FROM messages WHERE localFilePath IS NOT NULL AND localFilePath != ''")
+    suspend fun getFileMessageCount(): Int
+
+    @Query("DELETE FROM messages WHERE localFilePath IS NOT NULL AND localFilePath != ''")
+    suspend fun deleteFileMessages()
+
+    @Query("DELETE FROM messages")
+    suspend fun deleteAllMessages()
 }

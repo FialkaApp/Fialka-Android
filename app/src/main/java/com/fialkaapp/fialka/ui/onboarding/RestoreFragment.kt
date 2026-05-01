@@ -21,9 +21,12 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Base64
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -34,29 +37,48 @@ import android.widget.AutoCompleteTextView
 import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.backup.FialkaBackupManager
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.MnemonicManager
+import com.fialkaapp.fialka.crypto.WalletSeedManager
+import com.fialkaapp.fialka.data.local.FialkaDatabase
 import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.databinding.FragmentRestoreBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 
 /**
- * Restore screen — enter 24 BIP-39 words in a professional grid
- * with autocomplete suggestions from the BIP-39 wordlist.
+ * Restore screen — two modes:
+ *  1) Seed 24 mots : saisir la phrase BIP-39 → restaure uniquement l'identité
+ *  2) Fichier .fialka : choisir un fichier + passphrase → restaure tout (identité, wallet, contacts…)
  */
 class RestoreFragment : Fragment() {
 
     private var _binding: FragmentRestoreBinding? = null
     private val binding get() = _binding!!
 
+    // ── Seed mode ────────────────────────────────────────────────────────────────
     private val wordInputs = mutableListOf<AutoCompleteTextView>()
-    private val wordCells = mutableListOf<LinearLayout>()
+    private val wordCells  = mutableListOf<LinearLayout>()
+
+    // ── File mode ────────────────────────────────────────────────────────────────
+    private var loadedFileBytes: ByteArray? = null
+    private var pendingContent: FialkaBackupManager.BackupContent? = null
+
+    private val openFileLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri ?: return@registerForActivityResult
+        loadBackupFile(uri)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -73,6 +95,24 @@ class RestoreFragment : Fragment() {
         val wordList = MnemonicManager.getWordList()
         buildWordGrid(wordList)
 
+        // ── Mode toggle ──────────────────────────────────────────────────────────
+        binding.toggleMode.check(R.id.btnModeSeed)
+        binding.toggleMode.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            hideError()
+            when (checkedId) {
+                R.id.btnModeSeed -> {
+                    binding.sectionSeed.visibility = View.VISIBLE
+                    binding.sectionFile.visibility = View.GONE
+                }
+                R.id.btnModeFile -> {
+                    binding.sectionSeed.visibility = View.GONE
+                    binding.sectionFile.visibility = View.VISIBLE
+                }
+            }
+        }
+
+        // ── Seed mode ────────────────────────────────────────────────────────────
         binding.btnRestore.setOnClickListener {
             val displayName = binding.etDisplayName.text.toString().trim()
 
@@ -90,13 +130,170 @@ class RestoreFragment : Fragment() {
 
             if (!MnemonicManager.validateMnemonic(words)) {
                 showError("Phrase invalide. Vérifiez les mots et réessayez.")
-                // Highlight invalid words
                 highlightInvalidWords(words, wordList)
                 return@setOnClickListener
             }
 
             restore(words, displayName)
         }
+
+        // ── File mode ────────────────────────────────────────────────────────────
+        binding.btnChooseFile.setOnClickListener {
+            openFileLauncher.launch(arrayOf("application/octet-stream", "*/*"))
+        }
+
+        binding.btnRestoreFile.setOnClickListener {
+            val passphrase = binding.etFilePassphrase.text.toString()
+            if (passphrase.isBlank()) {
+                showError("Veuillez saisir la passphrase.")
+                return@setOnClickListener
+            }
+            val data = loadedFileBytes
+            if (data == null) {
+                showError("Aucun fichier chargé.")
+                return@setOnClickListener
+            }
+            // If preview already shown, go straight to restore
+            if (pendingContent != null) {
+                applyFileRestore(pendingContent!!)
+            } else {
+                decryptAndPreview(data, passphrase.toCharArray())
+            }
+        }
+    }
+
+    // ── File mode helpers ─────────────────────────────────────────────────────────
+
+    private fun loadBackupFile(uri: Uri) {
+        hideError()
+        pendingContent = null
+        binding.cardFilePreview.visibility   = View.GONE
+        binding.btnRestoreFile.text          = "Restaurer la sauvegarde"
+
+        lifecycleScope.launch {
+            try {
+                val bytes = withContext(Dispatchers.IO) {
+                    requireContext().contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: throw IllegalStateException("Impossible de lire le fichier.")
+                }
+                loadedFileBytes = bytes
+
+                // Afficher le nom du fichier
+                val name = resolveFileName(uri)
+                binding.tvFileName.text       = name
+                binding.tvFileName.visibility = View.VISIBLE
+
+                // Afficher le champ passphrase
+                binding.cardFilePassphrase.visibility = View.VISIBLE
+                binding.etFilePassphrase.requestFocus()
+
+                // Afficher le bouton (le déclic déclenche déchiffrement puis restauration)
+                binding.btnRestoreFile.visibility = View.VISIBLE
+
+            } catch (e: Exception) {
+                showError("Impossible de lire le fichier : ${e.message}")
+            }
+        }
+    }
+
+    private fun resolveFileName(uri: Uri): String {
+        var name = uri.lastPathSegment ?: "fichier inconnu"
+        try {
+            requireContext().contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (cursor.moveToFirst() && idx >= 0) name = cursor.getString(idx)
+            }
+        } catch (_: Exception) {}
+        return name
+    }
+
+    private fun decryptAndPreview(data: ByteArray, passphrase: CharArray) {
+        showLoading(true)
+        hideError()
+
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.Default) {
+                FialkaBackupManager.openBackup(data, passphrase)
+            }
+            showLoading(false)
+
+            when (result) {
+                is FialkaBackupManager.OpenResult.Success -> {
+                    pendingContent = result.content
+                    showFilePreview(result.content)
+                    // Bouton passe en "Confirmer la restauration"
+                    binding.btnRestoreFile.text = "Confirmer la restauration"
+                }
+                is FialkaBackupManager.OpenResult.WrongPassphrase ->
+                    showError("Passphrase incorrecte. Vérifiez et réessayez.")
+                is FialkaBackupManager.OpenResult.Invalid ->
+                    showError(result.reason)
+            }
+        }
+    }
+
+    private fun showFilePreview(content: FialkaBackupManager.BackupContent) {
+        val primaryColor = ContextCompat.getColor(requireContext(), R.color.primary)
+        fun showRow(tv: TextView, text: String) {
+            tv.text = text; tv.setTextColor(primaryColor); tv.visibility = View.VISIBLE
+        }
+        if (content.options.includeIdentity && content.identitySeedB64 != null)
+            showRow(binding.tvPreviewIdentity, "✓  Identité Fialka${content.displayName?.let { " — $it" } ?: ""}")
+        if (content.options.includeWallet && content.walletMnemonic != null)
+            showRow(binding.tvPreviewWallet, "✓  Wallet Monero")
+        if (content.options.includeContacts && content.contacts.isNotEmpty())
+            showRow(binding.tvPreviewContacts, "✓  ${content.contacts.size} contact(s)")
+        // Conversations and messages are not backed up
+        binding.tvPreviewConversations.visibility = View.GONE
+        binding.tvPreviewMessages.visibility = View.GONE
+        binding.cardFilePreview.visibility = View.VISIBLE
+    }
+
+    private fun applyFileRestore(content: FialkaBackupManager.BackupContent) {
+        showLoading(true)
+        binding.btnRestoreFile.isEnabled = false
+
+        lifecycleScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val ctx = requireContext().applicationContext
+                    val db  = FialkaDatabase.getInstance(ctx)
+
+                    if (content.options.includeIdentity && content.identitySeedB64 != null) {
+                        val seedBytes = Base64.decode(content.identitySeedB64, Base64.NO_WRAP)
+                        try {
+                            val publicKey = CryptoManager.restoreFromSeed(seedBytes)
+                            ChatRepository(ctx).createUserWithKey(
+                                displayName = content.displayName ?: "Moi",
+                                publicKey   = publicKey
+                            )
+                        } finally { seedBytes.fill(0) }
+                    }
+                    if (content.options.includeWallet && content.walletMnemonic != null)
+                        WalletSeedManager.importFromMnemonic(ctx, content.walletMnemonic)
+                    if (content.options.includeContacts)
+                        content.contacts.forEach { db.contactDao().insertContact(it) }
+                    // Conversations and messages are not restored (ratchet desync prevention)
+
+                    // Clear all ratchet states — they are time-bound ephemeral state that
+                    // diverges from contacts' current state after a restore.
+                    // broadcastPresence() will send TYPE_SESSION_RESET to all contacts once
+                    // Tor reconnects, triggering a mutual fresh PQXDH re-initialization.
+                    db.ratchetStateDao().deleteAllStates()
+                    ctx.getSharedPreferences("fialka_flags", android.content.Context.MODE_PRIVATE)
+                        .edit().putBoolean("needs_session_reset", true).apply()
+                }
+                findNavController().navigate(R.id.action_restore_to_torBootstrap)
+            } catch (e: Exception) {
+                showLoading(false)
+                binding.btnRestoreFile.isEnabled = true
+                showError("Erreur lors de la restauration : ${e.message}")
+            }
+        }
+    }
+
+    private fun showLoading(visible: Boolean) {
+        binding.progressBar.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
     private fun buildWordGrid(wordList: List<String>) {
@@ -292,10 +489,16 @@ class RestoreFragment : Fragment() {
         binding.tvError.visibility = View.VISIBLE
     }
 
+    private fun hideError() {
+        binding.tvError.visibility = View.GONE
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         wordInputs.clear()
         wordCells.clear()
+        loadedFileBytes?.fill(0)
+        loadedFileBytes = null
         _binding = null
     }
 }

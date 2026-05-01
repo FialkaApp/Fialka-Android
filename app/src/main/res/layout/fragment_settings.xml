@@ -220,6 +220,14 @@
                             app:checkedIconVisible="false" />
 
                         <com.google.android.material.chip.Chip
+                            android:id="@+id/chipData"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_data_category"
+                            app:checkedIconVisible="false" />
+
+                        <com.google.android.material.chip.Chip
                             android:id="@+id/chipAbout"
                             style="@style/Widget.Material3.Chip.Filter"
                             android:layout_width="wrap_content"

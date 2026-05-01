@@ -43,10 +43,12 @@ object DonationKeys {
     //   ^^^^^ REPLACE WITH YOUR REAL DONATION WALLET PRIVATE VIEW KEY ^^^^^
 
     /**
-     * Network type matching WalletRepository.NETWORK_TYPE.
+     * Network type for the donation wallet keys embedded above.
+     * This is INDEPENDENT from the user's personal wallet network (WalletPreferences).
      * 0 = Mainnet, 1 = Testnet, 2 = Stagenet
+     * Update this together with SPEND_PUB_HEX/VIEW_PRIV_HEX when switching to mainnet.
      */
-    const val NETWORK_TYPE = 2  // Stagenet — change to 0 for production
+    const val NETWORK_TYPE = 2  // Stagenet — update to 0 for production donation wallet
 
     /** Decode hex string to ByteArray. */
     fun hexToBytes(hex: String): ByteArray {

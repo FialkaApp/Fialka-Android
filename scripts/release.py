@@ -197,7 +197,7 @@ def main():
                 "--v1-signing-enabled", "false",
                 "--v2-signing-enabled", "true",
                 "--v3-signing-enabled", "true",
-                "--v4-signing-enabled", "true",
+                "--v4-signing-enabled", "false",
                 "--out", str(signed_apk),
                 str(unsigned_apk),
             ])

@@ -1,6 +1,6 @@
 # Privacy Policy — Fialka
 
-*Last updated: April 3, 2026*
+*Last updated: April 30, 2026 · Version 5 · Applicable from V4.2.0-alpha*
 
 ---
 
@@ -92,6 +92,20 @@ The following data is stored **exclusively on your device** and never transmitte
 - Contact list
 - Ratchet states (Double Ratchet + PQXDH + SPQR)
 - App settings and preferences
+- Monero (XMR) wallet seed and private keys (see Section 4.1)
+
+### 4.1. Monero (XMR) Wallet Data
+
+If you use the optional built-in Monero wallet:
+
+- Your **XMR private spend key, private view key, and wallet seed** are stored **exclusively on your device**, encrypted within the SQLCipher database
+- The developers have **zero custody, zero access, and zero visibility** into any wallet data, balance, or transaction
+- Fialka takes **zero percentage, zero fee** on any XMR transaction — the only fees are standard Monero network fees (paid to miners on the Monero network), shown to you before confirmation
+- When Fialka scans the Monero blockchain, it connects to a **Monero node** (remote or local) — this node can see that a request is being made (e.g., a view key scan) but **cannot link this to your identity** because the connection transits via Tor
+- **No financial data** is transmitted to the developers or any third party controlled by the developers
+- If you include the wallet in a `.fialka` backup file, the backup is encrypted with AES-256-GCM before leaving your device — the backup passphrase is known only to you
+
+**Monero-specific privacy note:** Monero is a privacy-preserving cryptocurrency by design (RingCT, stealth addresses, Bulletproofs). Transaction details are not visible on-chain without the view key. Your view key never leaves your device.
 
 This data is protected by:
 - **SQLCipher** encryption (AES-256) for the local database
@@ -109,12 +123,24 @@ This data is protected by:
 
 **No Google services, no Firebase, no cloud APIs, no corporate infrastructure.**
 
+## 5.1. Backup & Restore — Data Notice
+
+Fialka supports encrypted backup files (`.fialka` format):
+
+- Backup files contain: identity keys, contacts, and optionally your Monero wallet seed
+- **Backup files do NOT contain message history** — privacy by design
+- Backup files are encrypted with AES-256-GCM before they leave your device
+- The encryption key is derived from your chosen passphrase via PBKDF2-HMAC-SHA256 (600,000 iterations)
+- The developers have **no access** to your backup files or their contents
+- Backup files stored on third-party services (cloud, email) are subject to those services' privacy policies — the cryptographic encryption provides protection regardless, but we recommend local storage
+
 ## 6. Data Retention
 
 - **Messages in transit**: Deleted from Mailbox after delivery (or after TTL expiration if undelivered)
 - **Local messages**: Stored until user deletes them, or until ephemeral timers expire
 - **No server-side backups** of message content exist anywhere
 - **No account database** exists — your identity is your key, stored only on your device
+- **Wallet data**: Stored locally, never transmitted to developers
 
 ## 7. Your Rights — EU/EEA Users (GDPR + French Law)
 

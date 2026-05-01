@@ -19,6 +19,7 @@
 [![Android](https://img.shields.io/badge/Android-33%2B-a855f7?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-7c3aed?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![E2E](https://img.shields.io/badge/PQXDH-X25519%20%2B%20ML--KEM--1024-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/fr/CRYPTO.md)
+[![Version](https://img.shields.io/badge/Version-V4.3.0--alpha-a855f7?style=for-the-badge)](version.properties)
 [![License](https://img.shields.io/badge/GPLv3-License-8b5cf6?style=for-the-badge)](LICENSE)
 [![Terms](https://img.shields.io/badge/Terms-Conditions-8b5cf6?style=for-the-badge)](TERMS.md)
 [![Privacy](https://img.shields.io/badge/Privacy-Policy-8b5cf6?style=for-the-badge)](PRIVACY.md)
@@ -138,6 +139,7 @@
 | 🔒 | **PBKDF2 PIN** | 600K itérations + salt |
 | ✍️ | **Signature Ed25519** | Chaque message signé, badge ✅/⚠️ anti-falsification |
 | 📸 | **Photos one-shot** | Vue unique (sender + receiver), suppression sécurisée 2 phases |
+| 💰 | **Wallet Monero (XMR)** | Local, non-custodial — clés privées sur l'appareil uniquement, paiements XMR in-chat, réseau Stagenet/Mainnet switchable (Section 6, TERMS.md) |
 
 </details>
 
@@ -185,6 +187,8 @@
 | ⏰ | **Auto-lock** | Timeout configurable (5s → 5min) |
 | 🔑 | **Backup BIP-39** | 24 mots pour sauvegarder la clé d'identité |
 | ♻️ | **Restauration** | Grille autocomplete 24 mots + restaurer sur nouvel appareil |
+| 💾 | **Backup .fialka** | Export/import chiffré E2E (identité + wallet + contacts) — AES-256-GCM, PBKDF2 600K |
+| 🗄️ | **Gestion du stockage** | Stats DB/cache en temps réel, purge cache/fichiers/messages |
 | 🗑️ | **Suppression complète** | Supprime toutes les données locales |
 | 📵 | **Anonyme** | Zéro numéro, zéro email, zéro Google, zéro tracking |
 
@@ -320,8 +324,11 @@ cd Fialka-Android
 | **V4.0** | Kill Firebase — P2P .onion + Mailbox store-and-forward, invite QR, deep links | ✅ Done |
 | **V4.0.1** | Keystore direct (FialkaSecurePrefs), SQLCipher 4.14.1, transport fiabilité (retry 15s, fallback Mailbox, fetch adaptatif) | ✅ Done |
 | **V4.0.2** | Fialka-Core Rust JNI — pont JNI 30 fonctions, suppression BouncyCastle, crypto 100% Rust native, submodule git | ✅ Done |
-| **V4.1** | UX — App disguise (icône + faux écran), Dual PIN + Panic Button, messages vocaux E2E (Opus), reply/quote | 🔜 |
-| **V4.2** | Sealed Sender réel (VXEdDSA), multi-device Sesame, **audit externe** (Cure53 / Trail of Bits) | 🔜 |
+| **V4.1.0** | Ed25519 contact auth, tests unitaires, avertissement migration DB | ✅ Done |
+| **V4.2.0** | Wallet Monero XMR non-custodial, paiements XMR in-chat, adresse de donation, paramètres Tor avancés, seed backup wallet | ✅ Done |
+| **V4.3.0-alpha** | Backup .fialka E2E chiffré, réseau Stagenet/Mainnet switchable, StorageFragment, CATEGORY_DATA, App disguise (calculatrice), légalité wallet XMR (TermsManager V5) | 🚧 Alpha |
+| **V4.3.x** | Dual PIN + Panic Button, messages vocaux E2E (Opus), reply/quote | 🔜 |
+| **V4.4** | Sealed Sender réel (VXEdDSA), multi-device Sesame, **audit externe** (Cure53 / Trail of Bits) | 🔜 |
 | **V5.0** | Long terme — **FN-DSA Falcon-512** signatures PQ par message, réseau Mailbox décentralisé, Bluetooth/WiFi fallback | 🔮 |
 
 > 📖 **Détails** — [Changelog complet](docs/fr/CHANGELOG.md)
@@ -479,7 +486,7 @@ Le Département du Commerce des États-Unis, Bureau of Industry and Security (BI
 
 <br/>
 
-<img src="https://img.shields.io/badge/Fialka-V4.0.2-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/Fialka-V4.3.0--alpha-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

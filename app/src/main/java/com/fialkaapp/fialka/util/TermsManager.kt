@@ -28,7 +28,7 @@ object TermsManager {
     private const val KEY_ACCEPTED_VERSION = "terms_accepted_version"
 
     /** Increment this whenever terms change materially. */
-    const val CURRENT_TERMS_VERSION = 4
+    const val CURRENT_TERMS_VERSION = 5
 
     fun isAccepted(context: Context): Boolean =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

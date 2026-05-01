@@ -178,6 +178,9 @@ object MailboxClientManager {
                 _connected.value = true
                 _role.value = role
                 startFetchLoop()
+                // Proactively notify all contacts that we now have a mailbox.
+                // Without this, contacts only find out when we send them a message.
+                try { OutboxManager.broadcastPresence() } catch (_: Exception) {}
                 return Pair(true, role)
             } else {
                 // Simple format: [JOIN_REJECTED][reason_bytes...]
@@ -216,6 +219,10 @@ object MailboxClientManager {
         val authPayload = TorTransport.buildAuthenticatedPayload("LEAVE", ByteArray(0))
         val frame = TorTransport.Frame(TorTransport.TYPE_LEAVE, authPayload)
         val response = TorTransport.sendFrame(onion, frame = frame)
+
+        // Notify all contacts BEFORE clearing local state, so they can purge their stale mailbox address.
+        // overrideMailboxOnion = "" signals "I have no mailbox" — contacts will call clearContactMailbox().
+        try { OutboxManager.broadcastPresence(overrideMailboxOnion = "") } catch (_: Exception) {}
 
         // Stop fetch loop and clear local state regardless of server response
         stopFetchLoop()

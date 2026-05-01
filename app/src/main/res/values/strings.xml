@@ -217,6 +217,7 @@
     <string name="settings_privacy_category">Confidentialité</string>
     <string name="settings_security_category">Sécurité</string>
     <string name="settings_network_category">Réseau</string>
+    <string name="settings_data_category">Données</string>
     <string name="settings_about_category">À propos</string>
 
     <!-- Settings group titles -->
@@ -225,6 +226,7 @@
     <string name="settings_group_privacy">🔒 Confidentialité</string>
     <string name="settings_group_security">🛡️ Sécurité</string>
     <string name="settings_group_network">🌐 Réseau</string>
+    <string name="settings_group_data">💾 Données</string>
     <string name="settings_group_about">ℹ️ À propos</string>
 
     <!-- New setting labels -->
@@ -347,7 +349,11 @@
     <string name="terms_section_warranty_title">Absence de garantie</string>
     <string name="terms_section_warranty_body">Fialka est fourni « EN L\'ETAT », sans garantie d\'aucune sorte. L\'implementation cryptographique n\'a pas encore ete auditee par un cabinet tiers. Les developpeurs ne garantissent pas l\'absence de vulnerabilites.</string>
     <string name="terms_section_export_title">Controle des exportations</string>
-    <string name="terms_section_export_body">Ce logiciel contient des elements cryptographiques soumis aux reglementations d\'exportation (Wassenaar, ECCN 5D002.C.1 — US BIS, Reglement UE 2021/821). En tant que logiciel open source GPLv3, il est exempte en France et dans l\'UE. Verifiez les lois de votre pays.</string>
+    <string name="terms_section_export_body">Ce logiciel contient des elements cryptographiques soumis aux reglementations d\'exportation (Wassenaar, ECCN 5D002.C.1 — US BIS, Reglement UE 2021/821). En tant que logiciel open source GPLv3, il est exempte en France et dans l\'UE. Verifiez les lois de votre pays. Les fichiers de sauvegarde (.fialka) contenant du materiel cryptographique sont soumis aux memes regles.</string>
+    <string name="terms_section_wallet_title">Wallet Monero (XMR)</string>
+    <string name="terms_section_wallet_body">Fialka inclut un wallet Monero local et non-custodial. Vos cles privees restent exclusivement sur votre appareil — les developpeurs n\'ont aucun acces, aucune visibilite sur vos fonds.\n\nFialka ne preleve AUCUN frais, AUCUN pourcentage sur les transactions. Les seuls frais sont les frais de reseau Monero (verses aux mineurs), dont le montant vous est affiche avant confirmation.\n\n• France : Le regime PSAN (AMF / Loi PACTE 2019-486) ne s\'applique pas aux wallets self-hosted. Vous etes responsable de la declaration de vos plus-values (PFU 30%, Art. 150 VH bis CGI).\n\n• UE : MiCA (2023/1114) exclut explicitement les wallets non-custodiaux. Le Travel Rule (2023/1113) s\'applique uniquement aux CASP.\n\n• USA : FinCEN FIN-2019-G001 — wallet non-custodial n\'est pas un MSB. Vous etes responsable du respect des sanctions OFAC et de la declaration IRS (Notice 2014-21, Form 8949).\n\nVerifiez les lois de votre juridiction. Fialka ne fournit aucun conseil juridique ou fiscal.</string>
+    <string name="terms_section_backup_title">Sauvegarde et restauration</string>
+    <string name="terms_section_backup_body">Fialka supporte les fichiers de sauvegarde chiffres (.fialka). Ces fichiers contiennent vos cles d\'identite, vos contacts et optionnellement votre seed wallet — mais PAS vos messages (confidentialite par conception). Chiffrement AES-256-GCM avec cle derivee via PBKDF2-HMAC-SHA256 (600 000 iterations). La phrase de passe est connue de vous seul(e) — les developpeurs ne peuvent pas recuperer un backup dont vous avez perdu le mot de passe.</string>
     <string name="terms_full_link">Texte complet : github.com/FialkaApp/Fialka-Android/blob/main/TERMS.md</string>
     <string name="terms_consent_age_notice">Vous devez avoir 16 ans ou plus pour utiliser cette application.</string>
     <string name="terms_consent_decline">Refuser</string>
@@ -466,14 +472,14 @@
     <string name="wallet_send_btn">Envoyer</string>
     <string name="wallet_send_sending">Envoi en cours…</string>
     <string name="wallet_send_success">Transaction envoyée !</string>
-    <string name="wallet_send_fee">Frais : %1$s XMR</string>
+    <string name="wallet_send_fee">Frais réseau Monero : %1$s XMR</string>
     <string name="wallet_send_txid">TX : %1$s</string>
     <string name="wallet_send_error_address">Adresse invalide</string>
     <string name="wallet_send_error_amount">Montant invalide</string>
     <string name="wallet_send_error_balance">Solde insuffisant</string>
     <string name="wallet_send_error_wallet">Le portefeuille n\'est pas prêt. Compilez libmonero_jni.so.</string>
     <string name="wallet_send_confirm_title">Confirmer l\'envoi</string>
-    <string name="wallet_send_confirm_message">Envoyer %1$s XMR à\n\n%2$s\n\nFrais estimés : ~0.0001 XMR\n\nCette action est irréversible.</string>
+    <string name="wallet_send_confirm_message">Envoyer %1$s XMR à\n\n%2$s\n\nFrais réseau estimés : ~0.0001 XMR (vers les mineurs Monero, zéro prélevé par Fialka)\n\nCette action est irréversible.</string>
     <string name="wallet_send_scan_qr">Scanner QR</string>
     <string name="wallet_send_all">Tout envoyer</string>
     <string name="wallet_send_available">Disponible : %1$s XMR</string>
@@ -504,6 +510,18 @@
     <string name="wallet_node_url_title">URL du nœud (stagenet)</string>
     <string name="wallet_node_url_hint">http://127.0.0.1:38081</string>
     <string name="wallet_network_label">Réseau actif : Stagenet</string>
+    <string name="wallet_network_section_title">Réseau Monero</string>
+    <string name="wallet_network_stagenet_radio">Stagenet (réseau de test)</string>
+    <string name="wallet_network_mainnet_radio">Mainnet (réseau principal)</string>
+    <string name="wallet_network_stagenet_banner">⚠ STAGENET — Réseau de test. Les XMR stagenet n\'ont aucune valeur réelle.</string>
+    <string name="wallet_network_mainnet_badge">✓ MAINNET — Réseau principal</string>
+    <string name="wallet_network_switch_blocked">Supprimez votre wallet actuel pour changer de réseau.</string>
+    <string name="wallet_network_switch_dialog_title">Changer de réseau</string>
+    <string name="wallet_network_switch_dialog_message">Pour passer à %1$s, votre wallet actuel doit être supprimé.\n\nLes seeds stagenet et mainnet sont distincts et incompatibles — vous devrez créer ou restaurer un nouveau wallet sur le réseau cible.\n\n⚠ Assurez-vous d\'avoir sauvegardé votre seed (25 mots) avant de continuer.</string>
+    <string name="wallet_network_switch_confirm_btn">Supprimer le wallet et changer</string>
+    <string name="wallet_network_stagenet_badge">STAGENET</string>
+    <string name="wallet_network_mainnet_label">MAINNET</string>
+    <string name="wallet_seed_network_warning">Ce wallet sera créé sur le réseau %1$s. Les seeds stagenet et mainnet sont distincts et incompatibles.</string>
     <string name="wallet_save">Enregistrer</string>
     <string name="wallet_open_now">Ouvrir le wallet</string>
     <string name="wallet_saved">Configuration wallet enregistrée.</string>
@@ -605,5 +623,39 @@
     <string name="xmr_send_confirm_title">Confirmer l\'envoi XMR</string>
     <string name="xmr_send_confirm_msg">Envoyer %1$s XMR à\n\n%2$s\n\nCette action est irréversible.</string>
     <string name="xmr_send_success">Transaction XMR envoyée !</string>
-    <string name="xmr_address_loading">Chargement de l\'adresse…</string>
+    <string name="xmr_address_loading">Chargement de l\'adresse\u2026</string>
+
+    <!-- App Disguise -->
+    <string name="disguise_label_calculator">Calculatrice</string>
+    <string name="disguise_label_weather">M\u00e9t\u00e9o</string>
+    <string name="disguise_label_notes">Notes</string>
+    <string name="disguise_label_clock">Horloge</string>
+    <string name="disguise_screen_title">Apparence du lanceur</string>
+    <string name="disguise_screen_subtitle">Choisissez l\u2019ic\u00f4ne et le nom affich\u00e9s dans le lanceur</string>
+    <string name="disguise_apply_confirm_title">Changer l\u2019apparence\u00a0?</string>
+    <string name="disguise_apply_confirm_msg">L\u2019ic\u00f4ne du lanceur sera remplac\u00e9e par \u00ab\u00a0%1$s\u00a0\u00bb.\n\nL\u2019application va se fermer automatiquement pour appliquer le changement.</string>
+    <string name="disguise_apply_confirm_ok">Appliquer</string>
+    <string name="disguise_applied">Apparence mise \u00e0 jour</string>
+    <string name="disguise_option_fialka">Fialka (par d\u00e9faut)</string>
+    <string name="nav_disguise">Apparence</string>
+
+    <!-- Cover Calculator -->
+    <string name="cover_secret_hint">Code secret (ex&#160;: 1337)</string>
+    <string name="cover_secret_empty_error">Le code secret ne peut pas être vide</string>
+    <string name="cover_saved">Paramètres enregistrés</string>
+    <string name="cover_save">Enregistrer</string>
+
+    <!-- Cover secret setup bottom sheet -->
+    <string name="cover_not_configured">Non configurée</string>
+    <string name="cover_sequence_label">Séquence de déverrouillage</string>
+    <string name="cover_setup_configure">Configurer</string>
+    <string name="cover_setup_cancel">Annuler</string>
+    <string name="cover_setup_next">Suivant</string>
+    <string name="cover_setup_save">Enregistrer</string>
+    <string name="cover_setup_step1_indicator">Étape 1 sur 2</string>
+    <string name="cover_setup_step2_indicator">Étape 2 sur 2</string>
+    <string name="cover_setup_step1_title">Entrez votre séquence secrète</string>
+    <string name="cover_setup_step2_title">Confirmez la séquence</string>
+    <string name="cover_setup_mismatch">Les séquences ne correspondent pas. Recommencez.</string>
+    <string name="cover_setup_empty_error">La séquence ne peut pas être vide</string>
 </resources>

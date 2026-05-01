@@ -316,7 +316,14 @@ private const val HKDF_INFO = "Fialka-v2-message-key"
 
         // Cache raw ed25519 pub bytes (no BC objects needed)
         cachedSigningPublicBytes = edPub
+
+        // Zero all private key material still in JVM heap.
+        // The Bundle from Rust contained x25519_priv, mlkem_dk (3168B), mldsa_sk (2560B) —
+        // these must not linger in heap after being safely stored in EncryptedSharedPreferences.
         x25519PrivRaw.fill(0)
+        mlkemDk.fill(0)
+        mldsaSk.fill(0)
+        bundle.fill(0)
 
         return x25519PubBase64
     }
@@ -652,12 +659,19 @@ private const val HKDF_INFO = "Fialka-v2-message-key"
     fun getOrDeriveSigningKeyPair(): KeyPair {
         val cached = cachedSigningPublicBytes
         val seed = getIdentitySeed()
-        val pubBytes = cached ?: run {
-            val sp = prefs.getString(KEY_SIGNING_PUBLIC, null)
-                ?: Base64.encodeToString(FialkaNative.identityDerive(seed).copyOfRange(0, 32), Base64.NO_WRAP)
-            Base64.decode(sp, Base64.NO_WRAP).also { cachedSigningPublicBytes = it }
+        try {
+            val pubBytes = cached ?: run {
+                val sp = prefs.getString(KEY_SIGNING_PUBLIC, null)
+                    ?: Base64.encodeToString(FialkaNative.identityDerive(seed).copyOfRange(0, 32), Base64.NO_WRAP)
+                Base64.decode(sp, Base64.NO_WRAP).also { cachedSigningPublicBytes = it }
+            }
+            // Make a defensive copy of seed for the KeyPair so we can zero the local reference.
+            // The KeyPair holds this copy; the local `seed` variable is zeroed below.
+            val seedCopy = seed.copyOf()
+            return makeSigningKeyPair(seedCopy, pubBytes)
+        } finally {
+            seed.fill(0)
         }
-        return makeSigningKeyPair(seed, pubBytes)
     }
 
     private fun makeSigningKeyPair(seedBytes: ByteArray, pubBytes: ByteArray): KeyPair {

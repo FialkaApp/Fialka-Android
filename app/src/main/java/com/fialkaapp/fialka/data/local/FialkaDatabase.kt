@@ -107,6 +107,7 @@ abstract class FialkaDatabase : RoomDatabase() {
                 System.loadLibrary("sqlcipher")
                 val passphrase = getOrCreatePassphrase(context)
                 val factory = SupportOpenHelperFactory(passphrase)
+                passphrase.fill(0)  // SupportOpenHelperFactory copies internally; zero the original
 
                 val instance = Room.databaseBuilder(
                     context.applicationContext,

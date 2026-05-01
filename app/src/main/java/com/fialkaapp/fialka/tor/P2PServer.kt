@@ -88,6 +88,7 @@ object P2PServer : TorTransport.FrameListener {
             TorTransport.TYPE_FILE_CHUNK -> handleFileChunk(frame.payload)
             TorTransport.TYPE_PING -> TorTransport.ackOk()
             TorTransport.TYPE_PRESENCE -> handlePresence(frame.payload)
+            TorTransport.TYPE_SESSION_RESET -> handleSessionReset(frame.payload)
             // Mailbox frames hitting P2P server → explicit rejection
             TorTransport.TYPE_JOIN,
             TorTransport.TYPE_DEPOSIT,
@@ -154,18 +155,29 @@ object P2PServer : TorTransport.FrameListener {
                 }
             }
 
-            // Mettre à jour le mailboxOnion de l'expéditeur si fourni
-            // Cela permet de le joindre via mailbox même s'il a rejoint la mailbox après le handshake
-            val senderMailboxOnion = json.optString("senderMailboxOnion", "")
-            if (senderMailboxOnion.isNotEmpty() && received != null) {
+            // Mettre à jour ou effacer le mailboxOnion de l'expéditeur.
+            // Le champ est TOUJOURS présent dans les messages récents :
+            //   non-vide → adresse mailbox de l'expéditeur
+            //   ""       → l'expéditeur a quitté sa mailbox → on efface l'adresse en DB
+            // Champ absent → client ancien (backward compat) → on ne touche pas à la DB.
+            if (json.has("senderMailboxOnion") && received != null) {
                 try {
                     val conv = repository.getConversation(conversationId)
-                    if (conv != null && conv.participantMailboxOnion != senderMailboxOnion) {
-                        repository.updateContactMailbox(conv.participantPublicKey, senderMailboxOnion)
-                        android.util.Log.i("P2PServer", "mailboxOnion mis à jour pour conv $conversationId → $senderMailboxOnion")
+                    if (conv != null) {
+                        val senderMailboxOnion = json.getString("senderMailboxOnion")
+                        if (senderMailboxOnion.isNotEmpty()) {
+                            if (conv.participantMailboxOnion != senderMailboxOnion) {
+                                repository.updateContactMailbox(conv.participantPublicKey, senderMailboxOnion)
+                                android.util.Log.i("P2PServer", "mailboxOnion mis à jour pour conv $conversationId → $senderMailboxOnion")
+                            }
+                        } else {
+                            // Expéditeur n'a plus de mailbox → effacer l'adresse périmée
+                            repository.clearContactMailbox(conv.participantPublicKey)
+                            android.util.Log.i("P2PServer", "mailboxOnion effacé pour conv $conversationId (expéditeur a quitté sa mailbox)")
+                        }
                     }
                 } catch (e: Exception) {
-                    android.util.Log.w("P2PServer", "updateContactMailbox failed: ${e.message}")
+                    android.util.Log.w("P2PServer", "mailboxOnion update/clear failed: ${e.message}")
                 }
             }
 
@@ -327,9 +339,17 @@ object P2PServer : TorTransport.FrameListener {
 
                 if (senderPublicKey.isNotEmpty()) {
                     val repository = ChatRepository(appContext)
-                    // Update mailbox address if provided and changed
-                    if (mailboxOnion.isNotEmpty()) {
-                        try { repository.updateContactMailbox(senderPublicKey, mailboxOnion) } catch (_: Exception) {}
+                    // Update or clear mailbox address if the field is present in the JSON.
+                    // Empty string = contact explicitly left their mailbox → clear our stored address.
+                    // Missing field entirely = old client that didn't send the field → don't change anything.
+                    if (json.has("mailboxOnion")) {
+                        try {
+                            if (mailboxOnion.isNotEmpty()) {
+                                repository.updateContactMailbox(senderPublicKey, mailboxOnion)
+                            } else {
+                                repository.clearContactMailbox(senderPublicKey)
+                            }
+                        } catch (_: Exception) {}
                     }
                     // Update signing key if we didn't have it yet
                     if (signingPublicKey.isNotEmpty()) {
@@ -338,6 +358,32 @@ object P2PServer : TorTransport.FrameListener {
                             try { repository.updateContact(contact.copy(signingPublicKey = signingPublicKey)) } catch (_: Exception) {}
                         }
                     }
+
+                    // Contact has restored their account: wipe the shared ratchet + conversation
+                    // so both sides start with a clean session on the next message exchange.
+                    if (json.optBoolean("accountRestored", false)) {
+                        try {
+                            val db = com.fialkaapp.fialka.data.local.FialkaDatabase.getInstance(appContext)
+                            val conv = db.conversationDao().getConversationByParticipantPublicKey(senderPublicKey)
+                            if (conv != null) {
+                                db.ratchetStateDao().deleteState(conv.conversationId)
+                                // Insert a visible info message so the user knows what happened
+                                db.messageLocalDao().insertMessage(
+                                    com.fialkaapp.fialka.data.model.MessageLocal(
+                                        localId         = java.util.UUID.randomUUID().toString(),
+                                        conversationId  = conv.conversationId,
+                                        senderPublicKey = "",
+                                        plaintext       = "🔄 Ce contact a restauré son compte. Envoyez un message pour démarrer une nouvelle session chiffrée.",
+                                        timestamp       = System.currentTimeMillis(),
+                                        isMine          = false,
+                                        isInfoMessage   = true
+                                    )
+                                )
+                                android.util.Log.i("P2PServer", "accountRestored from $senderPublicKey — ratchet wiped for ${conv.conversationId}")
+                            }
+                        } catch (_: Exception) {}
+                    }
+
                     // Resolve their onion and flush outbox for them
                     val contact = repository.getContactByPublicKey(senderPublicKey)
                     val onion = contact?.onionAddress ?: ""
@@ -348,6 +394,30 @@ object P2PServer : TorTransport.FrameListener {
             }
         } catch (_: Exception) {}
         return TorTransport.ackOk()
+    }
+
+    // ══════════════════════════════════════════
+    //  TYPE_SESSION_RESET (0x14) — ratchet desync recovery
+    // ══════════════════════════════════════════
+
+    /**
+     * Contact is signaling that their ratchet state for this conversation is gone
+     * (e.g. after a backup restore). We wipe our own ratchet state so both sides
+     * re-initialize a fresh PQXDH session on the next message exchange.
+     */
+    private suspend fun handleSessionReset(payload: ByteArray): TorTransport.Frame {
+        return try {
+            val json = JSONObject(String(payload, Charsets.UTF_8))
+            val conversationId = json.optString("conversationId", "")
+            if (conversationId.isNotEmpty()) {
+                val db = com.fialkaapp.fialka.data.local.FialkaDatabase.getInstance(appContext)
+                db.ratchetStateDao().deleteState(conversationId)
+                android.util.Log.i("P2PServer", "Session reset received — wiped ratchet for $conversationId")
+            }
+            TorTransport.ackOk()
+        } catch (_: Exception) {
+            TorTransport.ackError("malformed session reset")
+        }
     }
 
     // ══════════════════════════════════════════
@@ -459,7 +529,13 @@ object P2PServer : TorTransport.FrameListener {
             TorTransport.TYPE_CONTACT_REQ,
             json.toString().toByteArray(Charsets.UTF_8)
         )
-        OutboxManager.sendOrQueue(recipientOnion, frame)
+        // For initial contact requests we may not know the recipient's mailbox yet.
+        // Try to resolve it from the DB in case we do (e.g. re-invite after reset).
+        val contactReqFallback = try {
+            val db = com.fialkaapp.fialka.data.local.FialkaDatabase.getInstance(appContext)
+            db.contactDao().getContactByOnionAddress(recipientOnion)?.mailboxOnion
+        } catch (_: Exception) { null }
+        OutboxManager.sendOrQueue(recipientOnion, frame, contactReqFallback)
         return true
     }
 
@@ -479,7 +555,11 @@ object P2PServer : TorTransport.FrameListener {
             TorTransport.TYPE_CONTACT_REQ,
             json.toString().toByteArray(Charsets.UTF_8)
         )
-        OutboxManager.sendOrQueue(recipientOnion, frame)
+        val acceptFallback = try {
+            val db = com.fialkaapp.fialka.data.local.FialkaDatabase.getInstance(appContext)
+            db.conversationDao().getConversationById(conversationId)?.participantMailboxOnion?.ifEmpty { null }
+        } catch (_: Exception) { null }
+        OutboxManager.sendOrQueue(recipientOnion, frame, acceptFallback)
         return true
     }
 
@@ -498,12 +578,18 @@ object P2PServer : TorTransport.FrameListener {
             if (mlkemPublicKey != null) put("mlkemPublicKey", mlkemPublicKey)
             if (mldsaPublicKey != null) put("mldsaPublicKey", mldsaPublicKey)
             if (signingPublicKey != null) put("signingPublicKey", signingPublicKey)
+            val mailbox = MailboxClientManager.getMailboxOnion()
+            if (mailbox != null) put("mailboxOnion", mailbox)
         }
         val frame = TorTransport.Frame(
             TorTransport.TYPE_KEY_BUNDLE,
             json.toString().toByteArray(Charsets.UTF_8)
         )
-        OutboxManager.sendOrQueue(recipientOnion, frame)
+        val keyBundleFallback = try {
+            val db = com.fialkaapp.fialka.data.local.FialkaDatabase.getInstance(appContext)
+            db.contactDao().getContactByOnionAddress(recipientOnion)?.mailboxOnion
+        } catch (_: Exception) { null }
+        OutboxManager.sendOrQueue(recipientOnion, frame, keyBundleFallback)
         return true
     }
 
@@ -520,7 +606,11 @@ object P2PServer : TorTransport.FrameListener {
             TorTransport.TYPE_MESSAGE,
             json.toString().toByteArray(Charsets.UTF_8)
         )
-        OutboxManager.sendOrQueue(recipientOnion, frame)
+        val fingerprintFallback = try {
+            val db = com.fialkaapp.fialka.data.local.FialkaDatabase.getInstance(appContext)
+            db.conversationDao().getConversationById(conversationId)?.participantMailboxOnion?.ifEmpty { null }
+        } catch (_: Exception) { null }
+        OutboxManager.sendOrQueue(recipientOnion, frame, fingerprintFallback)
         return true
     }
 
@@ -537,7 +627,11 @@ object P2PServer : TorTransport.FrameListener {
             TorTransport.TYPE_MESSAGE,
             json.toString().toByteArray(Charsets.UTF_8)
         )
-        OutboxManager.sendOrQueue(recipientOnion, frame)
+        val ephemeralFallback = try {
+            val db = com.fialkaapp.fialka.data.local.FialkaDatabase.getInstance(appContext)
+            db.conversationDao().getConversationById(conversationId)?.participantMailboxOnion?.ifEmpty { null }
+        } catch (_: Exception) { null }
+        OutboxManager.sendOrQueue(recipientOnion, frame, ephemeralFallback)
         return true
     }
 }

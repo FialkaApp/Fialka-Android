@@ -1,6 +1,6 @@
 # Security Policy — Fialka
 
-*Last updated: April 2026*
+*Last updated: April 30, 2026*
 
 ---
 
@@ -14,9 +14,10 @@
 
 | Version | Supported |
 |---------|-----------|
-| V4.0.1  | ✅ Current |
-| V3.4.x  | ✅ Security fixes |
-| < V3.4  | ❌ Unsupported |
+| V4.3.0-alpha | ✅ Current |
+| V4.2.0-alpha | ✅ Security fixes |
+| V4.1.0-alpha | ⚠️ Upgrade recommended |
+| < V4.1  | ❌ Unsupported |
 
 ---
 
