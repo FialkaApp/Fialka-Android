@@ -18,14 +18,18 @@
 package com.fialkaapp.fialka.ui.chat
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
@@ -47,6 +51,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.fialkaapp.fialka.R
+import com.fialkaapp.fialka.audio.VoiceRecorder
 import com.fialkaapp.fialka.data.repository.ChatRepository
 import com.fialkaapp.fialka.databinding.FragmentChatBinding
 import com.fialkaapp.fialka.tor.MailboxClientManager
@@ -85,6 +90,23 @@ class ChatFragment : Fragment() {
 
     /** Whether the attachment icons are expanded. */
     private var attachmentExpanded = false
+
+    /** Message currently being replied to (null = no reply pending). */
+    private var pendingReplyMessage: com.fialkaapp.fialka.data.model.MessageLocal? = null
+
+    /** Voice recorder instance — created fresh per recording session. */
+    private var voiceRecorder: VoiceRecorder? = null
+
+    /** Handler for updating the recording timer UI every second. */
+    private val recordingTimerHandler = Handler(Looper.getMainLooper())
+    private val recordingTimerRunnable = object : Runnable {
+        override fun run() {
+            val elapsed = voiceRecorder?.elapsedMs() ?: return
+            val secs = elapsed / 1000
+            binding.tvRecordingTimer.text = "%d:%02d".format(secs / 60, secs % 60)
+            recordingTimerHandler.postDelayed(this, 1000)
+        }
+    }
 
     /** Temp file URI for camera capture. */
     private var cameraPhotoUri: Uri? = null
@@ -144,6 +166,17 @@ class ChatFragment : Fragment() {
             launchFilePicker()
         } else {
             showPermissionDeniedDialog("fichiers, musique et audio")
+        }
+    }
+
+    // ── RECORD_AUDIO permission ──
+    private val recordAudioPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            startVoiceRecording()
+        } else {
+            showPermissionDeniedDialog("microphone")
         }
     }
 
@@ -219,6 +252,10 @@ class ChatFragment : Fragment() {
                 popup.menuInflater.inflate(R.menu.menu_message_actions, popup.menu)
                 popup.setOnMenuItemClickListener { item ->
                     when (item.itemId) {
+                        R.id.action_reply -> {
+                            startReply(message)
+                            true
+                        }
                         R.id.action_copy -> {
                             val clipboard = requireContext()
                                 .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -240,6 +277,9 @@ class ChatFragment : Fragment() {
                     plaintext.startsWith(MessagesAdapter.PREFIX_XMR_SENT) ->
                         showXmrSentDetail(plaintext)
                 }
+            },
+            onQuoteClick = { replyToId ->
+                scrollToMessage(replyToId)
             }
         )
         binding.rvMessages.adapter = adapter
@@ -279,12 +319,66 @@ class ChatFragment : Fragment() {
             }
         }
 
-        // Send button
+        // Send button — polymorphic: mic (empty field) or send (has text)
+        // Initial icon: mic
+        binding.btnSend.setImageResource(R.drawable.ic_mic)
+
+        // Swap icon based on text field content
+        binding.etMessage.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                if (s.isNullOrEmpty()) {
+                    binding.btnSend.setImageResource(R.drawable.ic_mic)
+                } else {
+                    binding.btnSend.setImageResource(R.drawable.ic_send)
+                }
+            }
+        })
+
+        // btnSend: tap when text present → send message; hold when empty → voice record
+        @SuppressLint("ClickableViewAccessibility")
+        val sendTouchListener = View.OnTouchListener { _, event ->
+            val hasText = !binding.etMessage.text.isNullOrEmpty()
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    if (hasText) {
+                        // Normal tap → handled by onClick
+                        false
+                    } else {
+                        // Hold → start recording
+                        requestRecordAudioPermissionAndStart()
+                        true
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (voiceRecorder?.isRecording == true) {
+                        if (event.action == MotionEvent.ACTION_CANCEL) {
+                            cancelVoiceRecording()
+                        } else {
+                            stopAndSendVoice()
+                        }
+                        true
+                    } else {
+                        false
+                    }
+                }
+                else -> false
+            }
+        }
+        binding.btnSend.setOnTouchListener(sendTouchListener)
+
         binding.btnSend.setOnClickListener {
             val text = binding.etMessage.text.toString()
             if (text.isNotBlank()) {
-                viewModel.sendMessage(text)
+                val replyId = pendingReplyMessage?.localId
+                val replyPreview = pendingReplyMessage?.let { m ->
+                    (if (m.isMine) "Vous" else contactName) + " : " +
+                        (m.plaintext.take(80).replace('\n', ' '))
+                }
+                viewModel.sendMessage(text, replyId, replyPreview)
                 binding.etMessage.text?.clear()
+                clearReply()
             }
         }
 
@@ -434,7 +528,122 @@ class ChatFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        recordingTimerHandler.removeCallbacks(recordingTimerRunnable)
+        voiceRecorder?.cancel()
+        voiceRecorder = null
         _binding = null
+    }
+
+    // ── Reply/Quote flow ──
+
+    private fun startReply(message: com.fialkaapp.fialka.data.model.MessageLocal) {
+        pendingReplyMessage = message
+        val senderLabel = if (message.isMine) "Vous" else contactName
+        val preview = message.plaintext.take(80).replace('\n', ' ')
+        binding.tvReplyPreview.text = "↩ $senderLabel : $preview"
+        binding.replyBar.visibility = View.VISIBLE
+        binding.btnCancelReply.setOnClickListener { clearReply() }
+        binding.etMessage.requestFocus()
+    }
+
+    private fun clearReply() {
+        pendingReplyMessage = null
+        binding.replyBar.visibility = View.GONE
+        binding.tvReplyPreview.text = ""
+    }
+
+    /**
+     * Scroll to the message with the given localId and briefly flash-highlight its bubble.
+     */
+    private fun scrollToMessage(replyToId: String) {
+        val items = adapter.currentList
+        val position = items.indexOfFirst {
+            it is ChatItem.Message && it.message.localId == replyToId
+        }
+        if (position < 0) return
+
+        val layoutManager = binding.rvMessages.layoutManager
+            as? androidx.recyclerview.widget.LinearLayoutManager ?: return
+
+        // Smooth scroll to position
+        binding.rvMessages.smoothScrollToPosition(position)
+
+        // After scroll settles, flash-highlight the target bubble
+        binding.rvMessages.postDelayed({
+            if (_binding == null) return@postDelayed
+            val vh = binding.rvMessages.findViewHolderForAdapterPosition(position) ?: return@postDelayed
+            val bubble = vh.itemView.findViewById<android.view.View>(
+                if ((items[position] as? ChatItem.Message)?.message?.isMine == true)
+                    R.id.bubbleSent else R.id.bubbleReceived
+            ) ?: vh.itemView
+            // Flash: fade to 0.3 alpha then back to 1.0
+            bubble.animate()
+                .alpha(0.25f).setDuration(180)
+                .withEndAction {
+                    bubble.animate().alpha(1f).setDuration(300).start()
+                }.start()
+        }, 350)
+    }
+
+    // ── Voice recording flow ──
+
+    private fun requestRecordAudioPermissionAndStart() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            startVoiceRecording()
+        } else {
+            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    private fun startVoiceRecording() {
+        val recorder = VoiceRecorder(requireContext())
+        voiceRecorder = recorder
+        try {
+            recorder.start()
+        } catch (e: Exception) {
+            Toast.makeText(requireContext(), "Impossible d'accéder au microphone", Toast.LENGTH_SHORT).show()
+            voiceRecorder = null
+            return
+        }
+
+        // Show recording overlay in the input bar
+        binding.recordingOverlay.visibility = View.VISIBLE
+        binding.tvRecordingHint.text = "Relâchez pour envoyer • Glissez pour annuler"
+        binding.tvRecordingTimer.text = "0:00"
+        recordingTimerHandler.post(recordingTimerRunnable)
+    }
+
+    private fun stopAndSendVoice() {
+        val recorder = voiceRecorder ?: return
+        voiceRecorder = null
+        recordingTimerHandler.removeCallbacks(recordingTimerRunnable)
+        binding.recordingOverlay.visibility = View.GONE
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val opusBytes = recorder.stop()
+            val durationMs = recorder.durationMs
+            val waveform = recorder.waveformData
+
+            if (opusBytes.isEmpty() || durationMs < 500) {
+                // Too short — discard silently
+                return@launch
+            }
+
+            withContext(Dispatchers.Main) {
+                viewModel.sendVoice(opusBytes, durationMs, waveform)
+                // opusBytes is zeroed inside ChatRepository.sendVoice after saveFileLocally completes
+            }
+        }
+    }
+
+    private fun cancelVoiceRecording() {
+        voiceRecorder?.cancel()
+        voiceRecorder = null
+        recordingTimerHandler.removeCallbacks(recordingTimerRunnable)
+        binding.recordingOverlay.visibility = View.GONE
+        Toast.makeText(requireContext(), "Enregistrement annulé", Toast.LENGTH_SHORT).show()
     }
 
     // ── Attachment flow ──

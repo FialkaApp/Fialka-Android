@@ -165,7 +165,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Send a message: encrypt → Tor P2P → save locally.
      */
-    fun sendMessage(plaintext: String) {
+    fun sendMessage(plaintext: String, replyToId: String? = null, replyToPreview: String? = null) {
         if (plaintext.isBlank() || conversationId.isEmpty()) return
 
         if (_isAccepted.value != true) {
@@ -175,7 +175,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             try {
-                repository.sendMessage(conversationId, plaintext.trim())
+                repository.sendMessage(conversationId, plaintext.trim(), replyToId, replyToPreview)
                 DummyTrafficManager.onRealMessageSent()
                 _sendError.value = null
             } catch (e: Exception) {
@@ -184,11 +184,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /**
-     * Send a file with E2E encryption.
-     * The file is encrypted locally, sent via Tor P2P as ciphertext,
-     * and the decryption key is sent via the Double Ratchet.
-     */
     fun sendFile(fileBytes: ByteArray, fileName: String, isOneShot: Boolean = false) {
         if (conversationId.isEmpty()) return
 
@@ -204,6 +199,29 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 _sendError.value = null
             } catch (e: Exception) {
                 _sendError.value = "Échec de l'envoi du fichier: ${e.message}"
+            }
+        }
+    }
+
+    /**
+     * Send an E2E-encrypted voice message.
+     * @param opusBytes Raw OGG/Opus bytes from VoiceRecorder — never on disk unencrypted.
+     * @param durationMs Recording duration in ms.
+     * @param waveform   Comma-separated normalized amplitudes 0-100.
+     */
+    fun sendVoice(opusBytes: ByteArray, durationMs: Int, waveform: String) {
+        if (conversationId.isEmpty()) return
+        if (_isAccepted.value != true) {
+            _sendError.value = "En attente d'acceptation par le contact"
+            return
+        }
+        viewModelScope.launch {
+            try {
+                repository.sendVoice(conversationId, opusBytes, durationMs, waveform)
+                DummyTrafficManager.onRealMessageSent()
+                _sendError.value = null
+            } catch (e: Exception) {
+                _sendError.value = "Échec de l'envoi du message vocal: ${e.message}"
             }
         }
     }

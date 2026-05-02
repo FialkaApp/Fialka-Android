@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Voice message bubble — sent side -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="3dp">
+
+    <LinearLayout
+        android:id="@+id/bubbleVoiceSent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_bubble_sent"
+        android:backgroundTint="?attr/colorBubbleSent"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="8dp"
+        android:minWidth="180dp"
+        android:maxWidth="280dp">
+
+        <!-- Play / Pause button -->
+        <ImageButton
+            android:id="@+id/btnVoicePlaySent"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_circle"
+            android:backgroundTint="?attr/colorPrimary"
+            android:src="@drawable/ic_play"
+            android:scaleType="center"
+            android:contentDescription="Écouter le message vocal" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="8dp">
+
+            <!-- Waveform bar visualization (5 static bars, amplitude set in code) -->
+            <LinearLayout
+                android:id="@+id/waveformContainerSent"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:baselineAligned="false">
+
+                <View android:id="@+id/waveBar1Sent"
+                    android:layout_width="3dp" android:layout_height="8dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar2Sent"
+                    android:layout_width="3dp" android:layout_height="16dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar3Sent"
+                    android:layout_width="3dp" android:layout_height="22dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar4Sent"
+                    android:layout_width="3dp" android:layout_height="14dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar5Sent"
+                    android:layout_width="3dp" android:layout_height="10dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar6Sent"
+                    android:layout_width="3dp" android:layout_height="18dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar7Sent"
+                    android:layout_width="3dp" android:layout_height="12dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar8Sent"
+                    android:layout_width="3dp" android:layout_height="20dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+            </LinearLayout>
+
+            <!-- Duration / progress -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="2dp">
+
+                <TextView
+                    android:id="@+id/tvVoiceDurationSent"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="?attr/colorBubbleSentText"
+                    android:textSize="11sp"
+                    android:alpha="0.75"
+                    android:text="0:00" />
+
+                <!-- Timestamp + status (shared footer row) -->
+                <LinearLayout
+                    android:id="@+id/timeRowVoiceSent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvTimestampVoiceSent"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="?attr/colorBubbleSentText"
+                        android:textSize="10sp"
+                        android:alpha="0.6" />
+
+                    <ImageView
+                        android:id="@+id/ivDeliveryStatusVoiceSent"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
+                        android:layout_marginStart="4dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_sent_check"
+                        android:importantForAccessibility="no" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

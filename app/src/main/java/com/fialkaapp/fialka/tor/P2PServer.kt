@@ -126,7 +126,9 @@ object P2PServer : TorTransport.FrameListener {
                 ephemeralKey = json.optString("ephemeralKey", ""),
                 signature = json.optString("signature", ""),
                 kemCiphertext = json.optString("kemCiphertext", ""),
-                mldsaSignature = json.optString("mldsaSignature", "")
+                mldsaSignature = json.optString("mldsaSignature", ""),
+                replyToId = json.optString("replyToId", ""),
+                replyToPreview = json.optString("replyToPreview", "")
             )
 
             val repository = ChatRepository(appContext)

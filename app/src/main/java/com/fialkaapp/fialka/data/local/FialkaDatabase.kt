@@ -55,7 +55,7 @@ import java.security.SecureRandom
         RatchetState::class,
         OutboxMessage::class
     ],
-    version = 24,
+    version = 26,
     exportSchema = false
 )
 abstract class FialkaDatabase : RoomDatabase() {
@@ -77,7 +77,7 @@ abstract class FialkaDatabase : RoomDatabase() {
         // Plain (non-encrypted) prefs — only stores the non-sensitive schema version
         private const val META_PREFS = "fialka_meta"
         private const val KEY_DB_VERSION = "db_schema_version"
-        private const val CURRENT_VERSION = 24
+        private const val CURRENT_VERSION = 26
 
         /**
          * Returns true if the database file already exists (i.e. this is an upgrade, not a

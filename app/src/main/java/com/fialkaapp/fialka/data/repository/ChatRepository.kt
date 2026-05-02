@@ -73,6 +73,9 @@ class ChatRepository(private val appContext: Context) {
         /** Prefix for file attachment messages sent via the ratchet. */
         internal const val FILE_PREFIX = "FILE|"
 
+        /** Prefix for voice message attachment metadata. */
+        internal const val VOICE_PREFIX = "VOICE|"
+
         internal fun getMutex(conversationId: String): Mutex {
             return synchronized(ratchetMutexes) {
                 ratchetMutexes.getOrPut(conversationId) { Mutex() }
@@ -407,7 +410,12 @@ class ChatRepository(private val appContext: Context) {
      * 3. Send via Tor P2P (.onion direct or mailbox store-and-forward)
      * 4. ONLY on success: persist new ratchet state + save message locally
      */
-    suspend fun sendMessage(conversationId: String, plaintext: String): MessageLocal {
+    suspend fun sendMessage(
+        conversationId: String,
+        plaintext: String,
+        replyToId: String? = null,
+        replyToPreview: String? = null
+    ): MessageLocal {
         val user = userDao.getUser()
             ?: throw IllegalStateException("User not initialized")
         val conversation = conversationDao.getConversationById(conversationId)
@@ -501,6 +509,8 @@ class ChatRepository(private val appContext: Context) {
                 // puisse mettre à jour sa DB : non-vide = adresse mailbox, vide = on a quitté la mailbox.
                 // Si le champ est absent, les anciens clients ne le connaissent pas (backward compat).
                 put("senderMailboxOnion", com.fialkaapp.fialka.tor.MailboxClientManager.getMailboxOnion() ?: "")
+                if (!replyToId.isNullOrEmpty()) put("replyToId", replyToId)
+                if (!replyToPreview.isNullOrEmpty()) put("replyToPreview", replyToPreview)
             }
             val frame = TorTransport.Frame(
                 TorTransport.TYPE_MESSAGE,
@@ -523,6 +533,8 @@ class ChatRepository(private val appContext: Context) {
                 ephemeralDuration = ephDuration,
                 expiresAt = expiresAt,
                 signatureValid = true,
+                replyToId = replyToId,
+                replyToPreview = replyToPreview,
                 deliveryStatus = MessageLocal.DELIVERY_SENDING
             )
             messageDao.insertMessage(localMessage)
@@ -676,6 +688,77 @@ class ChatRepository(private val appContext: Context) {
     }
 
     /**
+     * Send an E2E-encrypted voice message.
+     *
+     * The OGG/Opus bytes (already encoded in memory by VoiceRecorder, never on disk) are
+     * encrypted with a fresh AES-256-GCM key.  The key+IV travel via the Double Ratchet
+     * (same path as text messages), so they benefit from PFS + PQ protection.
+     * The ciphertext travels as a TYPE_FILE_CHUNK over Tor P2P.
+     *
+     * @param conversationId  Target conversation.
+     * @param opusBytes       Raw OGG/Opus bytes — NEVER written to disk unencrypted.
+     * @param durationMs      Recording duration in ms (stored in metadata, displayed in bubble).
+     * @param waveform        Comma-separated normalized amplitudes 0-100 (for bubble waveform).
+     */
+    suspend fun sendVoice(
+        conversationId: String,
+        opusBytes: ByteArray,
+        durationMs: Int,
+        waveform: String
+    ): MessageLocal {
+        // 1. Encrypt voice bytes client-side (same AES-256-GCM path as file attachments)
+        val encResult = CryptoManager.encryptFile(opusBytes)
+
+        // 2. Build voice metadata: VOICE|key|iv|durationMs|waveform|fileName
+        val safeWaveform = waveform.replace("|", ",") // guard against accidental pipe chars
+        // voiceFileName is derived from localId — must be sent in metadata so receiver can match the chunk
+        // We pre-generate a stable UUID for the filename before sendMessage()
+        val voiceLocalId = UUID.randomUUID().toString()
+        val voiceFileName = "voice_${voiceLocalId}.ogg"
+        val metadata = "${VOICE_PREFIX}${encResult.keyBase64}|${encResult.ivBase64}|${durationMs}|${safeWaveform}|${voiceFileName}"
+
+        // 3. Send metadata via Double Ratchet (E2E encrypted text message)
+        val sentMessage = sendMessage(conversationId, metadata)
+        val conversation = conversationDao.getConversationById(conversationId)
+        if (conversation != null) {
+            val recipientOnion = conversation.participantOnionAddress
+            val voiceJson = org.json.JSONObject().apply {
+                put("conversationId", conversationId)
+                put("fileName", voiceFileName)
+                put("data", android.util.Base64.encodeToString(encResult.encryptedBytes, android.util.Base64.NO_WRAP))
+            }
+            val frame = TorTransport.Frame(
+                TorTransport.TYPE_FILE_CHUNK,
+                voiceJson.toString().toByteArray(Charsets.UTF_8)
+            )
+            OutboxManager.sendOrQueue(recipientOnion, frame, conversation.participantMailboxOnion.ifEmpty { null })
+        }
+
+        // 5. Save original (unencrypted) opus bytes locally so the sender can play back their own message
+        val localFile = saveFileLocally(conversationId, voiceFileName, opusBytes)
+        java.util.Arrays.fill(opusBytes, 0) // Zero cleartext bytes immediately after saving to disk
+
+        val voiceMessage = sentMessage.copy(
+            plaintext = "🎤 ${formatVoiceDuration(durationMs)}",
+            fileName = voiceFileName,
+            fileSize = opusBytes.size.toLong(),
+            localFilePath = localFile.absolutePath,
+            voiceDurationMs = durationMs,
+            voiceWaveform = waveform
+        )
+        messageDao.insertMessage(voiceMessage)
+        updateConversationLastMessage(conversationId, voiceMessage.plaintext)
+
+        return voiceMessage
+    }
+
+    /** Format ms → "m:ss" for last-message preview. */
+    private fun formatVoiceDuration(ms: Int): String {
+        val s = ms / 1000
+        return "${s / 60}:${"%02d".format(s % 60)}"
+    }
+
+    /**
      * Save decrypted file to app-private storage.
      * Path: /data/data/com.fialka/files/received_files/{conversationId}/{fileName}
      */
@@ -789,9 +872,103 @@ class ChatRepository(private val appContext: Context) {
     }
 
     /**
-     * Retry a failed file download.
-     * In P2P mode, files are received inline — retry asks P2PServer for pending chunk.
+     * Parse and process a received voice message.
+     * Format: VOICE|keyBase64|ivBase64|durationMs|waveform
+     *
+     * Two-phase insert (same as handleReceivedFile):
+     * 1. Insert a placeholder immediately (shows loading state).
+     * 2. Decrypt + update when the file chunk arrives.
+     *
+     * The decrypted OGG/Opus bytes are stored encrypted on disk (same storage as file
+     * attachments) — they are decrypted in-memory on demand when the user taps Play.
      */
+    private suspend fun handleReceivedVoice(
+        conversationId: String,
+        conversation: Conversation,
+        decryptedPlaintext: String,
+        timestamp: Long,
+        signatureValid: Boolean?
+    ): MessageLocal? {
+        val payload = decryptedPlaintext.removePrefix(VOICE_PREFIX)
+        // Format: keyBase64|ivBase64|durationMs|waveform|voiceFileName
+        val parts = payload.split("|", limit = 5)
+        if (parts.size < 3) return null
+
+        val keyBase64 = parts[0]
+        val ivBase64 = parts[1]
+        val durationMs = parts[2].toIntOrNull() ?: 0
+        val waveform = parts.getOrNull(3) ?: ""
+        // Use filename from sender so we can match the chunk stored by P2PServer
+        val voiceFileName = parts.getOrNull(4)?.takeIf { it.isNotBlank() }
+            ?: "voice_${UUID.randomUUID()}.ogg"
+        val ephDuration = conversation.ephemeralDuration
+        val isCurrentlyViewing = currentlyViewedConversation == conversationId
+        val expiresAt = if (ephDuration > 0 && isCurrentlyViewing) {
+            System.currentTimeMillis() + ephDuration
+        } else { 0L }
+
+        val localId = UUID.randomUUID().toString()
+
+        // Phase 1: placeholder
+        val placeholder = MessageLocal(
+            localId = localId,
+            conversationId = conversationId,
+            senderPublicKey = conversation.participantPublicKey,
+            plaintext = "⏳ 🎤 ${formatVoiceDuration(durationMs)}",
+            timestamp = timestamp,
+            isMine = false,
+            ephemeralDuration = ephDuration,
+            expiresAt = expiresAt,
+            fileName = voiceFileName,
+            fileSize = 0,
+            signatureValid = signatureValid,
+            voiceDurationMs = durationMs,
+            voiceWaveform = waveform
+        )
+        messageDao.insertMessage(placeholder)
+        if (currentlyViewedConversation != conversationId) {
+            conversationDao.incrementUnreadCount(conversationId)
+        }
+
+        // Phase 2: decrypt & save encrypted file (decrypted in-memory on playback)
+        return try {
+            val encryptedBytes = P2PServer.consumePendingFileChunk(conversationId, voiceFileName)
+            if (encryptedBytes != null) {
+                // Decrypt Opus bytes, save decrypted to private storage for playback
+                val decryptedBytes = CryptoManager.decryptFile(encryptedBytes, keyBase64, ivBase64)
+                val localFile = saveFileLocally(conversationId, voiceFileName, decryptedBytes)
+                java.util.Arrays.fill(decryptedBytes, 0) // Zero PCM immediately after save
+
+                val finalMessage = placeholder.copy(
+                    plaintext = "🎤 ${formatVoiceDuration(durationMs)}",
+                    fileSize = encryptedBytes.size.toLong(),
+                    localFilePath = localFile.absolutePath
+                )
+                messageDao.insertMessage(finalMessage)
+                updateConversationLastMessage(conversationId, finalMessage.plaintext)
+                finalMessage
+            } else {
+                // Register for deferred delivery (chunk arrives after metadata)
+                P2PServer.registerPendingFileMetadata(
+                    P2PServer.PendingFileMeta(
+                        messageLocalId = localId,
+                        conversationId = conversationId,
+                        fileName = voiceFileName,
+                        keyBase64 = keyBase64,
+                        ivBase64 = ivBase64,
+                        isOneShot = false
+                    )
+                )
+                placeholder
+            }
+        } catch (e: Exception) {
+            val errorMessage = placeholder.copy(plaintext = "⚠️ Message vocal corrompu")
+            messageDao.insertMessage(errorMessage)
+            updateConversationLastMessage(conversationId, "⚠️ Message vocal corrompu")
+            errorMessage
+        }
+    }
+
     suspend fun retryFileDownload(messageId: String) {
         val message = messageDao.getMessageById(messageId) ?: return
         val fileName = message.fileName ?: return
@@ -1096,6 +1273,14 @@ class ChatRepository(private val appContext: Context) {
                 )
             }
 
+            // Handle voice message metadata
+            if (decryptedPlaintext != null && decryptedPlaintext.startsWith(VOICE_PREFIX)) {
+                return@withLock handleReceivedVoice(
+                    conversationId, conversation, decryptedPlaintext,
+                    p2pMessage.createdAt, finalSignatureValid
+                )
+            }
+
             // Save locally (with ephemeral timing if conversation has it enabled)
             val ephDuration = conversation.ephemeralDuration
             val isCurrentlyViewing = currentlyViewedConversation == conversationId
@@ -1113,7 +1298,9 @@ class ChatRepository(private val appContext: Context) {
                 isMine = false,
                 ephemeralDuration = ephDuration,
                 expiresAt = expiresAt,
-                signatureValid = finalSignatureValid
+                signatureValid = finalSignatureValid,
+                replyToId = p2pMessage.replyToId.ifEmpty { null },
+                replyToPreview = p2pMessage.replyToPreview.ifEmpty { null }
             )
             messageDao.insertMessage(localMessage)
             updateConversationLastMessage(conversationId, localMessage.plaintext)

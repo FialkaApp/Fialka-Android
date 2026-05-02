@@ -35,6 +35,7 @@ import androidx.core.content.FileProvider
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.fialkaapp.fialka.audio.VoicePlayer
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.data.model.MessageLocal
 import com.fialkaapp.fialka.databinding.ItemMessageReceivedBinding
@@ -64,7 +65,9 @@ class MessagesAdapter(
     private val onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null,
     /** Called when user taps the action button on a received XMR bubble.
      *  Passes the raw plaintext (XMR_REQUEST|... or XMR_SENT|...). */
-    private val onXmrAction: ((plaintext: String) -> Unit)? = null
+    private val onXmrAction: ((plaintext: String) -> Unit)? = null,
+    /** Called when user taps a quote bar — passes the replyToId to scroll to. */
+    private val onQuoteClick: ((replyToId: String) -> Unit)? = null
 ) : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
 
     private var lastAnimatedPosition = -1
@@ -76,6 +79,8 @@ class MessagesAdapter(
         private const val VIEW_TYPE_INFO = 3
         private const val VIEW_TYPE_XMR_SENT = 4
         private const val VIEW_TYPE_XMR_RECEIVED = 5
+        private const val VIEW_TYPE_VOICE_SENT = 6
+        private const val VIEW_TYPE_VOICE_RECEIVED = 7
 
         // XMR message prefixes (E2E encrypted, same channel as text)
         const val PREFIX_XMR_ADDR = "XMR_ADDR|"
@@ -86,6 +91,9 @@ class MessagesAdapter(
             text.startsWith(PREFIX_XMR_ADDR) ||
             text.startsWith(PREFIX_XMR_REQUEST) ||
             text.startsWith(PREFIX_XMR_SENT)
+
+        private fun isVoiceMessage(msg: com.fialkaapp.fialka.data.model.MessageLocal): Boolean =
+            msg.voiceDurationMs > 0
 
         /**
          * Parse XMR message and bind to the shared bubble views.
@@ -301,6 +309,8 @@ class MessagesAdapter(
             is ChatItem.UnreadDivider -> VIEW_TYPE_UNREAD_DIVIDER
             is ChatItem.InfoMessage -> VIEW_TYPE_INFO
             is ChatItem.Message -> when {
+                isVoiceMessage(item.message) && item.message.isMine -> VIEW_TYPE_VOICE_SENT
+                isVoiceMessage(item.message) -> VIEW_TYPE_VOICE_RECEIVED
                 isXmrMessage(item.message.plaintext) && item.message.isMine -> VIEW_TYPE_XMR_SENT
                 isXmrMessage(item.message.plaintext) -> VIEW_TYPE_XMR_RECEIVED
                 item.message.isMine -> VIEW_TYPE_SENT
@@ -316,6 +326,18 @@ class MessagesAdapter(
                     LayoutInflater.from(parent.context), parent, false
                 )
                 SentViewHolder(binding)
+            }
+            VIEW_TYPE_VOICE_SENT -> {
+                val binding = com.fialkaapp.fialka.databinding.ItemMessageVoiceSentBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                VoiceSentViewHolder(binding)
+            }
+            VIEW_TYPE_VOICE_RECEIVED -> {
+                val binding = com.fialkaapp.fialka.databinding.ItemMessageVoiceReceivedBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                VoiceReceivedViewHolder(binding)
             }
             VIEW_TYPE_XMR_SENT -> {
                 val binding = ItemMessageXmrSentBinding.inflate(
@@ -352,11 +374,11 @@ class MessagesAdapter(
         when (holder) {
             is SentViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
-                holder.bind(msg, onOneShotOpen, onResend, onMessageLongPress)
+                holder.bind(msg, onOneShotOpen, onResend, onMessageLongPress, onQuoteClick)
             }
             is ReceivedViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
-                holder.bind(msg, onRetryDownload, onOneShotOpen, onMessageLongPress)
+                holder.bind(msg, onRetryDownload, onOneShotOpen, onMessageLongPress, onQuoteClick)
             }
             is XmrSentViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
@@ -365,6 +387,14 @@ class MessagesAdapter(
             is XmrReceivedViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
                 holder.bind(msg, onXmrAction)
+            }
+            is VoiceSentViewHolder -> {
+                val msg = (getItem(position) as ChatItem.Message).message
+                holder.bind(msg)
+            }
+            is VoiceReceivedViewHolder -> {
+                val msg = (getItem(position) as ChatItem.Message).message
+                holder.bind(msg)
             }
             is InfoViewHolder -> {
                 val info = getItem(position) as ChatItem.InfoMessage
@@ -394,7 +424,7 @@ class MessagesAdapter(
     class SentViewHolder(
         private val binding: ItemMessageSentBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: MessageLocal, onOneShotOpen: ((String) -> Unit)? = null, onResend: ((String) -> Unit)? = null, onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null) {
+        fun bind(message: MessageLocal, onOneShotOpen: ((String) -> Unit)? = null, onResend: ((String) -> Unit)? = null, onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null, onQuoteClick: ((replyToId: String) -> Unit)? = null) {
             binding.tvTimeSent.text = timeFormat.format(Date(message.timestamp))
             binding.ivImagePreviewSent.visibility = View.GONE
 
@@ -462,6 +492,20 @@ class MessagesAdapter(
                 }
             }
 
+            // Quote bar
+            if (!message.replyToPreview.isNullOrEmpty()) {
+                binding.quoteBarSent.visibility = View.VISIBLE
+                binding.tvQuotePreviewSent.text = message.replyToPreview
+                if (!message.replyToId.isNullOrEmpty()) {
+                    binding.quoteBarSent.setOnClickListener { onQuoteClick?.invoke(message.replyToId) }
+                } else {
+                    binding.quoteBarSent.setOnClickListener(null)
+                }
+            } else {
+                binding.quoteBarSent.visibility = View.GONE
+                binding.quoteBarSent.setOnClickListener(null)
+            }
+
             // Ephemeral indicator
             if (message.ephemeralDuration > 0) {
                 binding.tvEphemeralSent.visibility = View.VISIBLE
@@ -519,7 +563,7 @@ class MessagesAdapter(
     class ReceivedViewHolder(
         private val binding: ItemMessageReceivedBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: MessageLocal, onRetryDownload: ((String) -> Unit)?, onOneShotOpen: ((String) -> Unit)?, onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null) {
+        fun bind(message: MessageLocal, onRetryDownload: ((String) -> Unit)?, onOneShotOpen: ((String) -> Unit)?, onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null, onQuoteClick: ((replyToId: String) -> Unit)? = null) {
             binding.tvTimeReceived.text = timeFormat.format(Date(message.timestamp))
             binding.ivImagePreviewReceived.visibility = View.GONE
 
@@ -618,6 +662,20 @@ class MessagesAdapter(
                 }
             }
 
+            // Quote bar
+            if (!message.replyToPreview.isNullOrEmpty()) {
+                binding.quoteBarReceived.visibility = View.VISIBLE
+                binding.tvQuotePreviewReceived.text = message.replyToPreview
+                if (!message.replyToId.isNullOrEmpty()) {
+                    binding.quoteBarReceived.setOnClickListener { onQuoteClick?.invoke(message.replyToId) }
+                } else {
+                    binding.quoteBarReceived.setOnClickListener(null)
+                }
+            } else {
+                binding.quoteBarReceived.visibility = View.GONE
+                binding.quoteBarReceived.setOnClickListener(null)
+            }
+
             // Ephemeral indicator
             if (message.ephemeralDuration > 0) {
                 binding.tvEphemeralReceived.visibility = View.VISIBLE
@@ -635,6 +693,188 @@ class MessagesAdapter(
      * ViewHolder for XMR sent messages.
      * Parses XMR_ADDR|, XMR_REQUEST|, XMR_SENT| prefixes and renders a Monero bubble.
      */
+    /**
+     * ViewHolder for sent voice messages.
+     * Plays in-memory via VoicePlayer (AudioTrack, no disk write).
+     */
+    class VoiceSentViewHolder(
+        private val binding: com.fialkaapp.fialka.databinding.ItemMessageVoiceSentBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        private var player: com.fialkaapp.fialka.audio.VoicePlayer? = null
+
+        fun bind(message: MessageLocal) {
+            val durationMs = message.voiceDurationMs
+            binding.tvTimestampVoiceSent.text = timeFormat.format(Date(message.timestamp))
+            binding.tvVoiceDurationSent.text = VoicePlayer().formatDuration(durationMs)
+            applyWaveform(message.voiceWaveform)
+            updateDeliveryStatus(message.deliveryStatus)
+
+            binding.btnVoicePlaySent.setOnClickListener {
+                togglePlay(message)
+            }
+        }
+
+        private fun applyWaveform(waveformCsv: String?) {
+            if (waveformCsv.isNullOrEmpty()) return
+            val bars = listOf(
+                binding.waveBar1Sent, binding.waveBar2Sent, binding.waveBar3Sent,
+                binding.waveBar4Sent, binding.waveBar5Sent, binding.waveBar6Sent,
+                binding.waveBar7Sent, binding.waveBar8Sent
+            )
+            val samples = waveformCsv.split(",").mapNotNull { it.trim().toIntOrNull() }
+            val step = if (samples.size > 1) samples.size.toFloat() / bars.size else 1f
+            bars.forEachIndexed { i, bar ->
+                val sampleIdx = (i * step).toInt().coerceIn(0, samples.lastIndex.coerceAtLeast(0))
+                val amp = samples.getOrElse(sampleIdx) { 50 }.coerceIn(4, 100)
+                val params = bar.layoutParams
+                params.height = (amp * 24 / 100).coerceAtLeast(3)
+                    .let { android.util.TypedValue.applyDimension(
+                        android.util.TypedValue.COMPLEX_UNIT_DIP, it.toFloat(),
+                        bar.resources.displayMetrics).toInt() }
+                bar.layoutParams = params
+            }
+        }
+
+        private fun togglePlay(message: MessageLocal) {
+            val currentPlayer = player
+            if (currentPlayer != null && currentPlayer.isPlaying) {
+                currentPlayer.stop()
+                player = null
+                binding.btnVoicePlaySent.setImageResource(R.drawable.ic_play)
+                return
+            }
+
+            val filePath = message.localFilePath ?: return
+            val file = java.io.File(filePath)
+            if (!file.exists()) return
+
+            val audioBytes = file.readBytes()
+            val vPlayer = com.fialkaapp.fialka.audio.VoicePlayer()
+            player = vPlayer
+            binding.btnVoicePlaySent.setImageResource(R.drawable.ic_pause)
+
+            vPlayer.play(
+                audioBytes = audioBytes,
+                onProgress = { currentMs, totalMs ->
+                    (binding.root.context as? android.app.Activity)?.runOnUiThread {
+                        binding.tvVoiceDurationSent.text = vPlayer.formatDuration(currentMs.toInt())
+                    }
+                    // Zero the bytes array is handled inside VoicePlayer after decode
+                },
+                onFinish = {
+                    (binding.root.context as? android.app.Activity)?.runOnUiThread {
+                        binding.btnVoicePlaySent.setImageResource(R.drawable.ic_play)
+                        binding.tvVoiceDurationSent.text = vPlayer.formatDuration(message.voiceDurationMs)
+                        player = null
+                    }
+                    java.util.Arrays.fill(audioBytes, 0) // Zero decrypted bytes after playback
+                },
+                onError = {
+                    (binding.root.context as? android.app.Activity)?.runOnUiThread {
+                        binding.btnVoicePlaySent.setImageResource(R.drawable.ic_play)
+                        player = null
+                    }
+                    java.util.Arrays.fill(audioBytes, 0)
+                }
+            )
+        }
+
+        private fun updateDeliveryStatus(status: Int) {
+            val iconRes = when (status) {
+                MessageLocal.DELIVERY_SENT -> R.drawable.ic_sent_check
+                MessageLocal.DELIVERY_MAILBOX -> R.drawable.ic_sent_check
+                else -> R.drawable.ic_send
+            }
+            binding.ivDeliveryStatusVoiceSent.setImageResource(iconRes)
+        }
+    }
+
+    /**
+     * ViewHolder for received voice messages.
+     */
+    class VoiceReceivedViewHolder(
+        private val binding: com.fialkaapp.fialka.databinding.ItemMessageVoiceReceivedBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
+
+        private var player: com.fialkaapp.fialka.audio.VoicePlayer? = null
+
+        fun bind(message: MessageLocal) {
+            val durationMs = message.voiceDurationMs
+            binding.tvTimestampVoiceReceived.text = timeFormat.format(Date(message.timestamp))
+            binding.tvVoiceDurationReceived.text = VoicePlayer().formatDuration(durationMs)
+            applyWaveform(message.voiceWaveform)
+
+            binding.btnVoicePlayReceived.setOnClickListener {
+                togglePlay(message)
+            }
+        }
+
+        private fun applyWaveform(waveformCsv: String?) {
+            if (waveformCsv.isNullOrEmpty()) return
+            val bars = listOf(
+                binding.waveBar1Received, binding.waveBar2Received, binding.waveBar3Received,
+                binding.waveBar4Received, binding.waveBar5Received, binding.waveBar6Received,
+                binding.waveBar7Received, binding.waveBar8Received
+            )
+            val samples = waveformCsv.split(",").mapNotNull { it.trim().toIntOrNull() }
+            val step = if (samples.size > 1) samples.size.toFloat() / bars.size else 1f
+            bars.forEachIndexed { i, bar ->
+                val sampleIdx = (i * step).toInt().coerceIn(0, samples.lastIndex.coerceAtLeast(0))
+                val amp = samples.getOrElse(sampleIdx) { 50 }.coerceIn(4, 100)
+                val params = bar.layoutParams
+                params.height = (amp * 24 / 100).coerceAtLeast(3)
+                    .let { android.util.TypedValue.applyDimension(
+                        android.util.TypedValue.COMPLEX_UNIT_DIP, it.toFloat(),
+                        bar.resources.displayMetrics).toInt() }
+                bar.layoutParams = params
+            }
+        }
+
+        private fun togglePlay(message: MessageLocal) {
+            val currentPlayer = player
+            if (currentPlayer != null && currentPlayer.isPlaying) {
+                currentPlayer.stop()
+                player = null
+                binding.btnVoicePlayReceived.setImageResource(R.drawable.ic_play)
+                return
+            }
+
+            val filePath = message.localFilePath ?: return
+            val file = java.io.File(filePath)
+            if (!file.exists()) return
+
+            val audioBytes = file.readBytes()
+            val vPlayer = com.fialkaapp.fialka.audio.VoicePlayer()
+            player = vPlayer
+            binding.btnVoicePlayReceived.setImageResource(R.drawable.ic_pause)
+
+            vPlayer.play(
+                audioBytes = audioBytes,
+                onProgress = { currentMs, _ ->
+                    (binding.root.context as? android.app.Activity)?.runOnUiThread {
+                        binding.tvVoiceDurationReceived.text = vPlayer.formatDuration(currentMs.toInt())
+                    }
+                },
+                onFinish = {
+                    (binding.root.context as? android.app.Activity)?.runOnUiThread {
+                        binding.btnVoicePlayReceived.setImageResource(R.drawable.ic_play)
+                        binding.tvVoiceDurationReceived.text = vPlayer.formatDuration(message.voiceDurationMs)
+                        player = null
+                    }
+                    java.util.Arrays.fill(audioBytes, 0)
+                },
+                onError = {
+                    (binding.root.context as? android.app.Activity)?.runOnUiThread {
+                        binding.btnVoicePlayReceived.setImageResource(R.drawable.ic_play)
+                        player = null
+                    }
+                    java.util.Arrays.fill(audioBytes, 0)
+                }
+            )
+        }
+    }
+
     class XmrSentViewHolder(
         private val binding: ItemMessageXmrSentBinding
     ) : RecyclerView.ViewHolder(binding.root) {

@@ -50,6 +50,12 @@ data class MessageLocal(
     val signatureValid: Boolean? = null,  // null = no signature, true = valid, false = invalid
     val isOneShot: Boolean = false,       // true = image visible once then deleted
     val oneShotOpened: Boolean = false,   // true = one-shot image was already viewed
+    // Reply/quote fields (null = not a reply)
+    val replyToId: String? = null,        // localId of the quoted message
+    val replyToPreview: String? = null,   // first ~80 chars of the quoted plaintext
+    // Voice message fields (0/null = not a voice message)
+    val voiceDurationMs: Int = 0,         // Duration in ms (0 = not a voice message)
+    val voiceWaveform: String? = null,    // Comma-separated normalized amplitudes 0-100
     // Delivery status: 0=SENT (direct P2P), 1=MAILBOX (via mailbox deposit), 2=FAILED, 3=PENDING (in outbox), 4=SENDING (in flight)
     val deliveryStatus: Int = DELIVERY_SENDING
 ) {

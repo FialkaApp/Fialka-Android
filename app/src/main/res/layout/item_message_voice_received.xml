@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Voice message bubble — received side -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="3dp">
+
+    <LinearLayout
+        android:id="@+id/bubbleVoiceReceived"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_bubble_received"
+        android:backgroundTint="?attr/colorBubbleReceived"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="8dp"
+        android:minWidth="180dp"
+        android:maxWidth="280dp">
+
+        <!-- Play / Pause button -->
+        <ImageButton
+            android:id="@+id/btnVoicePlayReceived"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_circle"
+            android:backgroundTint="?attr/colorPrimary"
+            android:src="@drawable/ic_play"
+            android:scaleType="center"
+            android:contentDescription="Écouter le message vocal" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="8dp">
+
+            <!-- Waveform bar visualization -->
+            <LinearLayout
+                android:id="@+id/waveformContainerReceived"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:baselineAligned="false">
+
+                <View android:id="@+id/waveBar1Received"
+                    android:layout_width="3dp" android:layout_height="8dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar2Received"
+                    android:layout_width="3dp" android:layout_height="16dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar3Received"
+                    android:layout_width="3dp" android:layout_height="22dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar4Received"
+                    android:layout_width="3dp" android:layout_height="14dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar5Received"
+                    android:layout_width="3dp" android:layout_height="10dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar6Received"
+                    android:layout_width="3dp" android:layout_height="18dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar7Received"
+                    android:layout_width="3dp" android:layout_height="12dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+                <View android:id="@+id/waveBar8Received"
+                    android:layout_width="3dp" android:layout_height="20dp"
+                    android:layout_marginHorizontal="2dp"
+                    android:background="?attr/colorPrimary"
+                    android:alpha="0.6" />
+            </LinearLayout>
+
+            <!-- Duration / progress + timestamp -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="2dp">
+
+                <TextView
+                    android:id="@+id/tvVoiceDurationReceived"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textColor="?attr/colorBubbleReceivedText"
+                    android:textSize="11sp"
+                    android:alpha="0.75"
+                    android:text="0:00" />
+
+                <TextView
+                    android:id="@+id/tvTimestampVoiceReceived"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorBubbleReceivedText"
+                    android:textSize="10sp"
+                    android:alpha="0.6" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

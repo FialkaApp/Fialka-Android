@@ -98,7 +98,7 @@
         android:clipToPadding="false"
         android:padding="4dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintBottom_toTopOf="@id/inputBar"
+        app:layout_constraintBottom_toTopOf="@id/replyBar"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/fetchBanner"
@@ -195,13 +195,54 @@
 
     </LinearLayout>
 
+    <!-- Reply preview bar — shown when user long-presses "Répondre" -->
+    <LinearLayout
+        android:id="@+id/replyBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?attr/colorSurface"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/inputBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="32dp"
+            android:background="?attr/colorPrimary"
+            android:layout_marginEnd="10dp" />
+
+        <TextView
+            android:id="@+id/tvReplyPreview"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="13sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:textColor="?android:attr/textColorSecondary" />
+
+        <ImageButton
+            android:id="@+id/btnCancelReply"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_close"
+            android:contentDescription="Annuler la réponse"
+            android:scaleType="center" />
+
+    </LinearLayout>
+
     <LinearLayout
         android:id="@+id/inputBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="?attr/colorInputBar"
-        android:elevation="2dp"
-        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="8dp"
         android:paddingVertical="6dp"
@@ -221,6 +262,38 @@
             android:paddingHorizontal="16dp"
             android:paddingVertical="10dp"
             android:textSize="15sp" />
+
+        <!-- Voice recording overlay — replaces etMessage while recording (visibility=gone at rest) -->
+        <LinearLayout
+            android:id="@+id/recordingOverlay"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:background="@drawable/bg_input_message"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvRecordingTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0:00"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvRecordingHint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Relâchez pour envoyer"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="11sp"
+                android:alpha="0.6" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/btnAttach"

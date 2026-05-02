@@ -41,6 +41,8 @@ data class P2PMessage(
     val kemCiphertext: String = "", // Base64 ML-KEM-1024 ciphertext (first message only, PQXDH)
     val mldsaSignature: String = "", // Base64 ML-DSA-44 signature (first message only, PQ handshake auth)
     val cipherSuite: Int = 0,      // 0 = AES-256-GCM (default), 1 = ChaCha20-Poly1305
+    val replyToId: String = "",      // Optional: localId of the quoted message (empty = not a reply)
+    val replyToPreview: String = "", // Optional: first ~80 chars of quoted plaintext
     @Transient val localKey: String = ""  // Local-only: message key for delete-after-delivery (not transmitted)
 ) {
     fun toMap(): Map<String, Any> {

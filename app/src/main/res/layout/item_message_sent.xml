@@ -20,6 +20,34 @@
             android:background="@drawable/bg_bubble_sent"
             android:backgroundTint="?attr/colorBubbleSent">
 
+            <!-- Reply/quote bar (hidden when not a reply) -->
+            <LinearLayout
+                android:id="@+id/quoteBarSent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                android:minWidth="120dp"
+                android:layout_marginBottom="4dp">
+
+                <View
+                    android:layout_width="3dp"
+                    android:layout_height="match_parent"
+                    android:background="?attr/colorPrimary"
+                    android:layout_marginEnd="6dp" />
+
+                <TextView
+                    android:id="@+id/tvQuotePreviewSent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="?attr/colorBubbleSentText"
+                    android:textSize="12sp"
+                    android:alpha="0.75"
+                    android:maxWidth="240dp"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/tvMessageSent"
                 android:layout_width="wrap_content"
