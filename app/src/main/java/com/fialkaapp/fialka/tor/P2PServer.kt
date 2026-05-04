@@ -89,6 +89,8 @@ object P2PServer : TorTransport.FrameListener {
             TorTransport.TYPE_PING -> TorTransport.ackOk()
             TorTransport.TYPE_PRESENCE -> handlePresence(frame.payload)
             TorTransport.TYPE_SESSION_RESET -> handleSessionReset(frame.payload)
+            TorTransport.TYPE_GROUP_MSG -> handleGroupMsg(frame.payload)
+            TorTransport.TYPE_GROUP_ADMIN -> handleGroupAdmin(frame.payload)
             // Mailbox frames hitting P2P server → explicit rejection
             TorTransport.TYPE_JOIN,
             TorTransport.TYPE_DEPOSIT,
@@ -635,5 +637,47 @@ object P2PServer : TorTransport.FrameListener {
         } catch (_: Exception) { null }
         OutboxManager.sendOrQueue(recipientOnion, frame, ephemeralFallback)
         return true
+    }
+
+    // ══════════════════════════════════════════
+    //  TYPE_GROUP_MSG (0x16) — direct group message
+    // ══════════════════════════════════════════
+
+    private suspend fun handleGroupMsg(payload: ByteArray): TorTransport.Frame {
+        return try {
+            val repo = com.fialkaapp.fialka.data.repository.GroupRepository.getInstance(appContext)
+            repo.handleGroupMessage(payload)
+            // Notification: group name as title
+            try {
+                val json = org.json.JSONObject(payload.toString(Charsets.UTF_8))
+                val groupId = json.optString("groupId", "")
+                if (groupId.isNotEmpty()) {
+                    val db = com.fialkaapp.fialka.data.local.FialkaDatabase.getInstance(appContext)
+                    val group = db.groupDao().getGroupById(groupId)
+                    if (group != null) {
+                        com.fialkaapp.fialka.util.NotificationHelper.notifyNewMessage(
+                            appContext, groupId, group.name
+                        )
+                    }
+                }
+            } catch (_: Exception) {}
+            TorTransport.ackOk()
+        } catch (_: Exception) {
+            TorTransport.ackError("malformed group message")
+        }
+    }
+
+    // ══════════════════════════════════════════
+    //  TYPE_GROUP_ADMIN (0x17) — group admin action
+    // ══════════════════════════════════════════
+
+    private suspend fun handleGroupAdmin(payload: ByteArray): TorTransport.Frame {
+        return try {
+            val repo = com.fialkaapp.fialka.data.repository.GroupRepository.getInstance(appContext)
+            repo.handleGroupAdmin(payload)
+            TorTransport.ackOk()
+        } catch (_: Exception) {
+            TorTransport.ackError("malformed group admin")
+        }
     }
 }

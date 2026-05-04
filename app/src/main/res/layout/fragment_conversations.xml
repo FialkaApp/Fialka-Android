@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground">
 
+    <!-- FIXED AppBar — no scrollFlags = never hides -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
@@ -17,8 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="?attr/colorToolbarBackground"
-            app:layout_scrollFlags="scroll|enterAlways|snap">
+            android:background="?attr/colorToolbarBackground">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -81,6 +81,7 @@
         android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
+        <!-- Contact requests banner (hidden by default) -->
         <TextView
             android:id="@+id/tvRequestsHeader"
             android:layout_width="match_parent"
@@ -101,51 +102,73 @@
             android:visibility="gone"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
-        <FrameLayout
+        <!-- SwipeRefresh wraps the full pager — pull from anywhere works -->
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/swipeRefresh"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">
 
-            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-                android:id="@+id/swipeRefresh"
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/viewPager"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent" />
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvConversations"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layoutAnimation="@anim/layout_animation_fall_in"
-                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+        <!-- Floating pill tab bar — full-width indicator so text never overflows -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="32dp"
+            app:cardElevation="12dp"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+            app:strokeWidth="1dp"
+            app:strokeColor="?attr/colorOutlineVariant">
 
-            <TextView
-                android:id="@+id/tvEmpty"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:gravity="center"
-                android:text="@string/no_conversations"
-                android:textColor="?attr/colorTextSecondary"
-                android:textSize="15sp"
-                android:lineSpacingExtra="6dp"
-                android:visibility="gone" />
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayout"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                android:background="@android:color/transparent"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                app:tabGravity="fill"
+                app:tabMode="fixed"
+                app:tabIndicator="@drawable/tab_indicator_pill"
+                app:tabIndicatorHeight="52dp"
+                app:tabIndicatorFullWidth="true"
+                app:tabIndicatorGravity="center"
+                app:tabIndicatorColor="?attr/colorPrimary"
+                app:tabSelectedTextColor="?attr/colorOnPrimary"
+                app:tabTextColor="?attr/colorOnSurfaceVariant"
+                app:tabIconTint="@color/tab_icon_tint"
+                app:tabRippleColor="@android:color/transparent"
+                app:tabTextAppearance="@style/TextAppearance.Material3.LabelMedium"
+                app:tabPaddingStart="0dp"
+                app:tabPaddingEnd="0dp" />
 
-        </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 
+    <!-- FAB above the floating card: 64dp tab + 16dp marginBottom + 10dp marginTop + 16dp gap -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabNewChat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="116dp"
         android:contentDescription="@string/new_chat"
         android:src="@android:drawable/ic_input_add"
         app:backgroundTint="?attr/colorPrimary"
-        app:layout_behavior="com.google.android.material.behavior.HideBottomViewOnScrollBehavior"
         app:tint="?android:attr/colorBackground" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

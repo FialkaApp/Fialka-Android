@@ -278,6 +278,18 @@ class ChatFragment : Fragment() {
                         showXmrSentDetail(plaintext)
                 }
             },
+            onGroupInviteAccept = { message ->
+                viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    com.fialkaapp.fialka.data.repository.GroupRepository.getInstance(requireContext())
+                        .acceptInvite(message.localId, conversationId)
+                }
+            },
+            onGroupInviteDecline = { message ->
+                viewLifecycleOwner.lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                    com.fialkaapp.fialka.data.repository.GroupRepository.getInstance(requireContext())
+                        .declineInvite(message.localId, conversationId)
+                }
+            },
             onQuoteClick = { replyToId ->
                 scrollToMessage(replyToId)
             }

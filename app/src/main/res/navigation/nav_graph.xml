@@ -206,6 +206,20 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_conversations_to_createGroup"
+            app:destination="@id/createGroupFragment"
+            app:enterAnim="@anim/slide_up_in"
+            app:exitAnim="@anim/fade_out"
+            app:popEnterAnim="@anim/fade_in"
+            app:popExitAnim="@anim/slide_down_out" />
+        <action
+            android:id="@+id/action_conversations_to_groupChat"
+            app:destination="@id/groupChatFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
     </fragment>
 
     <fragment
@@ -593,6 +607,64 @@
             app:popUpToInclusive="true"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out" />
+    </fragment>
+
+    <!-- ─── Group Chat ─────────────────────────────────────────── -->
+    <fragment
+        android:id="@+id/createGroupFragment"
+        android:name="com.fialkaapp.fialka.ui.group.CreateGroupFragment"
+        android:label="Nouveau groupe"
+        tools:layout="@layout/fragment_create_group">
+        <action
+            android:id="@+id/action_createGroup_to_groupChat"
+            app:destination="@id/groupChatFragment"
+            app:popUpTo="@id/createGroupFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/groupChatFragment"
+        android:name="com.fialkaapp.fialka.ui.group.GroupChatFragment"
+        android:label="Groupe"
+        tools:layout="@layout/fragment_group_chat">
+        <argument android:name="groupId"   app:argType="string" />
+        <argument android:name="groupName" app:argType="string" />
+        <action
+            android:id="@+id/action_groupChat_to_groupInfo"
+            app:destination="@id/groupInfoFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/groupInfoFragment"
+        android:name="com.fialkaapp.fialka.ui.group.GroupInfoFragment"
+        android:label="Infos groupe"
+        tools:layout="@layout/fragment_group_info">
+        <argument android:name="groupId"   app:argType="string" />
+        <argument android:name="groupName" app:argType="string" />
+        <action
+            android:id="@+id/action_groupInfoFragment_to_inviteMemberFragment"
+            app:destination="@id/inviteMemberFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/inviteMemberFragment"
+        android:name="com.fialkaapp.fialka.ui.group.InviteMemberFragment"
+        android:label="Inviter un membre"
+        tools:layout="@layout/fragment_invite_member">
+        <argument android:name="groupId"   app:argType="string" />
+        <argument android:name="groupName" app:argType="string" />
     </fragment>
 
 </navigation>

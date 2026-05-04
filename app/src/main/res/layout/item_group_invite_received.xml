@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="start"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="3dp">
+
+    <LinearLayout
+        android:id="@+id/bubbleGroupInviteReceived"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:background="@drawable/bg_bubble_received"
+        android:backgroundTint="?attr/colorBubbleReceived"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:minWidth="220dp">
+
+        <!-- Header: icon + title -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_group"
+                android:tint="@color/primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="Invitation de groupe"
+                android:textColor="@color/primary"
+                android:textStyle="bold"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Group name -->
+        <TextView
+            android:id="@+id/tvGroupInviteNameReceived"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <!-- Action buttons (visible when pending) -->
+        <LinearLayout
+            android:id="@+id/layoutGroupInviteActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGroupInviteAccept"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="Rejoindre"
+                android:textSize="13sp"
+                style="@style/Widget.MaterialComponents.Button"
+                android:backgroundTint="@color/primary" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGroupInviteDecline"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="Refuser"
+                android:textSize="13sp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                app:strokeColor="@color/error"
+                xmlns:app="http://schemas.android.com/apk/res-auto" />
+        </LinearLayout>
+
+        <!-- Status (visible when already accepted/declined) -->
+        <TextView
+            android:id="@+id/tvGroupInviteStatusReceived"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="12sp"
+            android:textColor="@color/text_primary"
+            android:alpha="0.75"
+            android:visibility="gone" />
+
+        <!-- Timestamp -->
+        <TextView
+            android:id="@+id/tvGroupInviteTimeReceived"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="end"
+            android:textColor="@color/text_primary"
+            android:alpha="0.6"
+            android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>

@@ -38,6 +38,9 @@ interface MessageLocalDao {
     @Query("DELETE FROM messages WHERE localId = :messageId")
     suspend fun deleteMessageById(messageId: String)
 
+    @Query("SELECT * FROM messages WHERE conversationId = :conversationId AND localId = :remoteId LIMIT 1")
+    suspend fun getMessageByRemoteId(conversationId: String, remoteId: String): MessageLocal?
+
     @Query("SELECT COUNT(*) FROM messages WHERE conversationId = :conversationId AND senderPublicKey = :senderKey AND timestamp = :timestamp")
     suspend fun messageExists(conversationId: String, senderKey: String, timestamp: Long): Int
 
@@ -83,6 +86,17 @@ interface MessageLocalDao {
 
     @Query("UPDATE messages SET deliveryStatus = :status WHERE localId = :localId")
     suspend fun updateDeliveryStatus(localId: String, status: Int)
+
+    @Query("UPDATE messages SET plaintext = :newPlaintext WHERE localId = :localId")
+    suspend fun updateMessagePlaintext(localId: String, newPlaintext: String)
+
+    /** Find the first sent GROUP_INVITE message for a given groupId in a conversation. */
+    @Query("""SELECT * FROM messages WHERE conversationId = :conversationId
+              AND isMine = 1
+              AND (plaintext LIKE 'GROUP_INVITE|%' OR plaintext LIKE 'GROUP_INVITE_ACCEPT|%' OR plaintext LIKE 'GROUP_INVITE_DECLINE|%')
+              AND (plaintext LIKE '%' || :groupId || '%')
+              ORDER BY timestamp DESC LIMIT 1""")
+    suspend fun getGroupInviteMessageForGroup(conversationId: String, groupId: String): MessageLocal?
 
     /**
      * On app startup, migrate any messages stuck in DELIVERY_SENDING (= 4) to DELIVERY_PENDING (= 3).

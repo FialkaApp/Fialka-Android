@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="end"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="3dp">
+
+    <LinearLayout
+        android:id="@+id/bubbleGroupInviteSent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:background="@drawable/bg_bubble_sent"
+        android:backgroundTint="?attr/colorBubbleSent"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:minWidth="200dp">
+
+        <!-- Header: icon + title -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_group"
+                android:tint="@color/primary_light" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="Invitation de groupe"
+                android:textColor="@color/primary_light"
+                android:textStyle="bold"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- Group name -->
+        <TextView
+            android:id="@+id/tvGroupInviteName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <!-- Status: pending / accepted / declined -->
+        <TextView
+            android:id="@+id/tvGroupInviteStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textSize="12sp"
+            android:textColor="@color/text_primary"
+            android:alpha="0.75" />
+
+        <!-- Timestamp -->
+        <TextView
+            android:id="@+id/tvGroupInviteTimeSent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="end"
+            android:textColor="@color/text_primary"
+            android:alpha="0.6"
+            android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>

@@ -25,7 +25,9 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
 import com.fialkaapp.fialka.data.model.ContactRequest
 import com.fialkaapp.fialka.data.model.Conversation
+import com.fialkaapp.fialka.data.model.GroupLocal
 import com.fialkaapp.fialka.data.repository.ChatRepository
+import com.fialkaapp.fialka.data.repository.GroupRepository
 import com.fialkaapp.fialka.tor.P2PServer
 import com.fialkaapp.fialka.util.DummyTrafficManager
 import kotlinx.coroutines.Dispatchers
@@ -36,8 +38,10 @@ import kotlinx.coroutines.withContext
 class ConversationsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = ChatRepository(application)
+    private val groupRepository = GroupRepository.getInstance(application)
 
     val conversations: LiveData<List<Conversation>> = repository.getAllConversations()
+    val groups: LiveData<List<GroupLocal>> = groupRepository.getAllGroups()
 
     private val _accountReset = MutableLiveData<Boolean?>()
     val accountReset: LiveData<Boolean?> = _accountReset

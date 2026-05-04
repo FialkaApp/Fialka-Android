@@ -28,8 +28,8 @@ import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -38,11 +38,15 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.databinding.FragmentConversationsBinding
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.tor.TorState
 import com.fialkaapp.fialka.util.NotificationHelper
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.tabs.TabLayoutMediator
 import com.fialkaapp.fialka.wallet.WalletPreferences
 import kotlinx.coroutines.launch
 
@@ -56,9 +60,18 @@ class ConversationsFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: ConversationsViewModel by viewModels()
-    private lateinit var adapter: ConversationsAdapter
+
+    // Conversations tab adapter (page 1)
+    private lateinit var conversationsAdapter: ConversationsAdapter
+    // Groups tab adapter (page 0)
+    private lateinit var groupsAdapter: GroupsAdapter
     private lateinit var requestsAdapter: ContactRequestsAdapter
+
     private var allConversations: List<com.fialkaapp.fialka.data.model.Conversation> = emptyList()
+
+    // Page view references — set once in onViewCreated
+    private var rvChatsPage: RecyclerView? = null
+    private var tvChatsEmpty: TextView? = null
 
     /** Android 13+ runtime permission for POST_NOTIFICATIONS. */
     private val notifPermissionLauncher =
@@ -93,17 +106,50 @@ class ConversationsFragment : Fragment() {
         // Ask for runtime permissions needed for notifications and background service
         askPermissionsIfNeeded()
 
-        // Conversations adapter
-        adapter = ConversationsAdapter { conversation ->
+        // ── Inflate pager pages ─────────────────────────────────────────────
+        val groupsPageView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.page_conversations_groups, binding.viewPager, false)
+        val chatsPageView = LayoutInflater.from(requireContext())
+            .inflate(R.layout.page_conversations_chats, binding.viewPager, false)
+
+        val rvGroupsPage = groupsPageView.findViewById<RecyclerView>(R.id.rvGroupsPage)
+        rvChatsPage      = chatsPageView.findViewById(R.id.rvChatsPage)
+        tvChatsEmpty     = chatsPageView.findViewById(R.id.tvChatsEmpty)
+
+        // ── Conversations adapter (chats page) ──────────────────────────────
+        conversationsAdapter = ConversationsAdapter { conversation ->
             val bundle = Bundle().apply {
                 putString("conversationId", conversation.conversationId)
                 putString("contactName", conversation.contactDisplayName)
             }
             findNavController().navigate(R.id.action_conversations_to_chat, bundle)
         }
-        binding.rvConversations.adapter = adapter
+        rvChatsPage!!.adapter = conversationsAdapter
 
-        // Pull-to-refresh: theme the spinner with primary + accent colors, then delegate to ViewModel
+        // ── Groups adapter (groups page) ────────────────────────────────────
+        groupsAdapter = GroupsAdapter { group ->
+            val bundle = Bundle().apply {
+                putString("groupId", group.groupId)
+                putString("groupName", group.name)
+            }
+            findNavController().navigate(R.id.action_conversations_to_groupChat, bundle)
+        }
+        rvGroupsPage.adapter = groupsAdapter
+
+        // ── ViewPager2 setup ────────────────────────────────────────────────
+        // Order: Conversations (0) | Groupes (1)
+        binding.viewPager.adapter = ConversationsPagerAdapter(listOf(chatsPageView, groupsPageView))
+        binding.viewPager.offscreenPageLimit = 1   // Keep both pages alive
+
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            tab.text = if (position == 0) "Conversations" else "Groupes"
+            tab.icon = ContextCompat.getDrawable(
+                requireContext(),
+                if (position == 0) R.drawable.ic_conversation else R.drawable.ic_group
+            )
+        }.attach()
+
+        // ── SwipeRefresh ────────────────────────────────────────────────────
         binding.swipeRefresh.setColorSchemeColors(
             ContextCompat.getColor(requireContext(), R.color.primary),
             ContextCompat.getColor(requireContext(), R.color.accent)
@@ -111,34 +157,33 @@ class ConversationsFragment : Fragment() {
         binding.swipeRefresh.setProgressBackgroundColorSchemeColor(
             ContextCompat.getColor(requireContext(), R.color.grey_medium)
         )
-        binding.swipeRefresh.setOnRefreshListener {
-            viewModel.refresh()
+        // Only trigger pull-to-refresh when the active page's list is at the top
+        binding.swipeRefresh.setOnChildScrollUpCallback { _, _ ->
+            val rv = if (binding.viewPager.currentItem == 0) rvChatsPage else rvGroupsPage
+            rv?.canScrollVertically(-1) == true
         }
+        binding.swipeRefresh.setOnRefreshListener { viewModel.refresh() }
         viewModel.isRefreshing.observe(viewLifecycleOwner) { refreshing ->
             binding.swipeRefresh.isRefreshing = refreshing
-            // Replay the fall-in animation when refresh completes so the list feels fresh
-            if (!refreshing) {
-                binding.rvConversations.scheduleLayoutAnimation()
-            }
+            if (!refreshing) rvChatsPage?.scheduleLayoutAnimation()
         }
 
-        // Contact requests adapter
+        // ── Contact requests adapter ────────────────────────────────────────
         requestsAdapter = ContactRequestsAdapter(
-            onAccept = { request -> viewModel.acceptRequest(request) },
+            onAccept  = { request -> viewModel.acceptRequest(request) },
             onDecline = { request -> viewModel.declineRequest(request) }
         )
         binding.rvRequests.adapter = requestsAdapter
 
-        // Observe conversations
+        // ── Observe conversations ───────────────────────────────────────────
         viewModel.conversations.observe(viewLifecycleOwner) { conversations ->
             allConversations = conversations
-            // Re-filter with current search query if active
             val searchItem = binding.toolbar.menu.findItem(R.id.action_search)
             val searchView = searchItem?.actionView as? SearchView
             filterConversations(searchView?.query?.toString().orEmpty())
         }
 
-        // Search icon in toolbar — expands to SearchView on click
+        // ── Search ──────────────────────────────────────────────────────────
         updateWalletMenuVisibility()
         val searchItem = binding.toolbar.menu.findItem(R.id.action_search)
         val searchView = searchItem?.actionView as? SearchView
@@ -155,7 +200,7 @@ class ConversationsFragment : Fragment() {
             false
         }
 
-        // Observe pending contact requests
+        // ── Observe pending contact requests ────────────────────────────────
         viewModel.pendingRequests.observe(viewLifecycleOwner) { requests ->
             val hasRequests = requests.isNotEmpty()
             binding.tvRequestsHeader.visibility = if (hasRequests) View.VISIBLE else View.GONE
@@ -163,8 +208,25 @@ class ConversationsFragment : Fragment() {
             requestsAdapter.submitList(requests)
         }
 
+        // ── Observe groups ──────────────────────────────────────────────────
+        viewModel.groups.observe(viewLifecycleOwner) { groups ->
+            groupsAdapter.submitList(groups)
+            val tvGroupsEmpty = groupsPageView.findViewById<TextView>(R.id.tvGroupsEmpty)
+            tvGroupsEmpty.visibility = if (groups.isEmpty()) View.VISIBLE else View.GONE
+        }
+
+        // ── FAB ─────────────────────────────────────────────────────────────
         binding.fabNewChat.setOnClickListener {
-            findNavController().navigate(R.id.action_conversations_to_addContact)
+            val items = arrayOf("💬  Nouvelle conversation", "👥  Nouveau groupe")
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Nouveau")
+                .setItems(items) { _, which ->
+                    when (which) {
+                        0 -> findNavController().navigate(R.id.action_conversations_to_addContact)
+                        1 -> findNavController().navigate(R.id.action_conversations_to_createGroup)
+                    }
+                }
+                .show()
         }
 
         binding.toolbar.setOnMenuItemClickListener { menuItem ->
@@ -216,10 +278,8 @@ class ConversationsFragment : Fragment() {
     }
 
     private fun updateEmptyState(noConversations: Boolean) {
-        val hasRequests = (viewModel.pendingRequests.value?.size ?: 0) > 0
-        val showEmpty = noConversations && !hasRequests
-        binding.tvEmpty.visibility = if (showEmpty) View.VISIBLE else View.GONE
-        binding.rvConversations.visibility = if (noConversations) View.GONE else View.VISIBLE
+        tvChatsEmpty?.visibility = if (noConversations) View.VISIBLE else View.GONE
+        rvChatsPage?.visibility  = if (noConversations) View.GONE else View.VISIBLE
     }
 
     private fun filterConversations(query: String) {
@@ -229,7 +289,7 @@ class ConversationsFragment : Fragment() {
             val q = query.trim().lowercase()
             allConversations.filter { it.contactDisplayName.lowercase().contains(q) }
         }
-        adapter.submitList(filtered)
+        conversationsAdapter.submitList(filtered)
         updateEmptyState(filtered.isEmpty())
     }
 

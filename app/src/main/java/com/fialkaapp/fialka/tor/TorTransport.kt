@@ -99,6 +99,23 @@ object TorTransport {
     // re-initialize a fresh session on the next message exchange.
     const val TYPE_SESSION_RESET: Byte = 0x14
 
+    // ── Group messaging ──
+    // TYPE_GROUP_INVITE: creator → each invitee (via their Double Ratchet channel)
+    //   Payload JSON: {"groupId","groupName","groupKey","members":[{...}],"createdByPubKey"}
+    //   groupKey is already decrypted by the time it arrives (Double Ratchet provides E2E).
+    const val TYPE_GROUP_INVITE: Byte = 0x15
+
+    // TYPE_GROUP_MSG: any member → all other members (direct to each .onion)
+    //   Payload JSON: {"groupId","ciphertext","iv","senderPubKey","signature","timestamp"}
+    //   ciphertext = AES-256-GCM(plaintext, groupKey)
+    //   signature = Ed25519(ciphertext bytes, senderPrivKey)
+    const val TYPE_GROUP_MSG: Byte = 0x16
+
+    // TYPE_GROUP_ADMIN: owner/admin → all members (role changes, kicks, renames)
+    //   Payload JSON: {"groupId","action","targetPubKey","newRole","newName","senderPubKey","signature"}
+    //   action = "KICK" | "PROMOTE" | "DEMOTE" | "RENAME" | "LEAVE"
+    const val TYPE_GROUP_ADMIN: Byte = 0x17
+
     // ── Status codes ──
     const val ACK_OK: Byte = 0x00
     const val ACK_ERROR: Byte = 0x01

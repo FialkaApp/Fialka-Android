@@ -282,10 +282,16 @@ class ChatRepository(private val appContext: Context) {
     }
 
     private suspend fun updateConversationLastMessage(conversationId: String, message: String) {
+        val preview = when {
+            message.startsWith(GroupRepository.GROUP_INVITE_PREFIX)         -> "🔔 Invitation de groupe"
+            message.startsWith(GroupRepository.GROUP_INVITE_ACCEPT_PREFIX)  -> "✅ Invitation acceptée"
+            message.startsWith(GroupRepository.GROUP_INVITE_DECLINE_PREFIX) -> "❌ Invitation refusée"
+            else -> message
+        }
         val conversation = conversationDao.getConversationById(conversationId) ?: return
         conversationDao.updateConversation(
             conversation.copy(
-                lastMessage = message,
+                lastMessage = preview,
                 lastMessageTimestamp = System.currentTimeMillis()
             )
         )
@@ -1279,6 +1285,30 @@ class ChatRepository(private val appContext: Context) {
                     conversationId, conversation, decryptedPlaintext,
                     p2pMessage.createdAt, finalSignatureValid
                 )
+            }
+
+            // Handle group invitation (GROUP_INVITE|<base64json>)
+            // Store as a visible message so the recipient can see the invite card
+            // and choose to Accept or Decline. Do NOT auto-join.
+            if (decryptedPlaintext != null &&
+                decryptedPlaintext.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_PREFIX)) {
+                // Fall through to normal message storage below
+            }
+            // Handle group invite acceptance/decline response (sent back to inviter)
+            else if (decryptedPlaintext != null &&
+                (decryptedPlaintext.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_ACCEPT_PREFIX) ||
+                 decryptedPlaintext.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_DECLINE_PREFIX))) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        GroupRepository(appContext).handleInviteResponse(decryptedPlaintext!!, conversationId)
+                    } catch (e: Exception) {
+                        android.util.Log.e("ChatRepository", "handleInviteResponse failed: ${e.message}")
+                    }
+                }
+                return@withLock null   // Not stored as a regular message
+            }
+            else if (decryptedPlaintext == null) {
+                // keep going, will be handled below
             }
 
             // Save locally (with ephemeral timing if conversation has it enabled)

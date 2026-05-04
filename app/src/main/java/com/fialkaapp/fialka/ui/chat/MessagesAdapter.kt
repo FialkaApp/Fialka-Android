@@ -63,12 +63,22 @@ class MessagesAdapter(
     private val onOneShotOpen: ((String) -> Unit)? = null,
     private val onResend: ((String) -> Unit)? = null,
     private val onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null,
-    /** Called when user taps the action button on a received XMR bubble.
-     *  Passes the raw plaintext (XMR_REQUEST|... or XMR_SENT|...). */
+    /** Called when user taps the action button on a received XMR bubble. */
     private val onXmrAction: ((plaintext: String) -> Unit)? = null,
     /** Called when user taps a quote bar — passes the replyToId to scroll to. */
-    private val onQuoteClick: ((replyToId: String) -> Unit)? = null
+    private val onQuoteClick: ((replyToId: String) -> Unit)? = null,
+    /** Called when user accepts a group invite (passes the MessageLocal). */
+    private val onGroupInviteAccept: ((message: MessageLocal) -> Unit)? = null,
+    /** Called when user declines a group invite (passes the MessageLocal). */
+    private val onGroupInviteDecline: ((message: MessageLocal) -> Unit)? = null
 ) : ListAdapter<ChatItem, RecyclerView.ViewHolder>(ChatItemDiffCallback) {
+
+    /**
+     * Optional map of senderPublicKey → displayName.
+     * When non-null, received message bubbles show the sender name above the bubble.
+     * Set this for group chats; leave null for 1:1 chats.
+     */
+    var senderNamesMap: Map<String, String>? = null
 
     private var lastAnimatedPosition = -1
 
@@ -81,6 +91,8 @@ class MessagesAdapter(
         private const val VIEW_TYPE_XMR_RECEIVED = 5
         private const val VIEW_TYPE_VOICE_SENT = 6
         private const val VIEW_TYPE_VOICE_RECEIVED = 7
+        private const val VIEW_TYPE_GROUP_INVITE_SENT = 8
+        private const val VIEW_TYPE_GROUP_INVITE_RECEIVED = 9
 
         // XMR message prefixes (E2E encrypted, same channel as text)
         const val PREFIX_XMR_ADDR = "XMR_ADDR|"
@@ -91,6 +103,11 @@ class MessagesAdapter(
             text.startsWith(PREFIX_XMR_ADDR) ||
             text.startsWith(PREFIX_XMR_REQUEST) ||
             text.startsWith(PREFIX_XMR_SENT)
+
+        fun isGroupInviteMessage(text: String): Boolean =
+            text.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_PREFIX) ||
+            text.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_ACCEPT_PREFIX) ||
+            text.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_DECLINE_PREFIX)
 
         private fun isVoiceMessage(msg: com.fialkaapp.fialka.data.model.MessageLocal): Boolean =
             msg.voiceDurationMs > 0
@@ -313,6 +330,8 @@ class MessagesAdapter(
                 isVoiceMessage(item.message) -> VIEW_TYPE_VOICE_RECEIVED
                 isXmrMessage(item.message.plaintext) && item.message.isMine -> VIEW_TYPE_XMR_SENT
                 isXmrMessage(item.message.plaintext) -> VIEW_TYPE_XMR_RECEIVED
+                isGroupInviteMessage(item.message.plaintext) && item.message.isMine -> VIEW_TYPE_GROUP_INVITE_SENT
+                isGroupInviteMessage(item.message.plaintext) -> VIEW_TYPE_GROUP_INVITE_RECEIVED
                 item.message.isMine -> VIEW_TYPE_SENT
                 else -> VIEW_TYPE_RECEIVED
             }
@@ -351,6 +370,18 @@ class MessagesAdapter(
                 )
                 XmrReceivedViewHolder(binding)
             }
+            VIEW_TYPE_GROUP_INVITE_SENT -> {
+                val binding = com.fialkaapp.fialka.databinding.ItemGroupInviteSentBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                GroupInviteSentViewHolder(binding)
+            }
+            VIEW_TYPE_GROUP_INVITE_RECEIVED -> {
+                val binding = com.fialkaapp.fialka.databinding.ItemGroupInviteReceivedBinding.inflate(
+                    LayoutInflater.from(parent.context), parent, false
+                )
+                GroupInviteReceivedViewHolder(binding)
+            }
             VIEW_TYPE_UNREAD_DIVIDER -> {
                 val view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.item_unread_divider, parent, false)
@@ -378,7 +409,8 @@ class MessagesAdapter(
             }
             is ReceivedViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
-                holder.bind(msg, onRetryDownload, onOneShotOpen, onMessageLongPress, onQuoteClick)
+                val senderName = senderNamesMap?.get(msg.senderPublicKey)
+                holder.bind(msg, onRetryDownload, onOneShotOpen, onMessageLongPress, onQuoteClick, senderName)
             }
             is XmrSentViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
@@ -387,6 +419,14 @@ class MessagesAdapter(
             is XmrReceivedViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
                 holder.bind(msg, onXmrAction)
+            }
+            is GroupInviteSentViewHolder -> {
+                val msg = (getItem(position) as ChatItem.Message).message
+                holder.bind(msg)
+            }
+            is GroupInviteReceivedViewHolder -> {
+                val msg = (getItem(position) as ChatItem.Message).message
+                holder.bind(msg, onGroupInviteAccept, onGroupInviteDecline)
             }
             is VoiceSentViewHolder -> {
                 val msg = (getItem(position) as ChatItem.Message).message
@@ -563,7 +603,14 @@ class MessagesAdapter(
     class ReceivedViewHolder(
         private val binding: ItemMessageReceivedBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: MessageLocal, onRetryDownload: ((String) -> Unit)?, onOneShotOpen: ((String) -> Unit)?, onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null, onQuoteClick: ((replyToId: String) -> Unit)? = null) {
+        fun bind(message: MessageLocal, onRetryDownload: ((String) -> Unit)?, onOneShotOpen: ((String) -> Unit)?, onMessageLongPress: ((anchorView: View, message: MessageLocal) -> Unit)? = null, onQuoteClick: ((replyToId: String) -> Unit)? = null, senderName: String? = null) {
+            // Show sender name for group chats
+            if (senderName != null) {
+                binding.tvSenderName.visibility = View.VISIBLE
+                binding.tvSenderName.text = senderName
+            } else {
+                binding.tvSenderName.visibility = View.GONE
+            }
             binding.tvTimeReceived.text = timeFormat.format(Date(message.timestamp))
             binding.ivImagePreviewReceived.visibility = View.GONE
 
@@ -929,6 +976,83 @@ class MessagesAdapter(
     }
 
     class UnreadDividerViewHolder(view: View) : RecyclerView.ViewHolder(view)
+
+    /** Sent group invite card (Alice's side). Shows group name + status. */
+    class GroupInviteSentViewHolder(
+        private val b: com.fialkaapp.fialka.databinding.ItemGroupInviteSentBinding
+    ) : RecyclerView.ViewHolder(b.root) {
+
+        fun bind(message: MessageLocal) {
+            b.tvGroupInviteTimeSent.text = timeFormat.format(java.util.Date(message.timestamp))
+            val plaintext = message.plaintext
+            when {
+                plaintext.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_ACCEPT_PREFIX) -> {
+                    val parts = plaintext.removePrefix(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_ACCEPT_PREFIX).split("|", limit = 2)
+                    b.tvGroupInviteName.text = parts.getOrElse(1) { parts.getOrElse(0) { "" } }
+                    b.tvGroupInviteStatus.text = "✅ Invitation acceptée"
+                }
+                plaintext.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_DECLINE_PREFIX) -> {
+                    val parts = plaintext.removePrefix(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_DECLINE_PREFIX).split("|", limit = 2)
+                    b.tvGroupInviteName.text = parts.getOrElse(1) { parts.getOrElse(0) { "" } }
+                    b.tvGroupInviteStatus.text = "❌ Invitation refusée"
+                }
+                else -> {
+                    // GROUP_INVITE|<base64> — pending
+                    val groupName = runCatching {
+                        val base64 = plaintext.removePrefix(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_PREFIX)
+                        val json = org.json.JSONObject(android.util.Base64.decode(base64, android.util.Base64.NO_WRAP).toString(Charsets.UTF_8))
+                        json.optString("groupName", "")
+                    }.getOrDefault("")
+                    b.tvGroupInviteName.text = groupName
+                    b.tvGroupInviteStatus.text = "⏳ En attente de réponse…"
+                }
+            }
+        }
+    }
+
+    /** Received group invite card (Bob's side). Shows Accept / Decline buttons. */
+    class GroupInviteReceivedViewHolder(
+        private val b: com.fialkaapp.fialka.databinding.ItemGroupInviteReceivedBinding
+    ) : RecyclerView.ViewHolder(b.root) {
+
+        fun bind(
+            message: MessageLocal,
+            onAccept: ((MessageLocal) -> Unit)?,
+            onDecline: ((MessageLocal) -> Unit)?
+        ) {
+            b.tvGroupInviteTimeReceived.text = timeFormat.format(java.util.Date(message.timestamp))
+            val plaintext = message.plaintext
+            when {
+                plaintext.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_ACCEPT_PREFIX) -> {
+                    val parts = plaintext.removePrefix(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_ACCEPT_PREFIX).split("|", limit = 2)
+                    b.tvGroupInviteNameReceived.text = parts.getOrElse(1) { parts.getOrElse(0) { "" } }
+                    b.layoutGroupInviteActions.visibility = View.GONE
+                    b.tvGroupInviteStatusReceived.visibility = View.VISIBLE
+                    b.tvGroupInviteStatusReceived.text = "✅ Vous avez rejoint ce groupe"
+                }
+                plaintext.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_DECLINE_PREFIX) -> {
+                    val parts = plaintext.removePrefix(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_DECLINE_PREFIX).split("|", limit = 2)
+                    b.tvGroupInviteNameReceived.text = parts.getOrElse(1) { parts.getOrElse(0) { "" } }
+                    b.layoutGroupInviteActions.visibility = View.GONE
+                    b.tvGroupInviteStatusReceived.visibility = View.VISIBLE
+                    b.tvGroupInviteStatusReceived.text = "❌ Invitation refusée"
+                }
+                else -> {
+                    // GROUP_INVITE|<base64> — pending, show buttons
+                    val groupName = runCatching {
+                        val base64 = plaintext.removePrefix(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_PREFIX)
+                        val json = org.json.JSONObject(android.util.Base64.decode(base64, android.util.Base64.NO_WRAP).toString(Charsets.UTF_8))
+                        json.optString("groupName", "")
+                    }.getOrDefault("")
+                    b.tvGroupInviteNameReceived.text = groupName
+                    b.layoutGroupInviteActions.visibility = View.VISIBLE
+                    b.tvGroupInviteStatusReceived.visibility = View.GONE
+                    b.btnGroupInviteAccept.setOnClickListener { onAccept?.invoke(message) }
+                    b.btnGroupInviteDecline.setOnClickListener { onDecline?.invoke(message) }
+                }
+            }
+        }
+    }
 
     class InfoViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tvInfoMessage: android.widget.TextView = view.findViewById(R.id.tvInfoMessage)

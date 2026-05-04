@@ -26,6 +26,8 @@ import android.content.SharedPreferences
 import com.fialkaapp.fialka.data.model.Contact
 import com.fialkaapp.fialka.util.FialkaSecurePrefs
 import com.fialkaapp.fialka.data.model.Conversation
+import com.fialkaapp.fialka.data.model.GroupLocal
+import com.fialkaapp.fialka.data.model.GroupMember
 import com.fialkaapp.fialka.data.model.MessageLocal
 import com.fialkaapp.fialka.data.model.OutboxMessage
 import com.fialkaapp.fialka.data.model.RatchetState
@@ -53,9 +55,11 @@ import java.security.SecureRandom
         Conversation::class,
         MessageLocal::class,
         RatchetState::class,
-        OutboxMessage::class
+        OutboxMessage::class,
+        GroupLocal::class,
+        GroupMember::class
     ],
-    version = 26,
+    version = 28,
     exportSchema = false
 )
 abstract class FialkaDatabase : RoomDatabase() {
@@ -66,6 +70,7 @@ abstract class FialkaDatabase : RoomDatabase() {
     abstract fun messageLocalDao(): MessageLocalDao
     abstract fun ratchetStateDao(): RatchetStateDao
     abstract fun outboxDao(): OutboxDao
+    abstract fun groupDao(): GroupDao
 
     companion object {
         @Volatile
@@ -77,7 +82,7 @@ abstract class FialkaDatabase : RoomDatabase() {
         // Plain (non-encrypted) prefs — only stores the non-sensitive schema version
         private const val META_PREFS = "fialka_meta"
         private const val KEY_DB_VERSION = "db_schema_version"
-        private const val CURRENT_VERSION = 26
+        private const val CURRENT_VERSION = 28
 
         /**
          * Returns true if the database file already exists (i.e. this is an upgrade, not a

@@ -12,6 +12,17 @@
         android:orientation="vertical"
         android:maxWidth="320dp">
 
+        <TextView
+            android:id="@+id/tvSenderName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="2dp"
+            android:layout_marginStart="12dp"
+            android:visibility="gone" />
+
         <LinearLayout
             android:id="@+id/bubbleReceived"
             android:layout_width="wrap_content"
