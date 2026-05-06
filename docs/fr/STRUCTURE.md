@@ -6,8 +6,8 @@
 
 # 📂 Structure du projet
 
-<img src="https://img.shields.io/badge/Fragments-21-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Layouts-43-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Fragments-22-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Layouts-44-9C4DCC?style=for-the-badge" />
 <img src="https://img.shields.io/badge/Animations-14-6A1B9A?style=for-the-badge" />
 
 </div>
@@ -96,7 +96,8 @@ Fialka/
 │       │   │   ├── AppLockManager.kt         # PIN, biométrie, auto-lock timeout
 │       │   │   ├── EphemeralManager.kt       # Durées éphémères (30s → 1 mois)
 │       │   │   ├── DummyTrafficManager.kt    # Faux trafic (anti analyse de trafic)
-│       │   │   └── DeviceSecurityManager.kt  # Sonde StrongBox, niveaux sécurité MAXIMUM/STANDARD
+│       │   ├── DeviceSecurityManager.kt  # Sonde StrongBox, niveaux sécurité MAXIMUM/STANDARD
+│       │   └── LocaleHelper.kt           # Changement de locale au runtime, persistance SharedPreferences
 │       │   │
 │       │   └── ui/
 │       │       ├── onboarding/               # Création d'identité + backup + restauration
@@ -104,7 +105,8 @@ Fialka/
 │       │       │   ├── OnboardingViewModel.kt
 │       │       │   ├── BackupPhraseFragment.kt
 │       │       │   ├── RestoreFragment.kt
-│       │       │   └── SeedVerificationFragment.kt  # Confirmation 3 mots après backup
+│       │       │   ├── SeedVerificationFragment.kt  # Confirmation 3 mots après backup
+│       │       │   └── LanguageSelectionFragment.kt # Sélecteur de langue in-app (FR/EN)
 │       │       ├── conversations/            # Liste des chats + demandes de contact
 │       │       │   ├── ConversationsFragment.kt
 │       │       │   ├── ConversationsViewModel.kt
@@ -156,12 +158,14 @@ Fialka/
 │       └── res/
 │           ├── anim/                         # 14 animations (slide, fade, bubble, cascade, bottom sheet)
 │           ├── drawable/                     # Bulles, badges, icônes, backgrounds, brand orbs, panels
-│           ├── layout/                       # 43 layouts XML (fragments + items + bottom sheets)
+│           ├── layout/                   # 44 layouts XML (fragments + items + bottom sheets)
 │           ├── menu/                         # Menu conversations
-│           ├── navigation/nav_graph.xml      # 21 destinations, transitions animées
+│           ├── navigation/nav_graph.xml      # 22 destinations, transitions animées
 │           ├── raw/bip39_english.txt         # Wordlist BIP-39 (2048 mots)
 │           ├── xml/file_paths.xml            # FileProvider paths (partage fichiers)
+│           ├── xml/locale_config.xml         # Locales supportées (fr, en) — per-app language
 │           ├── values/                       # Couleurs, strings, thèmes, 22 attrs custom
+│           ├── values-en/strings.xml         # ~1300+ traductions anglaises (i18n)
 │           └── values-night/                 # Couleurs dark mode
 ```
 

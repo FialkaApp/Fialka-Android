@@ -1,4 +1,4 @@
-<div align="right">
+﻿<div align="right">
   <a href="README.md">🇫🇷 Français</a> | 🇬🇧 English
 </div>
 
@@ -19,7 +19,7 @@
 [![Android](https://img.shields.io/badge/Android-33%2B-a855f7?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-7c3aed?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![E2E](https://img.shields.io/badge/PQXDH-X25519%20%2B%20ML--KEM--1024-6d28d9?style=for-the-badge&logo=letsencrypt&logoColor=white)](docs/en/CRYPTO.md)
-[![Version](https://img.shields.io/badge/Version-V4.3.0--alpha-a855f7?style=for-the-badge)](version.properties)
+[![Version](https://img.shields.io/badge/Version-V4.3.5--alpha-a855f7?style=for-the-badge)](version.properties)
 [![License](https://img.shields.io/badge/GPLv3-License-8b5cf6?style=for-the-badge)](LICENSE)
 [![Terms](https://img.shields.io/badge/Terms-Conditions-8b5cf6?style=for-the-badge)](TERMS.md)
 [![Privacy](https://img.shields.io/badge/Privacy-Policy-8b5cf6?style=for-the-badge)](PRIVACY.md)
@@ -64,9 +64,7 @@
 
 </div>
 
-<table>
-<tr>
-<td width="50%">
+
 
 ### 🔐 Crypto
 
@@ -86,8 +84,7 @@
 - **Ed25519 signatures** per-message anti-forgery
 - **Zero Google, zero Firebase** — full P2P via **Tor Hidden Services**
 
-</td>
-<td width="50%">
+
 
 ### 🎨 UI/UX
 
@@ -101,10 +98,9 @@
 - **App Lock** PIN + biometrics
 - **Disappearing messages** (30s → 1 month)
 - **One-shot photos** view once 🔥
+- **In-app language selector** — FR / EN (dedicated screen, persistent, instant reload)
 
-</td>
-</tr>
-</table>
+
 
 ---
 
@@ -177,6 +173,7 @@
 | 🫧 | **Dynamic bubbles** | Colors adapt to the active theme |
 | 🎭 | **Visual selector** | MaterialCardView grid with preview |
 | 📎 | **Inline icons** | Session-style attachment (file/photo/camera) animated |
+| 🌍 | **Language selector** | FR / EN in-app, instant switch, persistent preference |
 
 </details>
 
@@ -380,9 +377,7 @@ cd Fialka-Android
 
 </div>
 
-<table>
-<tr>
-<td width="50%">
+
 
 ### 🔐 Cryptography
 
@@ -411,8 +406,7 @@ cd Fialka-Android
 | [**SQLCipher**](https://www.zetetic.net/sqlcipher/) — Zetetic | `4.14.1` | AES-256 encryption of the Room database |
 | [**KSP**](https://github.com/google/ksp) — Google | — | Compile-time Room code generation |
 
-</td>
-<td width="50%">
+
 
 ### 📱 Android SDK & UI
 
@@ -436,9 +430,7 @@ cd Fialka-Android
 | [**Kotlinx Coroutines**](https://github.com/Kotlin/kotlinx.coroutines) — JetBrains | `1.10.2` | Non-blocking async, structured concurrency |
 | [**Kotlin**](https://kotlinlang.org/) — JetBrains | `2.3.0` | Primary programming language |
 
-</td>
-</tr>
-</table>
+
 
 <br/>
 
@@ -492,7 +484,7 @@ The U.S. Government Department of Commerce, Bureau of Industry and Security (BIS
 
 <br/>
 
-<img src="https://img.shields.io/badge/Fialka-V4.3.0--alpha-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
+<img src="https://img.shields.io/badge/Fialka-V4.3.5--alpha-7c3aed?style=for-the-badge&logo=android&logoColor=white" />
 
 <br/><br/>
 

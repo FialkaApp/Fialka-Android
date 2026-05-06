@@ -1,4 +1,4 @@
-<div align="right">
+﻿<div align="right">
   <a href="../fr/CHANGELOG.md">🇫🇷 Français</a> | 🇬🇧 English
 </div>
 
@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V4.3.0--alpha-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/versionCode-13-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V4.3.5--alpha-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/versionCode-14-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -472,6 +472,45 @@
 ---
 
 <details open>
+<summary><h2>✅ V4.0.1 — Keystore Security, SQLCipher Fixes & Transport Reliability</h2></summary>
+
+
+> Replaced `security-crypto` with `FialkaSecurePrefs` (direct Keystore), fixed SQLCipher 4.14.1 crash, fixed `DurationSelectorBottomSheet` NPE, full transport reliability (5 fixes).
+
+### 🔐 Security — FialkaSecurePrefs (Direct Android Keystore)
+- [x] **`security-crypto` removed** — `androidx.security:security-crypto:1.1.0-alpha06` and `MasterKey.Builder` / `EncryptedSharedPreferences` fully removed
+- [x] **`FialkaSecurePrefs`** — New `object` implementation using the Android Keystore directly: AES-256-GCM, key alias `fialka_ks_{name}`, prefs file `{name}_v2`
+- [x] **StrongBox with TEE fallback** — Silent attempt on StrongBox, automatic fallback to standard TEE if unavailable
+- [x] **6 files migrated** — `CryptoManager`, `FialkaDatabase`, `MailboxDatabase`, `AppMode`, `AppLockManager`, `MailboxClientManager` migrated to `FialkaSecurePrefs.open()`
+- [x] **AGP 8.9.1 + compileSdk 36 + Gradle 8.13** — Build toolchain upgrade; zero warnings in release builds
+
+### 🐛 Fix — SQLCipher crash on startup
+- [x] **`System.loadLibrary("sqlcipher")`** — `sqlcipher-android:4.14.1` removed the static initializer; `FialkaApplication.onCreate()` now loads the native library first
+- [x] **Defensive calls** — `FialkaDatabase.getInstance()` and `MailboxDatabase.buildDatabase()` also call `loadLibrary` as a defensive guard
+
+### 🐛 Fix — DurationSelectorBottomSheet NPE
+- [x] **`context` parameter removed** — `DurationSelectorBottomSheet` no longer takes an external `Context`; `BottomSheetDialogFragment` provides its own context
+- [x] **`show()` simplified** — Removed `fragmentManager.findFragmentById(R.id.nav_host_fragment)?.requireContext()!!` which returned `null` from `childFragmentManager`
+
+### ⚡ Transport Reliability
+- [x] **Reduced retry delay** — `RETRY_INTERVAL_MS` 60 s → 15 s; `MAX_RETRY_DELAY_MS` cap 30 min → 3 min (backoff: 15 s / 30 s / 1 min / 2 min / 3 min)
+- [x] **`DELIVERY_FAILED` on exhausted messages** — Messages reaching 50 retries are marked `DELIVERY_FAILED` BEFORE queue deletion (fixes permanent hourglass ⏳)
+- [x] **Mailbox fallback in `processOutboxForContact()`** — If P2P deposit fails, automatically deposits via Mailbox and updates to `DELIVERY_MAILBOX`
+- [x] **Mailbox sweep in `broadcastPresence()`** — After the offline-contacts loop, `processOutbox()` is called to sweep queued messages
+- [x] **Adaptive fetch in `MailboxClientManager`** — Base 10 s, 5 s when messages received (+`OutboxManager.flushNow()`), backoff up to 60 s on error
+
+### 📦 Updated Dependencies
+- [x] **BouncyCastle** 1.80 → **1.83** (ML-KEM-1024, Ed25519, ML-DSA-44)
+- [x] **SQLCipher** 4.5.4 → **4.14.1**
+- [x] **Room** 2.7.1 → **2.8.4**
+- [x] **Coroutines** 1.9.0 → **1.10.2**
+- [x] **Navigation** 2.8.9 → **2.9.7** | **Lifecycle** 2.8.7 → **2.10.0**
+
+</details>
+
+---
+
+<details open>
 <summary><h2>✅ V4.0.2 — Fialka-Core Rust JNI Bridge</h2></summary>
 
 
@@ -510,7 +549,60 @@
 ---
 
 <details open>
-<summary><h2>🔐 V4.3.0-alpha — .fialka E2E Backup, Monero Stagenet/Mainnet Network, Storage Management & Legal Update</h2></summary>
+<summary><h2>✅ V4.1.0-alpha — Ed25519 Contact Auth, Unit Tests & Migration Safety</h2></summary>
+
+> `versionCode 11` · `versionName "4.1.0-alpha"` · Security fix + test coverage + UX safety
+
+### 🔐 Security — Ed25519 Signature Verification on Contact Requests
+- [x] **`P2PServer.handleContactRequest()`** — Now verifies the Ed25519 signature on incoming contact requests. Previously, `senderSigningPublicKey` was received but never verified — anyone could spoof an identity.
+- [x] **Canonical signed data** — `senderPubKey(UTF-8) || 0x00 || conversationId(UTF-8) || createdAt(big-endian 8 bytes)` — domain-separated, deterministic
+- [x] **`sendContactRequest()`** — Now signs the payload with `FialkaNative.ed25519Sign()` and includes `requestSignature` field
+- [x] **Backward compatible** — Old clients without `requestSignature` are still accepted (graceful migration window)
+
+### 🧪 Unit Tests — Crypto & Ratchet Coverage
+- [x] **Robolectric 4.13** added as test dependency
+- [x] **`CryptoManagerPureTest`** — 20 tests: `deriveConversationId` determinism/commutativity/uniqueness, `buildSignedData` timestamp encoding, `hashSenderUid` cross-conversation pseudonymity
+- [x] **`RatchetSimulationTest`** — 16 tests: bidirectional ratchet, 500-step key uniqueness, SPQR interval=10, `pqRatchetStep` correctness, initiator/responder symmetry
+- [x] **`DoubleRatchetTest`** — 2 JNI-dependent tests marked `@Ignore` (require `libfialka_core.so` — must run as instrumented tests)
+- [x] **45 unit tests total, 0 failures**
+
+### 🛡️ UX Safety — Destructive Migration Warning
+- [x] **`FialkaDatabase.needsDestructiveMigration()`** — Detects when a Room schema upgrade would trigger `fallbackToDestructiveMigration` (DROP ALL TABLES)
+- [x] **`MainActivity`** — Shows a blocking `AlertDialog` before any DB access on upgrade: user must explicitly confirm data loss or quit
+- [x] **`FialkaDatabase.recordCurrentVersion()`** — Persists schema version in plain `SharedPreferences` after confirmed open
+
+### 🛠 Dev Infrastructure
+- [x] **`version.properties`** — Single source of truth for `VERSION_CODE` + `VERSION_NAME`; `build.gradle.kts` reads it automatically — only edit `version.properties` to bump version
+- [x] **Version V4.1.0-alpha** — `versionCode 11`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>✅ V4.2.0-alpha — Monero XMR Wallet, Tor Settings & Seed Backup</h2></summary>
+
+> `versionCode 12` · `versionName "4.2.0-alpha"` · Local non-custodial Monero wallet, XMR in-chat payments, Tor improvements
+
+### 💰 Monero (XMR) Wallet — Non-custodial
+- [x] **Local XMR wallet** — private keys generated and stored exclusively on device (SQLCipher)
+- [x] **Derived from seed** — 1 Ed25519 seed → XMR wallet (deterministic)
+- [x] **XMR in-chat payments** — send XMR amounts directly from a conversation
+- [x] **Donation address** — XMR sub-address to support development
+- [x] **Zero custody** — developers have no visibility into any funds
+- [x] **Legal compliance** — non-custodial wallet outside PSAN (AMF) scope and MiCA scope (Art. 2, Regulation 2023/1114)
+
+### 🧅 Tor & Network Improvements
+- [x] **Advanced Tor settings** — bridges, excluded countries, configurable timeouts
+- [x] **Tor bandwidth indicator** — real-time throughput display
+- [x] **Version V4.2.0-alpha** — `versionCode 12`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>✅ V4.3.0-alpha — .fialka E2E Backup, Monero Stagenet/Mainnet Network, Storage Management & Legal Update</h2></summary>
 
 > `versionCode 13` · `versionName "4.3.0-alpha"` · Full encrypted backup, Monero network selection (Stagenet/Mainnet), storage management screen, CATEGORY_DATA in settings, V5 legal update
 
@@ -567,125 +659,31 @@
 ---
 
 <details open>
-<summary><h2>🟢 V4.2.0-alpha — Monero XMR Wallet, Tor Settings & Seed Backup</h2></summary>
-
-> `versionCode 12` · `versionName "4.2.0-alpha"` · Local non-custodial Monero wallet, XMR in-chat payments, Tor improvements
-
-### 💰 Monero (XMR) Wallet — Non-custodial
-- [x] **Local XMR wallet** — private keys generated and stored exclusively on device (SQLCipher)
-- [x] **Derived from seed** — 1 Ed25519 seed → XMR wallet (deterministic)
-- [x] **XMR in-chat payments** — send XMR amounts directly from a conversation
-- [x] **Donation address** — XMR sub-address to support development
-- [x] **Zero custody** — developers have no visibility into any funds
-- [x] **Legal compliance** — non-custodial wallet outside PSAN (AMF) scope and MiCA scope (Art. 2, Regulation 2023/1114)
-
-### 🧅 Tor & Network Improvements
-- [x] **Advanced Tor settings** — bridges, excluded countries, configurable timeouts
-- [x] **Tor bandwidth indicator** — real-time throughput display
-- [x] **Version V4.2.0-alpha** — `versionCode 12`
-
-</details>
-
----
-
-<details open>
-<summary><h2>�🟡 V4.1.0-alpha — Ed25519 Contact Auth, Unit Tests & Migration Safety</h2></summary>
-
-> `versionCode 11` · `versionName "4.1.0-alpha"` · Security fix + test coverage + UX safety
-
-### 🔐 Security — Ed25519 Signature Verification on Contact Requests
-- [x] **`P2PServer.handleContactRequest()`** — Now verifies the Ed25519 signature on incoming contact requests. Previously, `senderSigningPublicKey` was received but never verified — anyone could spoof an identity.
-- [x] **Canonical signed data** — `senderPubKey(UTF-8) || 0x00 || conversationId(UTF-8) || createdAt(big-endian 8 bytes)` — domain-separated, deterministic
-- [x] **`sendContactRequest()`** — Now signs the payload with `FialkaNative.ed25519Sign()` and includes `requestSignature` field
-- [x] **Backward compatible** — Old clients without `requestSignature` are still accepted (graceful migration window)
-
-### 🧪 Unit Tests — Crypto & Ratchet Coverage
-- [x] **Robolectric 4.13** added as test dependency
-- [x] **`CryptoManagerPureTest`** — 20 tests: `deriveConversationId` determinism/commutativity/uniqueness, `buildSignedData` timestamp encoding, `hashSenderUid` cross-conversation pseudonymity
-- [x] **`RatchetSimulationTest`** — 16 tests: bidirectional ratchet, 500-step key uniqueness, SPQR interval=10, `pqRatchetStep` correctness, initiator/responder symmetry
-- [x] **`DoubleRatchetTest`** — 2 JNI-dependent tests marked `@Ignore` (require `libfialka_core.so` — must run as instrumented tests)
-- [x] **45 unit tests total, 0 failures**
-
-### 🛡️ UX Safety — Destructive Migration Warning
-- [x] **`FialkaDatabase.needsDestructiveMigration()`** — Detects when a Room schema upgrade would trigger `fallbackToDestructiveMigration` (DROP ALL TABLES)
-- [x] **`MainActivity`** — Shows a blocking `AlertDialog` before any DB access on upgrade: user must explicitly confirm data loss or quit
-- [x] **`FialkaDatabase.recordCurrentVersion()`** — Persists schema version in plain `SharedPreferences` after confirmed open
-
-### 🛠 Dev Infrastructure
-- [x] **`version.properties`** — Single source of truth for `VERSION_CODE` + `VERSION_NAME`; `build.gradle.kts` reads it automatically — only edit `version.properties` to bump version
-- [x] **Version V4.1.0-alpha** — `versionCode 11`
-
-</details>
+<summary><h2>✅ V4.3.5-alpha — Full Internationalization (i18n)</h2></summary>
 
 
-> Replaced `security-crypto` with `FialkaSecurePrefs` (direct Keystore), fixed SQLCipher 4.14.1 crash, fixed `DurationSelectorBottomSheet` NPE, full transport reliability (5 fixes).
+> `versionCode 14` · `versionName "4.3.5-alpha"` · Complete externalization of all hardcoded strings, full English translation (~1300+ strings), in-app language selector, exhaustive XML audit, dependency bumps.
 
-### 🔐 Security — FialkaSecurePrefs (Direct Android Keystore)
-- [x] **`security-crypto` removed** — `androidx.security:security-crypto:1.1.0-alpha06` and `MasterKey.Builder` / `EncryptedSharedPreferences` fully removed
-- [x] **`FialkaSecurePrefs`** — New `object` implementation using the Android Keystore directly: AES-256-GCM, key alias `fialka_ks_{name}`, prefs file `{name}_v2`
-- [x] **StrongBox with TEE fallback** — Silent attempt on StrongBox, automatic fallback to standard TEE if unavailable
-- [x] **6 files migrated** — `CryptoManager`, `FialkaDatabase`, `MailboxDatabase`, `AppMode`, `AppLockManager`, `MailboxClientManager` migrated to `FialkaSecurePrefs.open()`
-- [x] **AGP 8.9.1 + compileSdk 36 + Gradle 8.13** — Build toolchain upgrade; zero warnings in release builds
+### 🌍 Internationalization (i18n)
+- [x] **`values-en/strings.xml`** — ~1300+ English translations, full parity with FR (default locale)
+- [x] **`LocaleHelper.kt`** — Runtime locale switching utility, persisted in SharedPreferences
+- [x] **`LanguageSelectionFragment.kt`** — In-app language selector (FR / EN) with Activity restart
+- [x] **`locale_config.xml`** — Supported locales declared in AndroidManifest (`fr`, `en`)
+- [x] **`ic_language.xml`** — New language vector icon in the settings menu
 
-### 🐛 Fix — SQLCipher crash on startup
-- [x] **`System.loadLibrary("sqlcipher")`** — `sqlcipher-android:4.14.1` removed the static initializer; `FialkaApplication.onCreate()` now loads the native library first
-- [x] **Defensive calls** — `FialkaDatabase.getInstance()` and `MailboxDatabase.buildDatabase()` also call `loadLibrary` as a defensive guard
+### 🔧 Hardcoded String Externalization
+- [x] **50+ Kotlin files** — Full audit: all hardcoded strings replaced with `getString(R.string.*)`
+- [x] **30+ XML layouts** — All hardcoded `android:text`, `android:hint`, `android:contentDescription` replaced with `@string/*`
+- [x] **4 menu XML files** — Menu titles (`menu_search`, `menu_my_profile`, `menu_settings`, `menu_reply`, `menu_wallet_seed_action`, `menu_wallet_settings_action`) externalized
+- [x] **`ConversationsFragment.kt`** — FAB menu ("💬  Nouvelle conversation", "👥  Nouveau groupe") → `getString(R.string.fab_new_conversation)` / `getString(R.string.fab_new_group)`
+- [x] **`ConversationsAdapter.kt`** — "Pending acceptance" status and placeholder → `getString(R.string.pending_acceptance_short)` / `getString(R.string.conversation_new_placeholder)`
+- [x] **`fragment_create_group.xml` + `nav_graph.xml`** — "Nouveau groupe" label → `@string/create_group_title`
+- [x] **35 new i18n keys** — `menu_*`, `cd_*` (content descriptions), `hint_*`, `fab_*` (`fab_new_conversation`, `fab_new_group`), `pending_acceptance_short`, `conversation_new_placeholder`, `create_group_title`, `xmr_pay_btn`, `settings_autolock_after_3s`
 
-### 🐛 Fix — DurationSelectorBottomSheet NPE
-- [x] **`context` parameter removed** — `DurationSelectorBottomSheet` no longer takes an external `Context`; `BottomSheetDialogFragment` provides its own context
-- [x] **`show()` simplified** — Removed `fragmentManager.findFragmentById(R.id.nav_host_fragment)?.requireContext()!!` which returned `null` from `childFragmentManager`
-
-### ⚡ Transport Reliability
-- [x] **Reduced retry delay** — `RETRY_INTERVAL_MS` 60 s → 15 s; `MAX_RETRY_DELAY_MS` cap 30 min → 3 min (backoff: 15 s / 30 s / 1 min / 2 min / 3 min)
-- [x] **`DELIVERY_FAILED` on exhausted messages** — Messages reaching 50 retries are marked `DELIVERY_FAILED` BEFORE queue deletion (fixes permanent hourglass ⏳)
-- [x] **Mailbox fallback in `processOutboxForContact()`** — If P2P deposit fails, automatically deposits via Mailbox and updates to `DELIVERY_MAILBOX`
-- [x] **Mailbox sweep in `broadcastPresence()`** — After the offline-contacts loop, `processOutbox()` is called to sweep queued messages
-- [x] **Adaptive fetch in `MailboxClientManager`** — Base 10 s, 5 s when messages received (+`OutboxManager.flushNow()`), backoff up to 60 s on error
-
-### 📦 Updated Dependencies
-- [x] **BouncyCastle** 1.80 → **1.83** (ML-KEM-1024, Ed25519, ML-DSA-44)
-- [x] **SQLCipher** 4.5.4 → **4.14.1**
-- [x] **Room** 2.7.1 → **2.8.4**
-- [x] **Coroutines** 1.9.0 → **1.10.2**
-- [x] **Navigation** 2.8.9 → **2.9.7** | **Lifecycle** 2.8.7 → **2.10.0**
-
-</details>
-
----
-
-<details>
-<summary><h2>🔜 V3.6 — Planned (partially delivered in V4.0)</h2></summary>
-
-
-> Advanced camouflage, plausible deniability, E2E voice messages, sealed sender, messaging improvements.
-
-### 🎭 App Disguise (Icon & Name Camouflage)
-- [ ] **Icon change** — User picks a camouflage icon from presets: Calculator, Notes, News, Weather, Clock, etc.
-- [ ] **Display name change** — App name in launcher changes to match the chosen icon (“Calculator”, “Notes”, “News”, etc.)
-- [ ] **Icon themes** — Each disguise has a matching icon + name (professional style)
-- [ ] **Activity-alias** — Implementation via `<activity-alias>` in manifest (dynamic enable/disable via `PackageManager`)
-- [ ] **Confirmation + restart** — Confirmation dialog with preview → “Restart now” → kill + relaunch
-- [ ] **Functional cover screen** — Disguised app opens a real functional fake app (calculator, notes, etc.). The real chat is accessible via a secret gesture (hidden long press or special code)
-- [ ] **Persistence** — Choice saved in SharedPreferences, restored on startup
-
-### 🔐 Plausible Deniability & Protection
-- [ ] **Dual PIN** — Normal PIN opens chat; duress PIN opens an empty profile or triggers a silent wipe (plausible deniability, journalist/activist level)
-- [ ] **Panic button** — Shake phone → instant deletion of all conversations + keys + sign-out (full wipe)
-- [ ] **Screenshot protection** — ~~`FLAG_SECURE` on all windows~~ ✔️ **Done in V3.4.1 Security Audit**
-- [ ] **Keyboard incognito** — `flagNoPersonalizedLearning` on all input fields — keyboard does not learn or log anything
-
-### 🔐 Advanced Crypto
-- [ ] **Sealed sender** — Sender identity hidden on Firebase side — recipient deduces sender only after decryption
-
-### 💬 Advanced Messaging
-- [ ] **E2E voice messages** — Audio recording, AES-256-GCM encryption, sent via ratchet, inline player in chat
-- [ ] **Reply / Quote** — Reply to a specific message with quoted citation (quoted bubble + new message)
-- [ ] **Groups** — 3+ participant conversations (Sender Keys)
-- [ ] **Delete for everyone** — Delete a message on local + Firebase
-- [ ] **Typing indicators** — “Typing...” (E2E encrypted, opt-in)
-
-### 🛡️ Infrastructure
-- [ ] **Private relay** — Dedicated relay server to reduce Firebase dependency
+### 📦 Dependencies
+- [x] **KSP** 2.3.6 → **2.3.7**
+- [x] **swiperefreshlayout** 1.1.0 → **1.2.0**
+- [x] **actions/upload-artifact** v4 → **v7** (GitHub Actions CI)
 
 </details>
 

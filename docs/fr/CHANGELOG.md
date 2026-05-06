@@ -6,8 +6,8 @@
 
 # 🗺 Changelog & Roadmap
 
-<img src="https://img.shields.io/badge/Current-V4.3.0--alpha-7B2D8E?style=for-the-badge" />
-<img src="https://img.shields.io/badge/versionCode-13-9C4DCC?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Current-V4.3.5--alpha-7B2D8E?style=for-the-badge" />
+<img src="https://img.shields.io/badge/versionCode-14-9C4DCC?style=for-the-badge" />
 
 </div>
 
@@ -511,7 +511,98 @@
 ---
 
 <details open>
-<summary><h2>🔐 V4.3.0-alpha — Backup .fialka E2E, Réseau Monero Stagenet/Mainnet, Gestion du stockage & Mise à jour légale</h2></summary>
+<summary><h2>✅ V4.0.2 — Pont JNI Rust Fialka-Core</h2></summary>
+
+
+> Migration de la cryptographie native vers Rust — toute la crypto est désormais exécutée dans la bibliothèque Rust ` fialka-core `, exposée via un pont JNI. Suppression complète de BouncyCastle.
+
+### 🦀 Pont JNI Rust (Fialka-Core)
+- [x] **30 fonctions JNI** implémentées dans `Fialka-Core/src/ffi/mod.rs` via the `jni = 0.21` crate
+- [x] **`FialkaNative.kt`** — Kotlin bridge object, `System.loadLibrary("fialka_core")`, 30 `external fun`
+- [x] **`libfialka_core.so`** — compilée avec `cargo-ndk` for `arm64-v8a` (906 KB) and `x86_64` (984 KB)
+- [x] **git submodule** — `Fialka-Core/` intégré comme submodule dans Fialka-Android
+
+### 🔐 Migration cryptographique
+- [x] **`CryptoManager.kt`** — 100% migré : tous les appels BouncyCastle remplacés par `FialkaNative`
+  - `identityDerive` → 8704-octets bundle (Ed25519, X25519, ML-KEM-1024, ML-DSA-44)
+  - `encryptAes` / `decryptAes` → FialkaNative.encryptAes / decryptAes
+  - `encryptChaCha` / `decryptChaCha` → FialkaNative (nonce 12 octets, tag 16 octets)
+  - `encryptFile` / `decryptFile` → FialkaNative (format : key[32] || iv[12] || CT)
+  - `hmacSha256` → FialkaNative.hmacSha256
+  - `hkdfZeroSalt` / dérivation de clés → FialkaNative.hkdfZeroSalt
+  - `ed25519Sign` / `ed25519Verify` → FialkaNative
+  - `x25519Dh` → FialkaNative (suppression préfixes ASN.1 JCA : X509 12 octets, PKCS8 16 octets)
+  - `mlkemEncaps` / `mlkemDecaps` → FialkaNative
+  - `mldsaSign` / `mldsaVerify` → FialkaNative
+  - `deriveRootKeyPqxdh` → FialkaNative
+  - `computeOnion` / `ed25519ToX25519Raw` → FialkaNative
+- [x] **`TorTransport.kt`** — `signEd25519` / `verifyEd25519` migrés vers FialkaNative
+- [x] **`build.gradle.kts`** — `org.bouncycastle:bcprov-jdk18on:1.83` dépendance supprimée
+- [x] **Tests Robolectric + JVM** supprimés (incompatibles avec JNI) ; tests migrés vers `androidTest`
+
+### 🧩 Cross-platform
+- [x] Même bibliothèque Rust utilisée sur Android (JNI) et toute autre cible (Windows/Linux/iOS via FFI)
+- [x] **Version V4.0.2** — `versionCode 10`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>✅ V4.1.0-alpha — Auth Ed25519, Tests Unitaires & Sécurité Migration</h2></summary>
+
+> `versionCode 11` · `versionName "4.1.0-alpha"` · Correction sécurité + couverture tests + protection UX
+
+### 🔐 Sécurité — Vérification signature Ed25519 sur les demandes de contact
+- [x] **`P2PServer.handleContactRequest()`** — Vérifie maintenant la signature Ed25519 sur les demandes de contact entrantes. Auparavant, `senderSigningPublicKey` était reçu mais jamais vérifié — n'importe qui pouvait usurper une identité.
+- [x] **Données signées canoniques** — `senderPubKey(UTF-8) || 0x00 || conversationId(UTF-8) || createdAt(big-endian 8 octets)` — séparé par domaine, déterministe
+- [x] **`sendContactRequest()`** — Signe maintenant le payload avec `FialkaNative.ed25519Sign()` et inclut le champ `requestSignature`
+- [x] **Rétrocompatible** — Les anciens clients sans `requestSignature` sont encore acceptés (fenêtre de migration progressive)
+
+### 🧪 Tests Unitaires — Couverture Crypto & Ratchet
+- [x] **Robolectric 4.13** ajouté comme dépendance de test
+- [x] **`CryptoManagerPureTest`** — 20 tests : déterminisme/commutativité/unicité de `deriveConversationId`, encodage timestamp `buildSignedData`, pseudonymat cross-conversation `hashSenderUid`
+- [x] **`RatchetSimulationTest`** — 16 tests : ratchet bidirectionnel, unicité 500 clés, intervalle SPQR=10, correction `pqRatchetStep`, symétrie initiator/responder
+- [x] **`DoubleRatchetTest`** — 2 tests JNI marqués `@Ignore` (nécessitent `libfialka_core.so` — à migrer en tests instrumentés)
+- [x] **45 tests unitaires au total, 0 échec**
+
+### 🛡️ Protection UX — Avertissement migration destructive
+- [x] **`FialkaDatabase.needsDestructiveMigration()`** — Détecte quand une mise à jour de schéma Room déclencherait `fallbackToDestructiveMigration` (DROP ALL TABLES)
+- [x] **`MainActivity`** — Affiche un `AlertDialog` bloquant avant tout accès DB lors d'une mise à jour : l'utilisateur doit confirmer explicitement la perte de données ou quitter
+- [x] **`FialkaDatabase.recordCurrentVersion()`** — Persiste la version du schéma dans des `SharedPreferences` simples après ouverture confirmée
+
+### 🛠 Infrastructure Dev
+- [x] **`version.properties`** — Source unique de vérité pour `VERSION_CODE` + `VERSION_NAME` ; `build.gradle.kts` le lit automatiquement — modifier uniquement `version.properties` pour bumper la version
+- [x] **Version V4.1.0-alpha** — `versionCode 11`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>✅ V4.2.0-alpha — Wallet Monero XMR, Paramètres Tor & Seed Backup</h2></summary>
+
+> `versionCode 12` · `versionName "4.2.0-alpha"` · Wallet Monero non-custodial local, paiements XMR in-chat, améliorations Tor
+
+### 💰 Wallet Monero (XMR) — Non-custodial
+- [x] **Wallet XMR local** — clés privées générées et stockées exclusivement sur l'appareil (SQLCipher)
+- [x] **Dérivé depuis le seed** — 1 seed Ed25519 → wallet XMR (déterministe)
+- [x] **Paiements XMR in-chat** — envoi de montants XMR directement depuis une conversation
+- [x] **Adresse de donation** — sous-adresse XMR pour soutenir le développement
+- [x] **Zéro custody** — les développeurs n'ont aucune visibilité sur les fonds
+- [x] **Conformité légale** — wallet non-custodial hors champ PSAN (AMF) et MiCA (Art. 2, 2023/1114)
+
+### 🧅 Améliorations Tor & Réseau
+- [x] **Paramètres Tor avancés** — bridges, pays exclus, timeouts configurables
+- [x] **Indicateur de bande passante Tor** — affichage du débit en temps réel
+- [x] **Version V4.2.0-alpha** — `versionCode 12`
+
+</details>
+
+---
+
+<details open>
+<summary><h2>✅ V4.3.0-alpha — Backup .fialka E2E, Réseau Monero Stagenet/Mainnet, Gestion du stockage & Mise à jour légale</h2></summary>
 
 > `versionCode 13` · `versionName "4.3.0-alpha"` · Backup chiffré complet, sélection réseau Monero (Stagenet/Mainnet), écran de gestion du stockage, CATEGORY_DATA dans les paramètres, mise à jour légale V5
 
@@ -568,91 +659,31 @@
 ---
 
 <details open>
-<summary><h2>🟢 V4.2.0-alpha — Wallet Monero XMR, Paramètres Tor & Seed Backup</h2></summary>
-
-> `versionCode 12` · `versionName "4.2.0-alpha"` · Wallet Monero non-custodial local, paiements XMR in-chat, améliorations Tor
-
-### 💰 Wallet Monero (XMR) — Non-custodial
-- [x] **Wallet XMR local** — clés privées générées et stockées exclusivement sur l'appareil (SQLCipher)
-- [x] **Dérivé depuis le seed** — 1 seed Ed25519 → wallet XMR (déterministe)
-- [x] **Paiements XMR in-chat** — envoi de montants XMR directement depuis une conversation
-- [x] **Adresse de donation** — sous-adresse XMR pour soutenir le développement
-- [x] **Zéro custody** — les développeurs n'ont aucune visibilité sur les fonds
-- [x] **Conformité légale** — wallet non-custodial hors champ PSAN (AMF) et MiCA (Art. 2, 2023/1114)
-
-### 🧅 Améliorations Tor & Réseau
-- [x] **Paramètres Tor avancés** — bridges, pays exclus, timeouts configurables
-- [x] **Indicateur de bande passante Tor** — affichage du débit en temps réel
-- [x] **Version V4.2.0-alpha** — `versionCode 12`
-
-</details>
-
----
-
-<details open>
-<summary><h2>�🟡 V4.1.0-alpha — Auth Ed25519, Tests Unitaires & Sécurité Migration</h2></summary>
-
-> `versionCode 11` · `versionName "4.1.0-alpha"` · Correction sécurité + couverture tests + protection UX
-
-### 🔐 Sécurité — Vérification signature Ed25519 sur les demandes de contact
-- [x] **`P2PServer.handleContactRequest()`** — Vérifie maintenant la signature Ed25519 sur les demandes de contact entrantes. Auparavant, `senderSigningPublicKey` était reçu mais jamais vérifié — n'importe qui pouvait usurper une identité.
-- [x] **Données signées canoniques** — `senderPubKey(UTF-8) || 0x00 || conversationId(UTF-8) || createdAt(big-endian 8 octets)` — séparé par domaine, déterministe
-- [x] **`sendContactRequest()`** — Signe maintenant le payload avec `FialkaNative.ed25519Sign()` et inclut le champ `requestSignature`
-- [x] **Rétrocompatible** — Les anciens clients sans `requestSignature` sont encore acceptés (fenêtre de migration progressive)
-
-### 🧪 Tests Unitaires — Couverture Crypto & Ratchet
-- [x] **Robolectric 4.13** ajouté comme dépendance de test
-- [x] **`CryptoManagerPureTest`** — 20 tests : déterminisme/commutativité/unicité de `deriveConversationId`, encodage timestamp `buildSignedData`, pseudonymat cross-conversation `hashSenderUid`
-- [x] **`RatchetSimulationTest`** — 16 tests : ratchet bidirectionnel, unicité 500 clés, intervalle SPQR=10, correction `pqRatchetStep`, symétrie initiator/responder
-- [x] **`DoubleRatchetTest`** — 2 tests JNI marqués `@Ignore` (nécessitent `libfialka_core.so` — à migrer en tests instrumentés)
-- [x] **45 tests unitaires au total, 0 échec**
-
-### 🛡️ Protection UX — Avertissement migration destructive
-- [x] **`FialkaDatabase.needsDestructiveMigration()`** — Détecte quand une mise à jour de schéma Room déclencherait `fallbackToDestructiveMigration` (DROP ALL TABLES)
-- [x] **`MainActivity`** — Affiche un `AlertDialog` bloquant avant tout accès DB lors d'une mise à jour : l'utilisateur doit confirmer explicitement la perte de données ou quitter
-- [x] **`FialkaDatabase.recordCurrentVersion()`** — Persiste la version du schéma dans des `SharedPreferences` simples après ouverture confirmée
-
-### 🛠 Infrastructure Dev
-- [x] **`version.properties`** — Source unique de vérité pour `VERSION_CODE` + `VERSION_NAME` ; `build.gradle.kts` le lit automatiquement — modifier uniquement `version.properties` pour bumper la version
-- [x] **Version V4.1.0-alpha** — `versionCode 11`
-
-</details>
-
----
-
-<details>
-<summary><h2>🔜 V3.6 — Planifié (partiellement livré dans V4.0)</h2></summary>
+<summary><h2>✅ V4.3.5-alpha — Internationalisation complète (i18n)</h2></summary>
 
 
-> Camouflage avancé, plausible deniability, messages vocaux E2E, sealed sender, améliorations messagerie.
+> `versionCode 14` · `versionName "4.3.5-alpha"` · Externalisation complète de toutes les chaînes codées en dur, traduction anglaise intégrale (~1300+ strings), sélecteur de langue in-app, audit XML exhaustif, dépendances bumped.
 
-### 🎭 Camouflage de l’app (App Disguise)
-- [ ] **Changement d’icône** — L’utilisateur choisit une icône de camouflage parmi des présets : Calculatrice, Notes, Actualités, Météo, Horloge, etc.
-- [ ] **Changement du nom affiché** — Le nom de l’app dans le launcher change pour correspondre à l’icône choisie (« Calculatrice », « Notes », « Actualités », etc.)
-- [ ] **Thèmes d’icône** — Chaque déguisement a son icône + nom cohérent (style professionnel)
-- [ ] **Activity-alias** — Implémentation via `<activity-alias>` dans le manifest (enable/disable dynamique via `PackageManager`)
-- [ ] **Confirmation + redémarrage** — Dialog de confirmation avec prévisualisation → « Redémarrer maintenant » → kill + relaunch
-- [ ] **Faux écran de couverture** — L’app déguisée ouvre une vraie fausse app fonctionnelle (calculatrice, notes, etc.). Le vrai chat est accessible via un geste secret (long press caché ou code spécial)
-- [ ] **Persistance** — Choix sauvegardé dans SharedPreferences, restauré au démarrage
+### 🌍 Internationalisation (i18n)
+- [x] **`values-en/strings.xml`** — ~1300+ traductions anglaises, parité complète avec le FR (locale par défaut)
+- [x] **`LocaleHelper.kt`** — Utilitaire de changement de locale au runtime, persistance dans SharedPreferences
+- [x] **`LanguageSelectionFragment.kt`** — Sélecteur de langue in-app (FR / EN) avec redémarrage de l'Activity
+- [x] **`locale_config.xml`** — Déclaration des locales supportées dans AndroidManifest (`fr`, `en`)
+- [x] **`ic_language.xml`** — Nouvelle icône vectorielle langue dans le menu des paramètres
 
-### 🔐 Plausible Deniability & Protection
-- [ ] **Dual PIN** — PIN normal ouvre le chat ; PIN de contrainte ouvre un profil vide ou déclenche un wipe silencieux (plausible deniability, niveau journaliste/activiste)
-- [ ] **Panic button** — Secouer le téléphone (shake) → suppression instantanée de toutes les conversations + clés + déconnexion (wipe complet)
-- [ ] **Screenshot protection** — ~~`FLAG_SECURE` sur toutes les fenêtres~~ ✔️ **Fait dans l'audit de sécurité V3.4.1**
-- [ ] **Keyboard incognito** — `flagNoPersonalizedLearning` sur tous les champs de saisie — le clavier ne mémorise/apprend rien
+### 🔧 Externalisation des chaînes hardcodées
+- [x] **50+ fichiers Kotlin** — Audit complet : toutes les chaînes hardcodées remplacées par `getString(R.string.*)`
+- [x] **30+ layouts XML** — Tous les `android:text`, `android:hint`, `android:contentDescription` hardcodés remplacés par `@string/*`
+- [x] **4 menus XML** — Titres de menus (`menu_search`, `menu_my_profile`, `menu_settings`, `menu_reply`, `menu_wallet_seed_action`, `menu_wallet_settings_action`) externalisés
+- [x] **`ConversationsFragment.kt`** — Menu FAB ("💬  Nouvelle conversation", "👥  Nouveau groupe") → `getString(R.string.fab_new_conversation)` / `getString(R.string.fab_new_group)`
+- [x] **`ConversationsAdapter.kt`** — Statut "En attente d'acceptation" et placeholder → `getString(R.string.pending_acceptance_short)` / `getString(R.string.conversation_new_placeholder)`
+- [x] **`fragment_create_group.xml` + `nav_graph.xml`** — Label "Nouveau groupe" → `@string/create_group_title`
+- [x] **35 nouvelles clés i18n** — `menu_*`, `cd_*` (content descriptions), `hint_*`, `fab_*` (`fab_new_conversation`, `fab_new_group`), `pending_acceptance_short`, `conversation_new_placeholder`, `create_group_title`, `xmr_pay_btn`, `settings_autolock_after_3s`
 
-### 🔐 Crypto avancée
-- [ ] **Sealed sender** — L’identité de l’expéditeur est cachée côté Firebase — le destinataire déduit le sender uniquement après déchiffrement
-
-### 💬 Messagerie avancée
-- [ ] **Messages vocaux E2E** — Enregistrement audio, chiffrement AES-256-GCM, envoi via le ratchet, lecteur inline dans le chat
-- [ ] **Reply / Quote** — Répondre à un message spécifique avec citation (bulle citée + nouveau message)
-- [ ] **Groupes** — Conversations à 3+ participants (Sender Keys)
-- [ ] **Suppression pour tous** — Supprimer un message côté local + Firebase
-- [ ] **Typing indicators** — « En train d’écrire... » (chiffré E2E, opt-in)
-
-### 🛡️ Infrastructure
-- [ ] **Relay privé** — Serveur relay dédié pour réduire la dépendance Firebase
+### 📦 Dépendances
+- [x] **KSP** 2.3.6 → **2.3.7**
+- [x] **swiperefreshlayout** 1.1.0 → **1.2.0**
+- [x] **actions/upload-artifact** v4 → **v7** (CI GitHub Actions)
 
 </details>
 
