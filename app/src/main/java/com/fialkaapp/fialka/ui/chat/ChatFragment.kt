@@ -143,7 +143,7 @@ class ChatFragment : Fragment() {
         if (granted) {
             launchCamera()
         } else {
-            Toast.makeText(requireContext(), "Permission caméra refusée", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.camera_permission_denied), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -154,7 +154,7 @@ class ChatFragment : Fragment() {
         if (granted) {
             launchPhotoPicker()
         } else {
-            showPermissionDeniedDialog("photos et vidéos")
+            showPermissionDeniedDialog(getString(R.string.perm_photos_videos))
         }
     }
 
@@ -165,7 +165,7 @@ class ChatFragment : Fragment() {
         if (granted) {
             launchFilePicker()
         } else {
-            showPermissionDeniedDialog("fichiers, musique et audio")
+            showPermissionDeniedDialog(getString(R.string.perm_files_audio))
         }
     }
 
@@ -262,7 +262,7 @@ class ChatFragment : Fragment() {
                             clipboard.setPrimaryClip(
                                 ClipData.newPlainText("message", message.plaintext)
                             )
-                            Toast.makeText(requireContext(), "Message copié", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(), getString(R.string.message_copied), Toast.LENGTH_SHORT).show()
                             true
                         }
                         else -> false
@@ -438,17 +438,19 @@ class ChatFragment : Fragment() {
         }
 
         // XMR sending — show progress dialog while JNI call is in flight
-        var xmrProgressDialog: android.app.ProgressDialog? = null
+        var xmrProgressDialog: androidx.appcompat.app.AlertDialog? = null
         viewModel.xmrSending.observe(viewLifecycleOwner) { sending ->
             if (_binding == null) return@observe
             if (sending) {
-                @Suppress("DEPRECATION")
-                xmrProgressDialog = android.app.ProgressDialog(requireContext()).apply {
-                    setMessage("Envoi XMR en cours…\nCela peut prendre quelques secondes.")
+                val view = android.widget.ProgressBar(requireContext()).apply {
                     isIndeterminate = true
-                    setCancelable(false)
-                    show()
+                    setPadding(64, 48, 64, 48)
                 }
+                xmrProgressDialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setMessage(getString(R.string.xmr_sending_progress))
+                    .setView(view)
+                    .setCancelable(false)
+                    .show()
             } else {
                 xmrProgressDialog?.dismiss()
                 xmrProgressDialog = null
@@ -461,12 +463,12 @@ class ChatFragment : Fragment() {
             val (txId, amount) = result
             viewModel.consumeXmrSendSuccess()
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("✅ Paiement XMR envoyé")
-                .setMessage("Montant : $amount\n\nTX ID :\n$txId")
+                .setTitle(getString(R.string.xmr_sent_title))
+                .setMessage(getString(R.string.xmr_sent_detail, amount, txId))
                 .setPositiveButton("Copier TX ID") { _, _ ->
                     val cb = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     cb.setPrimaryClip(ClipData.newPlainText("TX ID", txId))
-                    Toast.makeText(requireContext(), "TX ID copié", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.xmr_txid_copied), Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("OK", null)
                 .show()
@@ -476,8 +478,8 @@ class ChatFragment : Fragment() {
         viewModel.conversationDead.observe(viewLifecycleOwner) { dead ->
             if (dead) {
                 MaterialAlertDialogBuilder(requireContext())
-                    .setTitle("Conversation supprimée")
-                    .setMessage("Ce contact a supprimé son compte. Cette conversation n'existe plus sur le serveur.")
+                    .setTitle(getString(R.string.chat_conversation_deleted_title))
+                    .setMessage(getString(R.string.chat_conversation_deleted_message))
                     .setCancelable(false)
                     .setPositiveButton("Supprimer") { _, _ ->
                         viewModel.deleteDeadConversation()
@@ -516,12 +518,12 @@ class ChatFragment : Fragment() {
             if (conversation != null && _binding != null) {
                 val preview = conversation.sharedFingerprint.take(8) // First 4 emojis
                 if (conversation.fingerprintVerified) {
-                    binding.tvFingerprintBadge.text = "$preview  ✅ Vérifié"
+                    binding.tvFingerprintBadge.text = "$preview  ${getString(R.string.conv_fingerprint_verified)}"
                     binding.tvFingerprintBadge.setTextColor(
                         ContextCompat.getColor(requireContext(), R.color.green_verified)
                     )
                 } else {
-                    binding.tvFingerprintBadge.text = "$preview  ⚠️ Non vérifié"
+                    binding.tvFingerprintBadge.text = "$preview  ${getString(R.string.conv_fingerprint_unverified)}"
                     binding.tvFingerprintBadge.setTextColor(
                         ContextCompat.getColor(requireContext(), R.color.orange_warning)
                     )
@@ -615,14 +617,14 @@ class ChatFragment : Fragment() {
         try {
             recorder.start()
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Impossible d'accéder au microphone", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.microphone_access_denied), Toast.LENGTH_SHORT).show()
             voiceRecorder = null
             return
         }
 
         // Show recording overlay in the input bar
         binding.recordingOverlay.visibility = View.VISIBLE
-        binding.tvRecordingHint.text = "Relâchez pour envoyer • Glissez pour annuler"
+        binding.tvRecordingHint.text = getString(R.string.chat_recording_hint)
         binding.tvRecordingTimer.text = "0:00"
         recordingTimerHandler.post(recordingTimerRunnable)
     }
@@ -655,7 +657,7 @@ class ChatFragment : Fragment() {
         voiceRecorder = null
         recordingTimerHandler.removeCallbacks(recordingTimerRunnable)
         binding.recordingOverlay.visibility = View.GONE
-        Toast.makeText(requireContext(), "Enregistrement annulé", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireContext(), getString(R.string.recording_cancelled), Toast.LENGTH_SHORT).show()
     }
 
     // ── Attachment flow ──
@@ -787,7 +789,7 @@ class ChatFragment : Fragment() {
                 ?: return
 
             if (fileBytes.size > MAX_FILE_SIZE) {
-                Toast.makeText(requireContext(), "Fichier trop volumineux (max 25 Mo)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.file_too_large), Toast.LENGTH_SHORT).show()
                 return
             }
 
@@ -884,9 +886,9 @@ class ChatFragment : Fragment() {
         }
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Envoyer à $contactName ?")
+            .setTitle(getString(R.string.chat_send_to, contactName))
             .setView(dialogView)
-            .setPositiveButton("Envoyer") { _, _ ->
+            .setPositiveButton(getString(R.string.action_send)) { _, _ ->
                 viewModel.sendFile(fileBytes, fileName, cbOneShot.isChecked)
             }
             .setNegativeButton("Annuler", null)
@@ -954,9 +956,7 @@ class ChatFragment : Fragment() {
         if (suggestedAmount.isNotEmpty()) etAmount.setText(suggestedAmount)
 
         // Fee priority options
-        val feeLabels = arrayOf(
-            "Automatique", "Lent (×0.2)", "Normal (×1)", "Rapide (×5)", "Le plus rapide (×200)"
-        )
+        val feeLabels = arrayOf(getString(com.fialkaapp.fialka.R.string.fee_automatic), getString(com.fialkaapp.fialka.R.string.fee_slow), getString(com.fialkaapp.fialka.R.string.fee_normal), getString(com.fialkaapp.fialka.R.string.fee_fast), getString(com.fialkaapp.fialka.R.string.fee_fastest))
         spinner.adapter = android.widget.ArrayAdapter(ctx,
             android.R.layout.simple_spinner_dropdown_item, feeLabels)
 
@@ -980,13 +980,13 @@ class ChatFragment : Fragment() {
                 val amt = etAmount.text.toString().trim()
                 val prio = spinner.selectedItemPosition
                 if (toAddr.isEmpty() || amt.isEmpty()) {
-                    Toast.makeText(ctx, "Adresse et montant requis", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, getString(R.string.xmr_address_amount_required), Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 MaterialAlertDialogBuilder(ctx)
-                    .setTitle("Confirmer le paiement")
-                    .setMessage("Envoyer $amt XMR à\n$toAddr\n\nFrais : ${feeLabels[prio]}")
-                    .setPositiveButton("Confirmer") { _, _ ->
+                    .setTitle(getString(R.string.xmr_confirm_title))
+                    .setMessage(getString(R.string.xmr_confirm_message, amt, toAddr, feeLabels[prio]))
+                    .setPositiveButton(getString(R.string.action_confirm)) { _, _ ->
                         viewModel.sendXmrPayment(toAddr, amt, prio)
                     }
                     .setNegativeButton(android.R.string.cancel, null)
@@ -1007,7 +1007,7 @@ class ChatFragment : Fragment() {
         val amount  = parts.getOrElse(1) { "" }
 
         MaterialAlertDialogBuilder(ctx)
-            .setTitle("Paiement XMR reçu")
+            .setTitle(getString(R.string.xmr_received_title))
             .setMessage(buildString {
                 if (amount.isNotEmpty()) appendLine("Montant : $amount")
                 appendLine()
@@ -1017,13 +1017,13 @@ class ChatFragment : Fragment() {
                 try {
                     findNavController().navigate(R.id.action_chat_to_walletHome)
                 } catch (_: Exception) {
-                    Toast.makeText(ctx, "Ouvrez le wallet depuis l'accueil", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, getString(R.string.xmr_open_wallet_from_home), Toast.LENGTH_SHORT).show()
                 }
             }
             .setNeutralButton("Copier TX ID") { _, _ ->
                 val cb = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 cb.setPrimaryClip(android.content.ClipData.newPlainText("TX ID", txHash))
-                Toast.makeText(ctx, "TX ID copié", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, getString(R.string.xmr_txid_copied), Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Fermer", null)
             .show()

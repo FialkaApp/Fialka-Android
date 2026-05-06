@@ -85,7 +85,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Récupération depuis la mailbox…"
+            android:text="@string/chat_mailbox_fetching"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="13sp" />
     </LinearLayout>
@@ -153,7 +153,7 @@
             android:layout_height="46dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/bg_circle_option_orange"
-            android:contentDescription="Paiement XMR"
+            android:contentDescription="@string/cd_xmr_payment"
             android:src="@drawable/ic_monero"
             android:scaleType="centerInside"
             android:padding="4dp" />
@@ -165,7 +165,7 @@
             android:layout_height="46dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/bg_circle_option_blue"
-            android:contentDescription="Fichier"
+            android:contentDescription="@string/cd_file"
             android:src="@drawable/ic_file"
             android:scaleType="center"
             android:tint="@android:color/white" />
@@ -177,7 +177,7 @@
             android:layout_height="46dp"
             android:layout_marginBottom="6dp"
             android:background="@drawable/bg_circle_option_purple"
-            android:contentDescription="Photo"
+            android:contentDescription="@string/cd_photo"
             android:src="@drawable/ic_photo"
             android:scaleType="center"
             android:tint="@android:color/white" />
@@ -188,7 +188,7 @@
             android:layout_width="46dp"
             android:layout_height="46dp"
             android:background="@drawable/bg_circle_option_red"
-            android:contentDescription="Caméra"
+            android:contentDescription="@string/cd_camera"
             android:src="@drawable/ic_camera"
             android:scaleType="center"
             android:tint="@android:color/white" />
@@ -233,7 +233,7 @@
             android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
-            android:contentDescription="Annuler la réponse"
+            android:contentDescription="@string/cd_cancel_reply"
             android:scaleType="center" />
 
     </LinearLayout>
@@ -289,7 +289,7 @@
                 android:id="@+id/tvRecordingHint"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Relâchez pour envoyer"
+                android:text="@string/chat_release_to_send"
                 android:textColor="?attr/colorOnSurface"
                 android:textSize="11sp"
                 android:alpha="0.6" />
@@ -301,7 +301,7 @@
             android:layout_height="42dp"
             android:layout_marginStart="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Attach file"
+            android:contentDescription="@string/cd_attach_file"
             android:src="@drawable/ic_add"
             android:scaleType="center"
             android:tint="?attr/colorOnSurface" />

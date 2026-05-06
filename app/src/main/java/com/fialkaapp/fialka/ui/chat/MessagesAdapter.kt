@@ -477,30 +477,28 @@ class MessagesAdapter(
                     binding.tvMessageSent.visibility = View.GONE
                     binding.fileRowSent.visibility = View.VISIBLE
                     binding.ivFileIconSent.setImageResource(R.drawable.ic_oneshot)
-                    binding.tvFileNameSent.text = "Photo éphémère"
-                    binding.tvFileSizeSent.text = "Déjà vue"
-                    binding.btnOpenFileSent.text = "Verrouillée"
+                    binding.tvFileNameSent.text = binding.root.context.getString(R.string.msg_photo_ephemeral)
+                    binding.tvFileSizeSent.text = binding.root.context.getString(R.string.chat_already_seen)
+                    binding.btnOpenFileSent.text = binding.root.context.getString(R.string.msg_locked)
                     binding.btnOpenFileSent.alpha = 0.5f
-                    binding.btnOpenFileSent.setOnClickListener(null)
-                    binding.bubbleSent.setOnClickListener(null)
                 }
-                isFileReady && message.isOneShot -> {
+                message.isOneShot && !message.oneShotOpened -> {
                     // One-shot ready: sender can view once
                     binding.tvMessageSent.visibility = View.GONE
                     binding.fileRowSent.visibility = View.VISIBLE
                     binding.ivFileIconSent.setImageResource(R.drawable.ic_oneshot)
-                    binding.tvFileNameSent.text = "Photo éphémère"
-                    binding.tvFileSizeSent.text = "Vérifier / Ouvrir (1 fois)"
-                    binding.btnOpenFileSent.text = "Ouvrir"
+                    binding.tvFileNameSent.text = binding.root.context.getString(R.string.msg_photo_ephemeral)
+                    binding.tvFileSizeSent.text = binding.root.context.getString(R.string.msg_oneshot_hint)
+                    binding.btnOpenFileSent.text = binding.root.context.getString(R.string.msg_open)
                     binding.btnOpenFileSent.alpha = 1.0f
                     val clickListener = View.OnClickListener { v ->
                         // Disable immediately to prevent multiple opens
                         binding.btnOpenFileSent.setOnClickListener(null)
                         binding.bubbleSent.setOnClickListener(null)
-                        binding.btnOpenFileSent.text = "Verrouillée"
+                        binding.btnOpenFileSent.text = binding.root.context.getString(R.string.msg_locked)
                         binding.btnOpenFileSent.alpha = 0.5f
-                        binding.tvFileSizeSent.text = "Déjà vue"
-                        openFile(v, message.localFilePath)
+                        binding.tvFileSizeSent.text = binding.root.context.getString(R.string.chat_already_seen)
+                        openFile(v, message.localFilePath ?: return@OnClickListener)
                         // Flag as opened immediately in DB (file deletion is delayed in repository)
                         onOneShotOpen?.invoke(message.localId)
                     }
@@ -514,17 +512,10 @@ class MessagesAdapter(
                     binding.ivFileIconSent.setImageResource(R.drawable.ic_file)
                     binding.tvFileNameSent.text = message.fileName
                     binding.tvFileSizeSent.text = formatFileSize(message.fileSize)
-                    binding.btnOpenFileSent.text = "Ouvrir"
+                    binding.btnOpenFileSent.text = binding.root.context.getString(R.string.msg_open)
                     binding.btnOpenFileSent.alpha = 1.0f
                     binding.btnOpenFileSent.setOnClickListener { openFile(it, message.localFilePath) }
                     binding.bubbleSent.setOnClickListener { openFile(it, message.localFilePath) }
-                }
-                else -> {
-                    // Text message
-                    binding.tvMessageSent.visibility = View.VISIBLE
-                    binding.tvMessageSent.text = message.plaintext
-                    binding.fileRowSent.visibility = View.GONE
-                    binding.bubbleSent.setOnClickListener(null)
                     binding.bubbleSent.setOnLongClickListener { v ->
                         onMessageLongPress?.invoke(v, message)
                         true
@@ -629,19 +620,15 @@ class MessagesAdapter(
                     binding.fileRowReceived.visibility = View.VISIBLE
                     binding.statusRowReceived.visibility = View.GONE
                     binding.ivFileIconReceived.setImageResource(R.drawable.ic_oneshot)
-                    binding.tvFileNameReceived.text = "Photo éphémère"
-                    binding.tvFileSizeReceived.text = "Déjà vue"
-                    binding.btnOpenFileReceived.text = "Expirée"
-                    binding.btnOpenFileReceived.alpha = 0.5f
-                    binding.btnOpenFileReceived.setOnClickListener(null)
-                    binding.bubbleReceived.setOnClickListener(null)
+                    binding.tvFileNameReceived.text = binding.root.context.getString(R.string.msg_photo_ephemeral)
+                    binding.tvFileSizeReceived.text = binding.root.context.getString(R.string.chat_already_seen)
                 }
                 isDownloading -> {
                     binding.tvMessageReceived.visibility = View.GONE
                     binding.fileRowReceived.visibility = View.GONE
                     binding.statusRowReceived.visibility = View.VISIBLE
                     binding.progressReceived.visibility = View.VISIBLE
-                    binding.tvStatusReceived.text = "Téléchargement…"
+                    binding.tvStatusReceived.text = binding.root.context.getString(R.string.msg_downloading)
                     binding.btnRetryReceived.visibility = View.GONE
                     binding.bubbleReceived.setOnClickListener(null)
                 }
@@ -651,7 +638,7 @@ class MessagesAdapter(
                     binding.fileRowReceived.visibility = View.GONE
                     binding.statusRowReceived.visibility = View.VISIBLE
                     binding.progressReceived.visibility = View.GONE
-                    binding.tvStatusReceived.text = "⚠️ Échec : $fileName"
+                    binding.tvStatusReceived.text = binding.root.context.getString(R.string.msg_download_failed, fileName)
                     binding.btnRetryReceived.visibility = View.VISIBLE
                     binding.btnRetryReceived.setOnClickListener {
                         onRetryDownload?.invoke(message.localId)
@@ -664,17 +651,17 @@ class MessagesAdapter(
                     binding.fileRowReceived.visibility = View.VISIBLE
                     binding.statusRowReceived.visibility = View.GONE
                     binding.ivFileIconReceived.setImageResource(R.drawable.ic_oneshot)
-                    binding.tvFileNameReceived.text = "Photo éphémère"
-                    binding.tvFileSizeReceived.text = "Visible une seule fois"
-                    binding.btnOpenFileReceived.text = "Voir"
+                    binding.tvFileNameReceived.text = binding.root.context.getString(R.string.msg_photo_ephemeral)
+                    binding.tvFileSizeReceived.text = binding.root.context.getString(R.string.chat_visible_once)
+                    binding.btnOpenFileReceived.text = binding.root.context.getString(R.string.msg_view)
                     binding.btnOpenFileReceived.alpha = 1.0f
                     val clickListener = View.OnClickListener { v ->
                         // Disable immediately to prevent multiple opens
                         binding.btnOpenFileReceived.setOnClickListener(null)
                         binding.bubbleReceived.setOnClickListener(null)
-                        binding.btnOpenFileReceived.text = "Expirée"
+                        binding.btnOpenFileReceived.text = binding.root.context.getString(R.string.msg_expired)
                         binding.btnOpenFileReceived.alpha = 0.5f
-                        binding.tvFileSizeReceived.text = "Déjà vue"
+                        binding.tvFileSizeReceived.text = binding.root.context.getString(R.string.chat_already_seen)
                         openFile(v, message.localFilePath)
                         // Flag as opened immediately in DB (file deletion is delayed in repository)
                         onOneShotOpen?.invoke(message.localId)
@@ -690,7 +677,7 @@ class MessagesAdapter(
                     binding.ivFileIconReceived.setImageResource(R.drawable.ic_file)
                     binding.tvFileNameReceived.text = message.fileName
                     binding.tvFileSizeReceived.text = formatFileSize(message.fileSize)
-                    binding.btnOpenFileReceived.text = "Ouvrir"
+                    binding.btnOpenFileReceived.text = binding.root.context.getString(R.string.msg_open)
                     binding.btnOpenFileReceived.alpha = 1.0f
                     binding.btnOpenFileReceived.setOnClickListener { openFile(it, message.localFilePath) }
                     binding.bubbleReceived.setOnClickListener { openFile(it, message.localFilePath) }
@@ -989,12 +976,12 @@ class MessagesAdapter(
                 plaintext.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_ACCEPT_PREFIX) -> {
                     val parts = plaintext.removePrefix(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_ACCEPT_PREFIX).split("|", limit = 2)
                     b.tvGroupInviteName.text = parts.getOrElse(1) { parts.getOrElse(0) { "" } }
-                    b.tvGroupInviteStatus.text = "✅ Invitation acceptée"
+                    b.tvGroupInviteStatus.text = b.root.context.getString(R.string.group_invite_accepted_preview)
                 }
                 plaintext.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_DECLINE_PREFIX) -> {
                     val parts = plaintext.removePrefix(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_DECLINE_PREFIX).split("|", limit = 2)
                     b.tvGroupInviteName.text = parts.getOrElse(1) { parts.getOrElse(0) { "" } }
-                    b.tvGroupInviteStatus.text = "❌ Invitation refusée"
+                    b.tvGroupInviteStatus.text = b.root.context.getString(R.string.group_invite_declined)
                 }
                 else -> {
                     // GROUP_INVITE|<base64> — pending
@@ -1004,7 +991,7 @@ class MessagesAdapter(
                         json.optString("groupName", "")
                     }.getOrDefault("")
                     b.tvGroupInviteName.text = groupName
-                    b.tvGroupInviteStatus.text = "⏳ En attente de réponse…"
+                    b.tvGroupInviteStatus.text = b.root.context.getString(R.string.group_invite_pending)
                 }
             }
         }
@@ -1035,7 +1022,7 @@ class MessagesAdapter(
                     b.tvGroupInviteNameReceived.text = parts.getOrElse(1) { parts.getOrElse(0) { "" } }
                     b.layoutGroupInviteActions.visibility = View.GONE
                     b.tvGroupInviteStatusReceived.visibility = View.VISIBLE
-                    b.tvGroupInviteStatusReceived.text = "❌ Invitation refusée"
+                    b.tvGroupInviteStatusReceived.text = b.root.context.getString(R.string.group_invite_declined)
                 }
                 else -> {
                     // GROUP_INVITE|<base64> — pending, show buttons

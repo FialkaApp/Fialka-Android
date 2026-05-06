@@ -62,7 +62,7 @@ class PrivacyFragment : Fragment() {
     private fun updateEphemeralSummary() {
         val duration = EphemeralManager.getDefaultDuration(requireContext())
         binding.tvEphemeralSummary.text = if (duration > 0)
-            EphemeralManager.getLabelForDuration(duration) else "Désactivé"
+            EphemeralManager.getLabelForDuration(requireContext(), duration) else getString(R.string.ephemeral_disabled)
     }
 
     override fun onDestroyView() {

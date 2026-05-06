@@ -62,7 +62,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                 }
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                 _state.value = OnboardingState.Error(
-                    "Délai d'attente dépassé. Vérifiez votre connexion Internet."
+                    getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.onboarding_timeout)
                 )
             } catch (e: Exception) {
                 _state.value = OnboardingState.Error(e.message ?: "Erreur inconnue")

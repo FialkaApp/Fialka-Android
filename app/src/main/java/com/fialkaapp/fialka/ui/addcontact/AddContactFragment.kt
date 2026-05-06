@@ -66,7 +66,7 @@ class AddContactFragment : Fragment() {
                         binding.etPublicKey.tag = invite.mlkemPublicKey
                         if (!invite.displayName.isNullOrBlank()) {
                             binding.etContactName.setText(invite.displayName)
-                            binding.tilContactName.helperText = "✅ Pré-rempli depuis le QR"
+                            binding.tilContactName.helperText = getString(R.string.add_contact_prefilled_qr)
                         }
                     } else {
                         binding.etPublicKey.setText(scanned)
@@ -115,7 +115,7 @@ class AddContactFragment : Fragment() {
                 binding.etPublicKey.tag = invite.mlkemPublicKey
                 if (!invite.displayName.isNullOrBlank()) {
                     binding.etContactName.setText(invite.displayName)
-                    binding.tilContactName.helperText = "✅ Pré-rempli depuis le lien"
+                    binding.tilContactName.helperText = getString(R.string.add_contact_prefilled_link)
                 }
             }
             requireActivity().intent.data = null // consume so it doesn't re-fill on back+return

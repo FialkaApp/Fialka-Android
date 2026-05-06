@@ -35,7 +35,7 @@
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginBottom="24dp"
                 android:lineSpacingExtra="3dp"
-                android:text="Les nouveaux messages envoyés dans les conversations qui ont activé les messages éphémères seront automatiquement supprimés après la durée choisie."
+                android:text="@string/ephemeral_settings_desc"
                 android:textColor="?android:attr/textColorSecondary"
                 android:textSize="14sp" />
 
@@ -61,7 +61,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Durée par défaut"
+                        android:text="@string/ephemeral_duration_label"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -77,9 +77,8 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Désactivé"
-                            android:textColor="?android:attr/textColorPrimary"
-                            android:textSize="16sp" />
+                            android:text="@string/ephemeral_disabled"
+                            android:textSize="14sp" />
 
                         <ImageView
                             android:layout_width="24dp"
@@ -114,7 +113,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="⏳ Comment ça marche ?"
+                        android:text="@string/ephemeral_how_label"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -124,7 +123,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="3dp"
-                        android:text="Ce réglage s'applique par défaut aux nouvelles conversations.\n\nVous pouvez aussi changer la durée individuellement dans chaque conversation via le profil du contact.\n\nSeuls les nouveaux messages sont concernés. Les messages existants ne sont pas affectés."
+                        android:text="@string/ephemeral_how_desc"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>

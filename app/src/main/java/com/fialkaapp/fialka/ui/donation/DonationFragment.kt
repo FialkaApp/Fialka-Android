@@ -60,10 +60,8 @@ class DonationFragment : Fragment() {
     private val syncHandler = Handler(Looper.getMainLooper())
     private var syncRunnable: Runnable? = null
 
-    // Fee labels matching WalletHomeFragment priorities
-    private val feeLabels = arrayOf(
-        "Automatique", "Lent (Ã—0.2)", "Normal (Ã—1)", "Rapide (Ã—5)", "Le plus rapide (Ã—200)"
-    )
+    // Fee labels — initialized in onViewCreated when context is available
+    private lateinit var feeLabels: Array<String>
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -75,6 +73,7 @@ class DonationFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        feeLabels = arrayOf(getString(com.fialkaapp.fialka.R.string.fee_automatic), getString(com.fialkaapp.fialka.R.string.fee_slow), getString(com.fialkaapp.fialka.R.string.fee_normal), getString(com.fialkaapp.fialka.R.string.fee_fast), getString(com.fialkaapp.fialka.R.string.fee_fastest))
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
 
         binding.donSwipeRefresh.setOnRefreshListener {
@@ -163,14 +162,14 @@ class DonationFragment : Fragment() {
     private fun bindBalanceCard(snapshot: WalletSnapshot) {
         if (!snapshot.enabled || !snapshot.hasSeed) {
             binding.tvDonBalance.text = "-- XMR"
-            binding.tvDonUnlocked.text = "Wallet non configuré"
+            binding.tvDonUnlocked.text = getString(com.fialkaapp.fialka.R.string.wallet_not_configured)
         } else {
             binding.tvDonBalance.text = WalletRepository.formatXmr(snapshot.balancePiconero)
             binding.tvDonUnlocked.text = if (
                 snapshot.unlockedPiconero >= 0L &&
                 snapshot.unlockedPiconero != snapshot.balancePiconero
             ) {
-                "disponible : ${WalletRepository.formatXmr(snapshot.unlockedPiconero)}"
+                getString(com.fialkaapp.fialka.R.string.wallet_available, WalletRepository.formatXmr(snapshot.unlockedPiconero))
             } else ""
         }
     }
@@ -183,7 +182,7 @@ class DonationFragment : Fragment() {
 
         if (hasWallet) {
             val unlocked = snapshot.unlockedPiconero
-            binding.tvSendAvailable.text = "Disponible : ${WalletRepository.formatXmr(unlocked)}"
+            binding.tvSendAvailable.text = getString(com.fialkaapp.fialka.R.string.wallet_available_send, WalletRepository.formatXmr(unlocked))
         }
     }
 
@@ -234,8 +233,8 @@ class DonationFragment : Fragment() {
             if (result.isNullOrEmpty()) {
                 binding.layoutAddressLoading.isVisible = false
                 MaterialAlertDialogBuilder(requireContext())
-                    .setTitle("Adresse indisponible")
-                    .setMessage("Impossible de générer l'adresse de don. Vérifiez que votre identité Fialka est configurée.")
+                    .setTitle(getString(com.fialkaapp.fialka.R.string.donation_address_unavailable_title))
+                    .setMessage(getString(com.fialkaapp.fialka.R.string.donation_address_unavailable_message))
                     .setPositiveButton("OK", null)
                     .show()
                 return@launch
@@ -293,12 +292,9 @@ class DonationFragment : Fragment() {
         val priority = feeLabels.indexOf(feeLabel).coerceAtLeast(0)
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Confirmer le don")
+            .setTitle(getString(com.fialkaapp.fialka.R.string.donation_confirm_title))
             .setMessage(
-                "Vous allez envoyer\n\n" +
-                WalletRepository.formatXmr(amountPico) +
-                "\n\nPriorité des frais : $feeLabel\n\n" +
-                "Adresse :\n${addr.take(32)}…"
+                getString(com.fialkaapp.fialka.R.string.donation_confirm_message, WalletRepository.formatXmr(amountPico), feeLabel, addr.take(32))
             )
             .setPositiveButton("Envoyer") { _, _ ->
                 doSend(addr, amountPico, priority)
@@ -342,16 +338,12 @@ class DonationFragment : Fragment() {
                     }
                     WalletRepository.invalidateWalletStateCache()
                     binding.etDonAmount.text?.clear()
-                    Toast.makeText(
-                        requireContext(),
-                        "Don envoy\u00e9 ! Merci pour votre soutien \u2764\ufe0f",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(requireContext(), getString(com.fialkaapp.fialka.R.string.donation_sent_toast), Toast.LENGTH_LONG).show()
                     renderState()
                 } else {
                     MaterialAlertDialogBuilder(requireContext())
-                        .setTitle("Envoi échoué")
-                        .setMessage(result.error ?: "Erreur inconnue")
+                        .setTitle(getString(R.string.donation_send_failed_title))
+                        .setMessage(result.error)
                         .setPositiveButton("OK", null)
                         .show()
                 }
@@ -405,12 +397,12 @@ class DonationFragment : Fragment() {
 
         val dateStr = if (tx.timestamp > 0L) {
             DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(tx.timestamp * 1000L))
-        } else "En attente"
+        } else getString(com.fialkaapp.fialka.R.string.tx_pending)
 
         val status = when {
-            tx.isPending -> "En attente"
-            tx.confirmations < 10 -> "${tx.confirmations} confirmation(s)"
-            else -> "Confirmé"
+            tx.isPending -> getString(com.fialkaapp.fialka.R.string.tx_pending)
+            tx.confirmations < 10 -> getString(com.fialkaapp.fialka.R.string.tx_confirmations, tx.confirmations)
+            else -> getString(com.fialkaapp.fialka.R.string.tx_confirmed)
         }
 
         leftCol.addView(TextView(ctx).apply {
@@ -458,9 +450,9 @@ class DonationFragment : Fragment() {
             appendLine("Montant   : - ${WalletRepository.formatXmr(tx.amount)}")
             if (tx.fee > 0L) appendLine("Frais     : ${WalletRepository.formatXmr(tx.fee)}")
             appendLine("Statut    : ${when {
-                tx.isPending -> "En attente"
-                tx.confirmations < 10 -> "${tx.confirmations} confirmation(s)"
-                else -> "Confirmé (${tx.confirmations})"
+                tx.isPending -> getString(com.fialkaapp.fialka.R.string.tx_pending)
+                tx.confirmations < 10 -> getString(com.fialkaapp.fialka.R.string.tx_confirmations, tx.confirmations)
+                else -> getString(com.fialkaapp.fialka.R.string.wallet_tx_confirmed, tx.confirmations)
             }}")
             if (tx.height > 0L) appendLine("Hauteur   : ${tx.height}")
             appendLine("Date      : $dateStr")
@@ -477,12 +469,12 @@ class DonationFragment : Fragment() {
         val sv = android.widget.ScrollView(ctx).also { it.addView(tv) }
 
         MaterialAlertDialogBuilder(ctx)
-            .setTitle("Détails de la transaction")
+            .setTitle(getString(com.fialkaapp.fialka.R.string.wallet_tx_detail_title))
             .setView(sv)
             .setPositiveButton("Copier TX ID") { _, _ ->
                 val clipboard = ctx.getSystemService(ClipboardManager::class.java)
                 clipboard.setPrimaryClip(ClipData.newPlainText("TX ID", tx.txId))
-                Toast.makeText(ctx, "TX ID copié", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, getString(R.string.xmr_txid_copied), Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Fermer", null)
             .show()

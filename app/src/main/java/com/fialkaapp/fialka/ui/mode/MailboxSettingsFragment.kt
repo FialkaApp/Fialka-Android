@@ -215,7 +215,7 @@ class MailboxSettingsFragment : Fragment() {
                 row.addView(label)
 
                 val roleTag = TextView(requireContext()).apply {
-                    text = if (role == "OWNER") "Propriétaire" else "Membre"
+                    text = if (role == "OWNER") getString(com.fialkaapp.fialka.R.string.role_owner_plain) else getString(com.fialkaapp.fialka.R.string.role_member)
                     textSize = 11f
                     setTextColor(if (role == "OWNER") 
                         requireContext().getColor(com.fialkaapp.fialka.R.color.orange_500)
@@ -385,11 +385,20 @@ class MailboxSettingsFragment : Fragment() {
     }
 
     private fun showJoinError(message: String) {
-        val isClockError = message.contains("horloge", ignoreCase = true) ||
-                message.contains("désynchronisée", ignoreCase = true)
+        val isClockError = message.startsWith(com.fialkaapp.fialka.tor.TorTransport.ERR_CLOCK_DESYNC)
+        val displayMessage = when {
+            message.startsWith(com.fialkaapp.fialka.tor.TorTransport.ERR_CLOCK_DESYNC) -> {
+                val diffMin = message.substringAfter(":", "?")
+                getString(R.string.tor_err_clock_desync, diffMin)
+            }
+            message == com.fialkaapp.fialka.tor.TorTransport.ERR_PAYLOAD_TOO_SHORT -> getString(R.string.tor_err_payload_short)
+            message == com.fialkaapp.fialka.tor.TorTransport.ERR_PUBKEY_MISMATCH   -> getString(R.string.tor_err_pubkey_mismatch)
+            message == com.fialkaapp.fialka.tor.TorTransport.ERR_INVALID_SIGNATURE -> getString(R.string.tor_err_invalid_signature)
+            else -> message
+        }
         val builder = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.mailbox_client_join_failed_title)
-            .setMessage(message)
+            .setMessage(displayMessage)
             .setNegativeButton(R.string.close, null)
         if (isClockError) {
             builder.setPositiveButton(R.string.mailbox_fix_clock) { _, _ ->

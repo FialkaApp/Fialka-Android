@@ -32,6 +32,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.databinding.FragmentSettingsNotificationsBinding
 
 /**
@@ -126,16 +127,16 @@ class NotificationsFragment : Fragment() {
         // Notification row
         binding.switchPush.isChecked = notifGranted
         binding.tvPushStatus.text = if (notifGranted) {
-            "✅ Activées — vous recevrez des notifications de nouveaux messages"
+            getString(R.string.notif_push_enabled)
         } else {
-            "🔕 Désactivées — appuyez pour autoriser"
+            getString(R.string.notif_push_disabled)
         }
 
         // Battery row
         binding.tvBatteryStatus.text = if (batteryIgnored) {
-            "✅ Optimisations batterie désactivées — Tor reste actif en arrière-plan"
+            getString(R.string.notif_battery_ok)
         } else {
-            "⚠️ Les optimisations batterie peuvent tuer Tor en arrière-plan — appuyez pour corriger"
+            getString(R.string.notif_battery_warning)
         }
     }
 

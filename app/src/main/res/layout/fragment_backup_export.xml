@@ -33,7 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:text="La sauvegarde est chiffrée avec votre passphrase. Elle contient uniquement ce que vous sélectionnez ci-dessous. Conservez-la en lieu sûr."
+                android:text="@string/backup_export_desc"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
 
@@ -56,7 +56,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:text="CONTENU"
+                        android:text="@string/backup_export_content_label"
                         android:textColor="@color/text_secondary"
                         android:textSize="11sp"
                         android:letterSpacing="0.1" />
@@ -68,7 +68,7 @@
                         android:layout_height="wrap_content"
                         android:checked="true"
                         android:enabled="false"
-                        android:text="Identité Fialka (obligatoire)"
+                        android:text="@string/backup_export_identity"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp" />
 
@@ -78,7 +78,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:visibility="gone"
-                        android:text="Wallet Monero"
+                        android:text="@string/backup_export_wallet"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp" />
 
@@ -88,7 +88,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:checked="true"
-                        android:text="Contacts"
+                        android:text="@string/backup_export_contacts_label"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp" />
 
@@ -100,7 +100,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:checked="false"
-                        android:text="Conversations"
+                        android:text="@string/backup_export_conversations_label"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:visibility="gone" />
@@ -110,7 +110,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:checked="false"
-                        android:text="Messages (peut être volumineux)"
+                        android:text="@string/backup_export_messages_label"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp"
                         android:visibility="gone" />
@@ -137,7 +137,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:text="PASSPHRASE DE CHIFFREMENT"
+                        android:text="@string/backup_export_passphrase_section"
                         android:textColor="@color/text_secondary"
                         android:textSize="11sp"
                         android:letterSpacing="0.1" />
@@ -146,7 +146,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
-                        android:text="Choisissez une passphrase solide. Elle sera requise pour restaurer la sauvegarde. Si vous la perdez, la sauvegarde est irrécupérable."
+                        android:text="@string/backup_export_passphrase_hint_text"
                         android:textColor="@color/text_secondary"
                         android:textSize="13sp" />
 
@@ -156,7 +156,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                        android:hint="Passphrase"
+                        android:hint="@string/backup_passphrase_hint"
                         app:endIconMode="password_toggle">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -173,7 +173,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                        android:hint="Confirmer la passphrase"
+                        android:hint="@string/backup_confirm_passphrase_hint"
                         app:endIconMode="password_toggle">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -213,7 +213,7 @@
                 android:id="@+id/btnExport"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Créer la sauvegarde"
+                android:text="@string/backup_export_create_btn"
                 android:textColor="?android:attr/textColorPrimaryInverse"
                 android:textSize="16sp"
                 app:backgroundTint="?attr/colorPrimary"

@@ -147,9 +147,7 @@ class XmrPaymentBottomSheet : BottomSheetDialogFragment() {
         val spinner = dialogView.findViewById<Spinner>(R.id.spinnerXmrFee)
 
         // Fee priority options (matches MoneroWallet priority constants)
-        val feeLabels = arrayOf(
-            "Automatique", "Lent (\u00d70.2)", "Normal (\u00d71)", "Rapide (\u00d75)", "Le plus rapide (\u00d7200)"
-        )
+        val feeLabels = arrayOf(ctx.getString(com.fialkaapp.fialka.R.string.fee_automatic), ctx.getString(com.fialkaapp.fialka.R.string.fee_slow), ctx.getString(com.fialkaapp.fialka.R.string.fee_normal), ctx.getString(com.fialkaapp.fialka.R.string.fee_fast), ctx.getString(com.fialkaapp.fialka.R.string.fee_fastest))
         spinner.adapter = ArrayAdapter(ctx, android.R.layout.simple_spinner_dropdown_item, feeLabels)
 
         // Load balance using a scope independent of fragment lifecycle
@@ -160,10 +158,10 @@ class XmrPaymentBottomSheet : BottomSheetDialogFragment() {
                     val snap = WalletRepository.getSnapshot(ctx)
                     val unlocked = snap.unlockedPiconero
                     val total = snap.balancePiconero
-                    if (unlocked < 0) "Solde non disponible (wallet non ouvert)"
-                    else "Disponible : ${WalletRepository.formatXmr(unlocked)}" +
-                         if (total != unlocked) "  (total : ${WalletRepository.formatXmr(total)})" else ""
-                } catch (_: Exception) { "Solde non disponible" }
+                    if (unlocked < 0) ctx.getString(com.fialkaapp.fialka.R.string.wallet_balance_unavailable)
+                    else ctx.getString(com.fialkaapp.fialka.R.string.wallet_available, WalletRepository.formatXmr(unlocked)) +
+                         if (total != unlocked) ctx.getString(com.fialkaapp.fialka.R.string.wallet_total, WalletRepository.formatXmr(total)) else ""
+                } catch (_: Exception) { ctx.getString(com.fialkaapp.fialka.R.string.wallet_balance_unavailable_short) }
             }
             tvBalance?.text = balanceText
         }

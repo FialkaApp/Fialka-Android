@@ -11,22 +11,22 @@
     <item
         android:id="@+id/action_search"
         android:icon="@drawable/ic_search"
-        android:title="Rechercher"
+        android:title="@string/menu_search"
         app:showAsAction="ifRoom"
         app:actionViewClass="androidx.appcompat.widget.SearchView" />
 
     <item
         android:id="@+id/action_profile"
-        android:title="Mon profil"
+        android:title="@string/menu_my_profile"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_settings"
-        android:title="Paramètres"
+        android:title="@string/menu_settings"
         app:showAsAction="never" />
 
     <item
         android:id="@+id/action_reset_account"
-        android:title="Supprimer mon compte"
+        android:title="@string/delete_account"
         app:showAsAction="never" />
 </menu>

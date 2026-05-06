@@ -81,8 +81,7 @@ class ConversationProfileFragment : Fragment() {
         binding.switchDummyTraffic.setOnCheckedChangeListener { _, isChecked ->
             lifecycleScope.launch {
                 repository.setDummyTraffic(conversationId, isChecked)
-                binding.tvDummySummary.text = if (isChecked)
-                    "✅ Actif — trafic masqué en temps réel" else "Masque l'activité réelle"
+                binding.tvDummySummary.text = if (isChecked) getString(R.string.conv_dummy_active) else getString(R.string.conv_dummy_inactive)
             }
         }
 
@@ -115,32 +114,30 @@ class ConversationProfileFragment : Fragment() {
 
             // Ephemeral summary
             binding.tvEphemeralSummary.text =
-                EphemeralManager.getLabelForDuration(conversation.ephemeralDuration)
+                EphemeralManager.getLabelForDuration(requireContext(), conversation.ephemeralDuration)
 
             // Dummy traffic state
             binding.switchDummyTraffic.setOnCheckedChangeListener(null)
             binding.switchDummyTraffic.isChecked = conversation.dummyTrafficEnabled
-            binding.tvDummySummary.text = if (conversation.dummyTrafficEnabled)
-                "✅ Actif — trafic masqué en temps réel" else "Masque l'activité réelle"
+            binding.tvDummySummary.text = if (conversation.dummyTrafficEnabled) getString(R.string.conv_dummy_active) else getString(R.string.conv_dummy_inactive)
             binding.switchDummyTraffic.setOnCheckedChangeListener { _, isChecked ->
                 lifecycleScope.launch {
                     repository.setDummyTraffic(conversationId, isChecked)
-                    binding.tvDummySummary.text = if (isChecked)
-                        "✅ Actif — trafic masqué en temps réel" else "Masque l'activité réelle"
+                    binding.tvDummySummary.text = if (isChecked) getString(R.string.conv_dummy_active) else getString(R.string.conv_dummy_inactive)
                 }
             }
 
             // Fingerprint summary
             if (conversation.fingerprintVerified) {
-                binding.tvFingerprintSummary.text = "✅ Vérifié"
+                binding.tvFingerprintSummary.text = getString(R.string.conv_fingerprint_verified)
             } else {
-                binding.tvFingerprintSummary.text = "⚠\uFE0F Non vérifié"
+                binding.tvFingerprintSummary.text = getString(R.string.conv_fingerprint_unverified)
             }
         }
     }
 
     private fun showEphemeralPicker() {
-        val labels = EphemeralManager.DURATION_LABELS
+        val labels = EphemeralManager.getLabels(requireContext())
         val durations = EphemeralManager.DURATION_OPTIONS
 
         lifecycleScope.launch {
@@ -148,17 +145,17 @@ class ConversationProfileFragment : Fragment() {
             val currentIndex = durations.toList().indexOf(conversation.ephemeralDuration).coerceAtLeast(0)
 
             AlertDialog.Builder(requireContext())
-                .setTitle("Messages éphémères")
+                .setTitle(getString(R.string.conv_profile_ephemeral_title))
                 .setSingleChoiceItems(labels, currentIndex) { dialog: android.content.DialogInterface, which: Int ->
                     val chosen = durations[which]
                     lifecycleScope.launch {
                         repository.setEphemeralDuration(conversationId, chosen)
                         binding.tvEphemeralSummary.text =
-                            EphemeralManager.getLabelForDuration(chosen)
+                            EphemeralManager.getLabelForDuration(requireContext(), chosen)
                     }
                     dialog.dismiss()
                 }
-                .setNegativeButton("Annuler", null)
+                .setNegativeButton(getString(R.string.action_cancel), null)
                 .show()
         }
     }
@@ -166,11 +163,11 @@ class ConversationProfileFragment : Fragment() {
     private fun showDeleteConfirmation() {
         AlertDialog.Builder(requireContext())
             .setTitle("Supprimer la conversation")
-            .setMessage("Tous les messages seront définitivement supprimés de cet appareil.")
+            .setMessage(getString(R.string.conv_profile_delete_confirm_message))
             .setPositiveButton("Supprimer") { _, _ ->
                 lifecycleScope.launch {
                     repository.deleteConversation(conversationId)
-                    Toast.makeText(requireContext(), "Conversation supprimée", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.conv_profile_deleted_toast), Toast.LENGTH_SHORT).show()
                     // Pop back to conversations list
                     findNavController().popBackStack(R.id.conversationsFragment, false)
                 }

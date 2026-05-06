@@ -47,12 +47,9 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Messages"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <!-- Ephemeral messages -->
+                        android:text="@string/privacy_section_messages"
+                        android:textSize="12sp"
+                        android:textAllCaps="true" />
                     <LinearLayout
                         android:id="@+id/rowEphemeral"
                         android:layout_width="match_parent"
@@ -80,7 +77,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Messages éphémères"
+                                android:text="@string/conv_profile_ephemeral"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="15sp" />
 
@@ -89,7 +86,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="Désactivé"
+                                android:text="@string/conv_profile_disabled"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="13sp" />
                         </LinearLayout>
@@ -135,7 +132,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Suppression après réception"
+                                android:text="@string/privacy_delete_on_receive"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="15sp" />
 
@@ -143,7 +140,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="Les messages sont supprimés du serveur dès réception"
+                                android:text="@string/privacy_delete_on_receive_desc"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="13sp" />
                         </LinearLayout>
@@ -180,12 +177,9 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Réseau"
-                        android:textColor="?android:attr/textColorPrimary"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <!-- Dummy traffic -->
+                        android:text="@string/privacy_section_network"
+                        android:textSize="12sp"
+                        android:textAllCaps="true" />
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -210,15 +204,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Trafic factice"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="15sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="2dp"
-                                android:text="Activable par conversation depuis le profil du contact"
+                                android:text="@string/conv_profile_dummy_traffic"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="13sp" />
                         </LinearLayout>
@@ -248,7 +234,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🛡️ Protections actives"
+                        android:text="@string/privacy_protections_label"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -258,7 +244,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="3dp"
-                        android:text="• Chiffrement E2E (X25519 + AES-256-GCM)\n• Double Ratchet avec Perfect Forward Secrecy\n• Padding des messages (taille uniforme)\n• HMAC sur l'identifiant expéditeur\n• Suppression des messages du serveur après réception\n• Trafic factice optionnel contre l'analyse de trafic"
+                        android:text="@string/privacy_protections_desc"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>

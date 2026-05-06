@@ -47,7 +47,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Réseau Tor"
+                        android:text="@string/tor_settings_section_title"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -69,18 +69,18 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="État"
-                                android:textColor="?android:attr/textColorSecondary"
-                                android:textSize="13sp" />
+                                android:text="@string/tor_state_label"
+                                android:textColor="?android:attr/textColorPrimary"
+                                android:textSize="15sp" />
 
                             <TextView
                                 android:id="@+id/tvTorStatus"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="Connexion en cours…"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="15sp" />
+                                android:text="@string/tor_waiting"
+                                android:textColor="?android:attr/textColorSecondary"
+                                android:textSize="13sp" />
                         </LinearLayout>
 
                         <com.google.android.material.progressindicator.CircularProgressIndicator
@@ -98,7 +98,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="Reconnecter"
+                        android:text="@string/tor_reconnect_btn"
                         style="@style/Widget.Material3.Button.OutlinedButton" />
 
                     <!-- .onion address -->
@@ -159,7 +159,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="À propos de Tor"
+                        android:text="@string/tor_about_label"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -169,7 +169,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="3dp"
-                        android:text="Fialka utilise Tor pour toutes ses communications. Tor achemine votre trafic à travers plusieurs relais chiffrés, masquant votre adresse IP.\n\nLe service .onion de votre compte est accessible uniquement via Tor — personne ne peut l'atteindre directement depuis l'internet public.\n\nLes circuits actifs ci-dessus représentent les chemins utilisés pour vos communications."
+                        android:text="@string/tor_about_desc"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 

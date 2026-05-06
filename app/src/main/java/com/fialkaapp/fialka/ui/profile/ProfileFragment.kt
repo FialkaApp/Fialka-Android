@@ -130,7 +130,7 @@ class ProfileFragment : Fragment() {
 
         viewModel.saveResult.observe(viewLifecycleOwner) { success ->
             if (success) {
-                Toast.makeText(requireContext(), "Pseudo mis à jour", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.profile_name_updated), Toast.LENGTH_SHORT).show()
             }
         }
 

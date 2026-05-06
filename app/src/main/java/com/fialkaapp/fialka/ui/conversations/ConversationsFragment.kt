@@ -217,9 +217,9 @@ class ConversationsFragment : Fragment() {
 
         // ── FAB ─────────────────────────────────────────────────────────────
         binding.fabNewChat.setOnClickListener {
-            val items = arrayOf("💬  Nouvelle conversation", "👥  Nouveau groupe")
+            val items = arrayOf(getString(R.string.fab_new_conversation), getString(R.string.fab_new_group))
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Nouveau")
+                .setTitle(getString(R.string.conversations_new_label))
                 .setItems(items) { _, which ->
                     when (which) {
                         0 -> findNavController().navigate(R.id.action_conversations_to_addContact)
@@ -267,10 +267,10 @@ class ConversationsFragment : Fragment() {
                             val a = state.address
                             "\uD83D\uDD12 \uD83E\uDDC5 ${a.take(8)}…${a.takeLast(8)}"
                         }
-                        is TorState.CONNECTED -> "\uD83D\uDD12 \uD83E\uDDC5 Tor connecté"
+                        is TorState.CONNECTED -> getString(R.string.conv_tor_connected_badge)
                         is TorState.BOOTSTRAPPING -> "\uD83D\uDD12 \uD83E\uDDC5 Tor ${state.percent}%"
                         is TorState.PUBLISHING_ONION -> "\uD83D\uDD12 \uD83E\uDDC5 .onion…"
-                        else -> "\uD83D\uDD12 chiffrée de bout en bout"
+                        else -> getString(R.string.conv_e2ee_badge)
                     }
                 }
             }

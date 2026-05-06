@@ -99,7 +99,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_close"
             android:tint="?attr/colorTextSecondary"
-            android:contentDescription="Annuler la réponse" />
+            android:contentDescription="@string/cd_cancel_reply" />
 
     </LinearLayout>
 
@@ -130,7 +130,7 @@
                 android:id="@+id/etMessage"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Message…"
+                android:hint="@string/hint_message_group"
                 android:inputType="textMultiLine|textCapSentences"
                 android:maxLines="4"
                 android:textColor="?attr/colorTextPrimary"
@@ -145,7 +145,7 @@
             android:backgroundTint="?attr/colorPrimary"
             android:src="@drawable/ic_send"
             android:tint="@color/white"
-            android:contentDescription="Envoyer" />
+            android:contentDescription="@string/cd_send" />
 
     </LinearLayout>
 

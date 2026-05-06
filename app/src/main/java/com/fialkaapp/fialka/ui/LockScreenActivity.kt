@@ -100,7 +100,7 @@ class LockScreenActivity : AppCompatActivity() {
 
     private fun showForgotPinDialog() {
         val input = EditText(this).apply {
-            hint = "Entrez vos 24 mots séparés par des espaces"
+            hint = getString(R.string.restore_words_hint)
             minLines = 3
             setPadding(48, 32, 48, 32)
             inputType = android.text.InputType.TYPE_CLASS_TEXT or
@@ -109,20 +109,20 @@ class LockScreenActivity : AppCompatActivity() {
         }
 
         val dialog = AlertDialog.Builder(this)
-            .setTitle("Récupération par phrase secrète")
-            .setMessage("Entrez votre phrase de récupération (24 mots) pour réinitialiser votre code PIN.")
+            .setTitle(getString(R.string.lockscreen_recovery_title))
+            .setMessage(getString(R.string.lockscreen_recovery_message))
             .setView(input)
-            .setPositiveButton("Vérifier") { _, _ ->
+            .setPositiveButton(getString(R.string.action_verify)) { _, _ ->
                 val text = input.text.toString().trim()
                 val words = text.lowercase().split("\\s+".toRegex()).filter { it.isNotBlank() }
 
                 if (words.size != 24) {
-                    Toast.makeText(this, "La phrase doit contenir exactement 24 mots", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, getString(R.string.lock_seed_wrong_count), Toast.LENGTH_LONG).show()
                     return@setPositiveButton
                 }
 
                 if (!MnemonicManager.validateMnemonic(words)) {
-                    Toast.makeText(this, "Phrase invalide", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.lock_seed_invalid), Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
 
@@ -134,15 +134,15 @@ class LockScreenActivity : AppCompatActivity() {
                         mnemonicSeed.fill(0)
                         storedSeed.fill(0)
                         AppLockManager.removePin(this)
-                        Toast.makeText(this, "PIN supprimé. Vous pouvez en configurer un nouveau dans les paramètres.", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, getString(R.string.lock_pin_removed), Toast.LENGTH_LONG).show()
                         unlock()
                     } else {
                         mnemonicSeed.fill(0)
                         storedSeed.fill(0)
-                        Toast.makeText(this, "La phrase ne correspond pas à ce compte", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, getString(R.string.lock_seed_mismatch), Toast.LENGTH_LONG).show()
                     }
                 } catch (_: Exception) {
-                    Toast.makeText(this, "Erreur de vérification", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.lock_verify_error), Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton("Annuler", null)
@@ -215,7 +215,7 @@ class LockScreenActivity : AppCompatActivity() {
 
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle("Fialka")
-            .setSubtitle("Déverrouillez avec votre empreinte ou visage")
+            .setSubtitle(getString(R.string.lockscreen_biometric_subtitle))
             .setNegativeButtonText("Utiliser le code PIN")
             .build()
 

@@ -105,7 +105,7 @@
                 android:paddingTop="8dp"
                 android:paddingEnd="14dp"
                 android:paddingBottom="8dp"
-                android:text="PQXDH · X25519 · ML-KEM-1024 · AES-256-GCM"
+                android:text="@string/onboarding_crypto_badge"
                 android:textColor="?attr/colorTertiary"
                 android:textSize="10sp" />
 

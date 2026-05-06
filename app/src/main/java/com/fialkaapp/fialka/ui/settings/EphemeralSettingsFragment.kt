@@ -68,7 +68,7 @@ class EphemeralSettingsFragment : Fragment() {
     private fun updateCurrentDuration() {
         val duration = EphemeralManager.getDefaultDuration(requireContext())
         val label = if (duration > 0) {
-            EphemeralManager.getLabelForDuration(duration)
+            EphemeralManager.getLabelForDuration(requireContext(), duration)
         } else {
             getString(R.string.setting_dummy_traffic_summary) // "Messages éphémères, trafic factice"
         }

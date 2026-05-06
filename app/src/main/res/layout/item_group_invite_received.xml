@@ -34,7 +34,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
-                android:text="Invitation de groupe"
+                android:text="@string/group_invite_label"
                 android:textColor="@color/primary"
                 android:textStyle="bold"
                 android:textSize="12sp" />
@@ -64,7 +64,7 @@
                 android:layout_height="36dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="4dp"
-                android:text="Rejoindre"
+                android:text="@string/group_invite_join"
                 android:textSize="13sp"
                 style="@style/Widget.MaterialComponents.Button"
                 android:backgroundTint="@color/primary" />
@@ -75,7 +75,7 @@
                 android:layout_height="36dp"
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
-                android:text="Refuser"
+                android:text="@string/group_invite_decline"
                 android:textSize="13sp"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 app:strokeColor="@color/error"

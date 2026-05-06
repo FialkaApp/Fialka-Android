@@ -41,7 +41,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="monospace"
                         android:letterSpacing="0.18"
-                        android:text="MESSAGERIE CHIFFR\u00c9E"
+                        android:text="@string/conversations_eyebrow"
                         android:textColor="?attr/colorPrimary"
                         android:textSize="9sp"
                         android:textStyle="bold" />

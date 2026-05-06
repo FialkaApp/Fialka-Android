@@ -179,7 +179,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 DummyTrafficManager.onRealMessageSent()
                 _sendError.value = null
             } catch (e: Exception) {
-                _sendError.value = e.message ?: "Échec de l'envoi"
+                _sendError.value = e.message ?: getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.chat_send_error)
             }
         }
     }
@@ -198,7 +198,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 DummyTrafficManager.onRealMessageSent()
                 _sendError.value = null
             } catch (e: Exception) {
-                _sendError.value = "Échec de l'envoi du fichier: ${e.message}"
+                _sendError.value = getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.chat_send_file_error, e.message)
             }
         }
     }
@@ -221,7 +221,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 DummyTrafficManager.onRealMessageSent()
                 _sendError.value = null
             } catch (e: Exception) {
-                _sendError.value = "Échec de l'envoi du message vocal: ${e.message}"
+                _sendError.value = getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.chat_send_voice_error, e.message)
             }
         }
     }
@@ -256,7 +256,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val app = getApplication<Application>()
                 if (!WalletPreferences.isWalletEnabled(app) || !MoneroWallet.isOpen) {
-                    _sendError.postValue("Wallet non disponible — activez-le dans les paramètres")
+                    _sendError.postValue(getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.chat_wallet_unavailable))
                     return@launch
                 }
                 if (!WalletRepository.validateAddress(app, toAddress)) {
@@ -277,7 +277,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     _sendError.postValue(null)
                     _xmrSendSuccess.postValue(Pair(result.txId ?: "", formatted))
                 } else {
-                    _sendError.postValue("Envoi XMR échoué : ${result.error}")
+                    _sendError.postValue(getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.chat_xmr_send_failed, result.error))
                 }
             } catch (e: Exception) {
                 _sendError.postValue("Erreur XMR : ${e.message}")

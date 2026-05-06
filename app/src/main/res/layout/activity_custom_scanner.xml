@@ -22,6 +22,6 @@
         android:src="@drawable/ic_flashlight_off"
         android:scaleType="centerInside"
         android:padding="12dp"
-        android:contentDescription="Lampe torche" />
+        android:contentDescription="@string/cd_torch" />
 
 </FrameLayout>

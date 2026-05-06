@@ -59,7 +59,18 @@
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"
             app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_torBootstrap_to_languageSelection"
+            app:destination="@id/languageSelectionFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out" />
     </fragment>
+
+    <fragment
+        android:id="@+id/languageSelectionFragment"
+        android:name="com.fialkaapp.fialka.ui.onboarding.LanguageSelectionFragment"
+        android:label="Language"
+        tools:layout="@layout/fragment_language_selection" />
 
     <fragment
         android:id="@+id/onboardingFragment"
@@ -613,7 +624,7 @@
     <fragment
         android:id="@+id/createGroupFragment"
         android:name="com.fialkaapp.fialka.ui.group.CreateGroupFragment"
-        android:label="Nouveau groupe"
+        android:label="@string/create_group_title"
         tools:layout="@layout/fragment_create_group">
         <action
             android:id="@+id/action_createGroup_to_groupChat"

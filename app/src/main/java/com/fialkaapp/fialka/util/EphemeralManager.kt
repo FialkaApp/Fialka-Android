@@ -42,23 +42,22 @@ object EphemeralManager {
         2_592_000_000L          // 1 month (~30 days)
     )
 
-    val DURATION_LABELS = arrayOf(
-        "Désactivé",
-        "30 secondes",
-        "5 minutes",
-        "1 heure",
-        "6 heures",
-        "12 heures",
-        "24 heures",
-        "7 jours",
-        "2 semaines",
-        "1 mois"
+    fun getLabels(context: Context): Array<String> = arrayOf(
+        context.getString(com.fialkaapp.fialka.R.string.ephemeral_label_disabled),
+        context.getString(com.fialkaapp.fialka.R.string.ephemeral_label_30s),
+        context.getString(com.fialkaapp.fialka.R.string.ephemeral_label_5m),
+        context.getString(com.fialkaapp.fialka.R.string.ephemeral_label_1h),
+        context.getString(com.fialkaapp.fialka.R.string.ephemeral_label_6h),
+        context.getString(com.fialkaapp.fialka.R.string.ephemeral_label_12h),
+        context.getString(com.fialkaapp.fialka.R.string.ephemeral_label_24h),
+        context.getString(com.fialkaapp.fialka.R.string.ephemeral_label_7d),
+        context.getString(com.fialkaapp.fialka.R.string.ephemeral_label_2w),
+        context.getString(com.fialkaapp.fialka.R.string.ephemeral_label_1month)
     )
 
-    /** Icon shown in the chat toolbar when ephemeral is enabled. */
-    fun getLabelForDuration(durationMs: Long): String {
+    fun getLabelForDuration(context: Context, durationMs: Long): String {
         val idx = DURATION_OPTIONS.indexOf(durationMs)
-        if (idx >= 0) return DURATION_LABELS[idx]
+        if (idx >= 0) return getLabels(context)[idx]
         return formatCustomDuration(durationMs)
     }
 

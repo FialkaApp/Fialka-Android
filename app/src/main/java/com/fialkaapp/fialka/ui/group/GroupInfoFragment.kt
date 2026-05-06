@@ -72,10 +72,9 @@ class GroupInfoFragment : Fragment() {
 
             binding.tvGroupNameInfo.text = group.name
             binding.tvGroupInitial.text = group.name.firstOrNull()?.uppercaseChar()?.toString() ?: "G"
-            binding.tvGroupMeta.text = "Créé le ${
+            binding.tvGroupMeta.text = getString(com.fialkaapp.fialka.R.string.group_created_on,
                 java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
-                    .format(java.util.Date(group.createdAt))
-            }"
+                    .format(java.util.Date(group.createdAt)))
 
             val isAdmin = group.myRole != GroupLocal.ROLE_MEMBER
             binding.btnRenameGroup.visibility = if (isAdmin) View.VISIBLE else View.GONE
@@ -129,7 +128,7 @@ class GroupInfoFragment : Fragment() {
         binding.btnLeaveGroup.setOnClickListener {
             MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Quitter le groupe")
-                .setMessage("Es-tu sûr de vouloir quitter « $groupName » ?")
+                .setMessage(getString(R.string.group_leave_confirm_message, groupName))
                 .setPositiveButton("Quitter") { _, _ -> viewModel.leaveGroup(groupId) }
                 .setNegativeButton("Annuler", null)
                 .show()
@@ -170,9 +169,9 @@ class GroupInfoFragment : Fragment() {
         },
         onDemote = { member ->
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Rétrograder ${member.displayName}")
+                .setTitle(getString(R.string.group_demote_title, member.displayName))
                 .setMessage("Retirer les droits admin de ${member.displayName} ?")
-                .setPositiveButton("Rétrograder") { _, _ ->
+                .setPositiveButton(getString(R.string.group_demote_btn)) { _, _ ->
                     viewModel.demoteMember(groupId, member.publicKey)
                 }
                 .setNegativeButton("Annuler", null)

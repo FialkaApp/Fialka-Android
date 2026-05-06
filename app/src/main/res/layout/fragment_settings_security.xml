@@ -35,8 +35,7 @@
                 android:layout_marginHorizontal="20dp"
                 android:layout_marginBottom="8dp"
                 android:letterSpacing="0.1"
-                android:text="APPAREIL"
-                android:textColor="?attr/colorPrimary"
+                android:text="@string/security_section_device"
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
@@ -68,7 +67,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Niveau de sécurité"
+                            android:text="@string/security_level_label"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
 
@@ -101,7 +100,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="StrongBox"
+                            android:text="@string/security_strongbox_label"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
 
@@ -133,7 +132,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Système"
+                            android:text="@string/security_system_label"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
 
@@ -197,7 +196,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Appareil"
+                            android:text="@string/security_device_label"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
 
@@ -229,7 +228,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Profil"
+                            android:text="@string/security_profile_label"
                             android:textColor="?android:attr/textColorSecondary"
                             android:textSize="13sp" />
 
@@ -277,17 +276,16 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Code PIN"
+                                android:text="@string/security_pin_label"
                                 android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                                android:textSize="15sp" />
 
                             <TextView
                                 android:id="@+id/tvPinStatus"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="Protégez l'accès à l'application"
+                                android:text="@string/security_pin_desc"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="13sp" />
                         </LinearLayout>
@@ -328,9 +326,7 @@
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="Changer le code"
-                                android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="15sp" />
+                                android:text="@string/security_change_pin_btn" />
 
                             <ImageView
                                 android:layout_width="24dp"
@@ -340,13 +336,6 @@
                                 android:tint="?android:attr/textColorSecondary" />
                         </LinearLayout>
 
-                        <View
-                            android:layout_width="match_parent"
-                            android:layout_height="1dp"
-                            android:background="?attr/colorOutline"
-                            android:alpha="0.5" />
-
-                        <!-- Auto-lock -->
                         <LinearLayout
                             android:id="@+id/layoutAutoLock"
                             android:layout_width="match_parent"
@@ -366,16 +355,15 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Verrouillage auto"
-                                    android:textColor="?android:attr/textColorPrimary"
-                                    android:textSize="15sp" />
+                                    android:text="@string/security_autolock_label"
+                                    android:textSize="14sp" />
 
                                 <TextView
                                     android:id="@+id/tvAutoLockSummary"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
-                                    android:text="Après 3 secondes"
+                                    android:text="@string/settings_autolock_after_3s"
                                     android:textColor="?android:attr/textColorSecondary"
                                     android:textSize="13sp" />
                             </LinearLayout>
@@ -427,17 +415,16 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Déverrouillage biométrique"
+                                android:text="@string/security_biometric_label"
                                 android:textColor="?android:attr/textColorPrimary"
-                                android:textSize="16sp"
-                                android:textStyle="bold" />
+                                android:textSize="15sp" />
 
                             <TextView
                                 android:id="@+id/tvBiometricStatus"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="Empreinte digitale, reconnaissance faciale…"
+                                android:text="@string/security_biometric_desc"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="13sp" />
                         </LinearLayout>
@@ -472,7 +459,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🔐 Sécurité du code"
+                        android:text="@string/security_pin_info_label"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -482,7 +469,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="3dp"
-                        android:text="Le code PIN est stocké sous forme de hash PBKDF2 (600k itérations) dans un espace chiffré (Keystore).\n\nMême avec un accès root, le code ne peut pas être récupéré en clair.\n\nL'app se re-verrouille automatiquement selon le délai choisi."
+                        android:text="@string/security_pin_info_desc"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>

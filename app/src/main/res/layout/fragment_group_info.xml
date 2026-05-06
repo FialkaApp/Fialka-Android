@@ -93,7 +93,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    android:text="Renommer"
+                    android:text="@string/group_rename_btn"
                     android:textAllCaps="false"
                     app:strokeColor="?attr/colorPrimary"
                     android:textColor="?attr/colorPrimary" />
@@ -104,7 +104,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Quitter"
+                    android:text="@string/group_leave_btn"
                     android:textAllCaps="false"
                     app:strokeColor="@color/error"
                     android:textColor="@color/error" />
@@ -118,7 +118,7 @@
                 android:layout_marginHorizontal="20dp"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="4dp"
-                android:text="MEMBRES"
+                android:text="@string/group_members_label"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="11sp"
                 android:textStyle="bold"
@@ -142,7 +142,7 @@
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginTop="4dp"
                 android:layout_marginBottom="8dp"
-                android:text="Inviter un membre"
+                android:text="@string/group_invite_member_btn"
                 android:textAllCaps="false"
                 app:icon="@drawable/ic_add"
                 app:strokeColor="?attr/colorPrimary"
@@ -157,7 +157,7 @@
                 android:layout_marginHorizontal="20dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="4dp"
-                android:text="PARAMÈTRES"
+                android:text="@string/group_settings_label"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="11sp"
                 android:textStyle="bold"
@@ -186,14 +186,14 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tous peuvent inviter"
+                        android:text="@string/group_all_can_invite"
                         android:textColor="?attr/colorTextPrimary"
                         android:textSize="15sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Les membres peuvent inviter de nouveaux contacts"
+                        android:text="@string/group_all_can_invite_desc"
                         android:textColor="?attr/colorTextSecondary"
                         android:textSize="12sp" />
                 </LinearLayout>

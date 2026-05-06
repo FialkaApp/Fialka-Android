@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.data.model.GroupLocal
 import com.fialkaapp.fialka.data.model.GroupMember
 import com.fialkaapp.fialka.databinding.ItemGroupMemberBinding
@@ -37,12 +38,12 @@ class GroupMemberAdapter(
             when (member.role) {
                 GroupLocal.ROLE_OWNER -> {
                     b.tvRoleBadge.visibility = android.view.View.VISIBLE
-                    b.tvRoleBadge.text = "CRÉATEUR"
+                    b.tvRoleBadge.text = b.root.context.getString(com.fialkaapp.fialka.R.string.group_role_creator)
                     b.btnKick.visibility = android.view.View.GONE
                 }
                 GroupLocal.ROLE_ADMIN -> {
                     b.tvRoleBadge.visibility = android.view.View.VISIBLE
-                    b.tvRoleBadge.text = "ADMIN"
+                    b.tvRoleBadge.text = b.root.context.getString(R.string.group_admin_badge)
                     // Admins can be kicked only by owner
                     showKickIfAllowed(member)
                 }

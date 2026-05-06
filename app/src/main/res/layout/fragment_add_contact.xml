@@ -37,7 +37,7 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
                 android:letterSpacing="0.18"
-                android:text="CONNEXION S\u00c9CURIS\u00c9E"
+                android:text="@string/add_contact_eyebrow"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="9sp"
                 android:textStyle="bold" />
@@ -57,7 +57,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:gravity="center"
-                android:text="Scanne le QR ou entre le lien d\u2019invitation."
+                android:text="@string/add_contact_description"
                 android:textColor="?attr/colorTextSecondary"
                 android:textSize="13sp" />
 

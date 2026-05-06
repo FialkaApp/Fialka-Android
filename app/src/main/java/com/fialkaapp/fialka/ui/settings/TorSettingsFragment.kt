@@ -28,6 +28,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.databinding.FragmentTorSettingsBinding
 import com.fialkaapp.fialka.tor.TorCircuit
 import com.fialkaapp.fialka.tor.TorManager
@@ -100,27 +101,27 @@ class TorSettingsFragment : Fragment() {
     private fun updateTorStatus(state: TorState) {
         when (state) {
             is TorState.IDLE -> {
-                binding.tvTorStatus.text = "En attente…"
+                binding.tvTorStatus.text = getString(R.string.tor_waiting)
                 binding.torProgressIndicator.visibility = View.GONE
             }
             is TorState.STARTING -> {
-                binding.tvTorStatus.text = "Démarrage…"
+                binding.tvTorStatus.text = getString(R.string.tor_status_starting)
                 binding.torProgressIndicator.visibility = View.VISIBLE
                 binding.torProgressIndicator.isIndeterminate = true
             }
             is TorState.BOOTSTRAPPING -> {
-                binding.tvTorStatus.text = "Connexion… ${state.percent}%"
+                binding.tvTorStatus.text = getString(R.string.tor_status_bootstrapping, state.percent)
                 binding.torProgressIndicator.visibility = View.VISIBLE
                 binding.torProgressIndicator.isIndeterminate = false
                 binding.torProgressIndicator.max = 100
                 binding.torProgressIndicator.setProgressCompat(state.percent, true)
             }
             is TorState.CONNECTED -> {
-                binding.tvTorStatus.text = "✅ Connecté au réseau Tor"
+                binding.tvTorStatus.text = getString(R.string.tor_status_connected_full)
                 binding.torProgressIndicator.visibility = View.GONE
             }
             is TorState.PUBLISHING_ONION -> {
-                binding.tvTorStatus.text = "Publication .onion…"
+                binding.tvTorStatus.text = getString(R.string.tor_status_publishing)
                 binding.torProgressIndicator.visibility = View.VISIBLE
                 binding.torProgressIndicator.isIndeterminate = true
             }
@@ -133,7 +134,7 @@ class TorSettingsFragment : Fragment() {
                 binding.torProgressIndicator.visibility = View.GONE
             }
             is TorState.DISCONNECTED -> {
-                binding.tvTorStatus.text = "Déconnecté"
+                binding.tvTorStatus.text = getString(R.string.tor_disconnected)
                 binding.torProgressIndicator.visibility = View.GONE
             }
         }
@@ -145,7 +146,7 @@ class TorSettingsFragment : Fragment() {
         val dp = resources.displayMetrics.density
 
         val title = TextView(requireContext()).apply {
-            text = "${circuits.size} circuits actifs"
+            text = getString(R.string.tor_circuits_active_count, circuits.size)
             setTextColor(resources.getColor(com.fialkaapp.fialka.R.color.white, null))
             textSize = 13f
             setTypeface(null, Typeface.BOLD)

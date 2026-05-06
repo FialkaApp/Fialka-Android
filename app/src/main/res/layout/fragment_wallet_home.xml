@@ -152,7 +152,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginBottom="4dp"
-                                    android:text="Solde total"
+                                    android:text="@string/wallet_total_balance"
                                     android:textColor="?attr/colorOnSurfaceVariant"
                                     android:textSize="12sp" />
 
@@ -194,7 +194,7 @@
                                         android:layout_height="wrap_content"
                                         android:layout_marginStart="8dp"
                                         android:layout_weight="1"
-                                        android:text="Recevoir" />
+                                        android:text="@string/wallet_tab_receive" />
 
                                 </LinearLayout>
                             </LinearLayout>
@@ -204,7 +204,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="8dp"
-                            android:text="Transactions r&#233;centes"
+                            android:text="@string/wallet_recent_title"
                             android:textSize="14sp"
                             android:textStyle="bold" />
 
@@ -316,7 +316,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="16dp"
-                            android:text="Votre adresse"
+                            android:text="@string/wallet_your_address_label"
                             android:textSize="16sp"
                             android:textStyle="bold" />
 
@@ -343,7 +343,7 @@
                             android:id="@+id/btnReceiveCopy"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Copier l&#x27;adresse" />
+                            android:text="@string/wallet_copy_address" />
 
                     </LinearLayout>
 
@@ -402,8 +402,7 @@
                     android:id="@+id/labelTabHome"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Accueil"
-                    android:textColor="?attr/colorPrimary"
+                    android:text="@string/wallet_tab_home"
                     android:textSize="10sp" />
 
             </LinearLayout>
@@ -427,8 +426,7 @@
                     android:id="@+id/labelTabSend"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Envoyer"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:text="@string/wallet_tab_send"
                     android:textSize="10sp" />
 
             </LinearLayout>
@@ -452,8 +450,7 @@
                     android:id="@+id/labelTabReceive"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Recevoir"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:text="@string/wallet_tab_receive"
                     android:textSize="10sp" />
 
             </LinearLayout>
@@ -477,8 +474,7 @@
                     android:id="@+id/labelTabTransactions"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Transactions"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:text="@string/wallet_tab_transactions"
                     android:textSize="10sp" />
 
             </LinearLayout>

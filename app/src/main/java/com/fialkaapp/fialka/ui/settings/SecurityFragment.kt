@@ -87,7 +87,7 @@ class SecurityFragment : Fragment() {
 
     private fun updateAutoLockLabel() {
         val label = AppLockManager.getAutoLockLabel(requireContext())
-        binding.tvAutoLockSummary.text = "Après ${label.lowercase()}"
+        binding.tvAutoLockSummary.text = getString(R.string.security_autolock_after, label.lowercase())
     }
 
     private fun setupPin() {
@@ -105,7 +105,7 @@ class SecurityFragment : Fragment() {
                     .setPositiveButton(R.string.action_remove) { _, _ ->
                         AppLockManager.removePin(requireContext())
                         updatePinUI(false)
-                        Toast.makeText(requireContext(), "Code supprimé", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), getString(R.string.security_pin_removed), Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton(R.string.action_cancel, null)
                     .setCancelable(false)
@@ -131,10 +131,10 @@ class SecurityFragment : Fragment() {
                 } else {
                     binding.switchBiometric.isChecked = false
                     val msg = when (canAuth) {
-                        BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> "Cet appareil n'a pas de capteur biométrique"
-                        BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> "Le capteur biométrique n'est pas disponible"
-                        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> "Aucune empreinte/visage enregistré dans les paramètres du téléphone"
-                        else -> "Biométrie non disponible"
+                        BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> getString(R.string.security_biometric_no_hardware)
+                        BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> getString(R.string.security_biometric_hw_unavailable)
+                        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> getString(R.string.security_biometric_none_enrolled)
+                        else -> getString(R.string.security_biometric_unavailable)
                     }
                     Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
                 }
@@ -154,11 +154,7 @@ class SecurityFragment : Fragment() {
     private fun updatePinUI(pinSet: Boolean) {
         binding.switchPin.isChecked = pinSet
         binding.layoutPinOptions.visibility = if (pinSet) View.VISIBLE else View.GONE
-        binding.tvPinStatus.text = if (pinSet) {
-            "✅ Code actif — demandé à chaque ouverture"
-        } else {
-            "Protégez l'accès à l'application"
-        }
+        binding.tvPinStatus.text = if (pinSet) getString(R.string.security_pin_active) else getString(R.string.security_pin_inactive)
 
         if (pinSet) {
             updateAutoLockLabel()
@@ -180,11 +176,7 @@ class SecurityFragment : Fragment() {
     }
 
     private fun updateBiometricStatus(enabled: Boolean) {
-        binding.tvBiometricStatus.text = if (enabled) {
-            "✅ Activé — utilisez votre empreinte ou visage"
-        } else {
-            "Empreinte digitale, reconnaissance faciale…"
-        }
+        binding.tvBiometricStatus.text = if (enabled) getString(R.string.security_biometric_active) else getString(R.string.security_biometric_inactive)
     }
 
     private fun setupDeviceSecurityCard() {
@@ -192,8 +184,8 @@ class SecurityFragment : Fragment() {
 
         // Security level — green for Maximum, orange for Standard
         binding.tvHwSecurityLevel.text = when (profile.securityLevel) {
-            SecurityLevel.MAXIMUM  -> "Maximum"
-            SecurityLevel.STANDARD -> "Standard"
+            SecurityLevel.MAXIMUM  -> getString(R.string.security_level_maximum)
+            SecurityLevel.STANDARD -> getString(R.string.security_level_standard)
         }
         binding.tvHwSecurityLevel.setTextColor(
             if (profile.isStrongBoxAvailable) Color.parseColor("#4CAF50")
@@ -202,9 +194,9 @@ class SecurityFragment : Fragment() {
 
         // StrongBox
         binding.tvHwStrongBox.text = when (profile.strongBoxStatus) {
-            StrongBoxStatus.AVAILABLE                 -> "Disponible ✅"
-            StrongBoxStatus.DECLARED_BUT_UNAVAILABLE  -> "Déclaré, non fonctionnel ⚠️"
-            StrongBoxStatus.NOT_AVAILABLE             -> "Non disponible"
+            StrongBoxStatus.AVAILABLE                 -> getString(R.string.security_hw_available)
+            StrongBoxStatus.DECLARED_BUT_UNAVAILABLE  -> getString(R.string.security_hw_declared_unavailable)
+            StrongBoxStatus.NOT_AVAILABLE             -> getString(R.string.security_hw_unavailable)
         }
 
         // OS
@@ -212,8 +204,8 @@ class SecurityFragment : Fragment() {
             AndroidOs.GRAPHENEOS -> "GrapheneOS"
             AndroidOs.CALYXOS    -> "CalyxOS"
             AndroidOs.LINEAGEOS  -> "LineageOS"
-            AndroidOs.CUSTOM     -> "ROM personnalisée"
-            AndroidOs.STOCK      -> "Android"
+            AndroidOs.CUSTOM     -> getString(R.string.security_os_custom)
+            AndroidOs.STOCK      -> getString(R.string.security_os_stock)
         }
 
         // Android version
@@ -225,9 +217,9 @@ class SecurityFragment : Fragment() {
 
         // User profile
         binding.tvHwUserProfile.text = when (profile.userProfileType) {
-            UserProfileType.OWNER     -> "Propriétaire"
-            UserProfileType.SECONDARY -> "Profil secondaire ⚠️"
-            UserProfileType.UNKNOWN   -> "Inconnu"
+            UserProfileType.OWNER     -> getString(R.string.security_profile_owner)
+            UserProfileType.SECONDARY -> getString(R.string.security_profile_secondary)
+            UserProfileType.UNKNOWN   -> getString(R.string.security_profile_unknown)
         }
     }
 

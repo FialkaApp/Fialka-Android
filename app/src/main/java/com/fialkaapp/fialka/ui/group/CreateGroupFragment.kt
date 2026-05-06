@@ -66,7 +66,7 @@ class CreateGroupFragment : Fragment() {
                 return@setOnClickListener
             }
             if (selectedContacts.isEmpty()) {
-                Toast.makeText(requireContext(), "Sélectionne au moins un contact", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.group_select_at_least_one), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             binding.tilGroupName.error = null

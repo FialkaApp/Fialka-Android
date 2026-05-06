@@ -97,7 +97,7 @@
                         android:clickable="true"
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="Copier" />
+                        android:contentDescription="@string/cd_copy" />
                 </LinearLayout>
 
                 <!-- Action button: "Payer" for REQUEST, "Voir TX" for SENT, hidden for ADDR -->
@@ -109,7 +109,7 @@
                     android:layout_marginTop="8dp"
                     android:textSize="13sp"
                     android:visibility="gone"
-                    android:text="Payer" />
+                    android:text="@string/xmr_pay_btn" />
             </LinearLayout>
         </LinearLayout>
 

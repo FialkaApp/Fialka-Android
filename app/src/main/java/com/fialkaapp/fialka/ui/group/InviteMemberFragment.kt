@@ -38,9 +38,9 @@ class InviteMemberFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         groupId = arguments?.getString("groupId") ?: ""
-        val groupName = arguments?.getString("groupName") ?: "Groupe"
+        val groupName = arguments?.getString("groupName") ?: getString(com.fialkaapp.fialka.R.string.group_default_name)
 
-        binding.toolbar.title = "Inviter dans « $groupName »"
+        binding.toolbar.title = getString(com.fialkaapp.fialka.R.string.invite_to_group_title, groupName)
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
 
         val adapter = ContactSelectableAdapter { _, _ -> }

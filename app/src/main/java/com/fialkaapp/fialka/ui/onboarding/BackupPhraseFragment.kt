@@ -119,7 +119,7 @@ class BackupPhraseFragment : Fragment() {
     private fun shareWords() {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "Fialka — phrase de récupération")
+            putExtra(Intent.EXTRA_SUBJECT, getString(R.string.backup_phrase_share_subject))
             putExtra(Intent.EXTRA_TEXT, buildSeedText())
         }
         startActivity(Intent.createChooser(intent, getString(R.string.backup_share_chooser)))
@@ -156,8 +156,8 @@ class BackupPhraseFragment : Fragment() {
     }
 
     private fun buildSeedText(): String = buildString {
-        appendLine("Fialka — phrase de récupération (24 mots BIP-39)")
-        appendLine("Gardez ces mots en lieu sûr. Ne les partagez jamais.")
+        appendLine(getString(R.string.backup_phrase_file_header))
+        appendLine(getString(R.string.backup_phrase_warning))
         appendLine()
         words.forEachIndexed { i, w -> appendLine("${i + 1}. $w") }
     }

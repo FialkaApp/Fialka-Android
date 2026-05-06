@@ -88,7 +88,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Déposés"
+                    android:text="@string/mailbox_stat_deposited"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -124,7 +124,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Récupérés"
+                    android:text="@string/mailbox_stat_retrieved"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -160,7 +160,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Transféré"
+                    android:text="@string/mailbox_stat_transferred"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -209,7 +209,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="En attente"
+                    android:text="@string/mailbox_stat_pending"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="11sp" />
             </LinearLayout>

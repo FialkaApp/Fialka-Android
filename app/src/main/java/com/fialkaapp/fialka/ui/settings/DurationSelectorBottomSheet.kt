@@ -102,14 +102,13 @@ class DurationSelectorBottomSheet(
         return when (mode) {
             Mode.EPHEMERAL_MESSAGES -> {
                 EphemeralManager.DURATION_OPTIONS.map { duration ->
-                    duration to EphemeralManager.getLabelForDuration(duration)
+                    duration to EphemeralManager.getLabelForDuration(requireContext(), duration)
                 }
             }
             Mode.AUTO_LOCK -> {
+                val labels = AppLockManager.getAutoLockLabels(requireContext())
                 AppLockManager.AUTO_LOCK_OPTIONS.map { delay ->
-                    delay to AppLockManager.AUTO_LOCK_LABELS[
-                        AppLockManager.AUTO_LOCK_OPTIONS.indexOf(delay)
-                    ]
+                    delay to labels[AppLockManager.AUTO_LOCK_OPTIONS.indexOf(delay)]
                 }
             }
         }

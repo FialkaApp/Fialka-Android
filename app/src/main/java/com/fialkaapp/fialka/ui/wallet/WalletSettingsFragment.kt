@@ -118,7 +118,7 @@ class WalletSettingsFragment : Fragment() {
                                 binding.tvNetworkSwitchBlocked.visibility = View.GONE
                                 binding.tvStagenetBanner.visibility =
                                     if (selectedNetwork == WalletPreferences.STAGENET) View.VISIBLE else View.GONE
-                                Toast.makeText(ctx, getString(R.string.wallet_delete_success) + " — Réseau : $networkLabel", Toast.LENGTH_LONG).show()
+                                Toast.makeText(ctx, getString(R.string.wallet_delete_success_network, networkLabel), Toast.LENGTH_LONG).show()
                                 WalletRepository.invalidateNodeCache()
                                 refreshNodeStatus()
                             }

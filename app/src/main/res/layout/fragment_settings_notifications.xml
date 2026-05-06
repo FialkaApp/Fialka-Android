@@ -61,7 +61,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Notifications nouvelles messages"
+                                android:text="@string/notif_setting_label"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
@@ -70,7 +70,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="Autorisations système"
+                                android:text="@string/notif_permissions_label"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="13sp" />
                         </LinearLayout>
@@ -88,7 +88,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:paddingHorizontal="8dp"
-                        android:text="Appuyez pour autoriser"
+                        android:text="@string/notif_tap_to_allow"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -131,7 +131,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Optimisations batterie"
+                                android:text="@string/notif_battery_label"
                                 android:textColor="?android:attr/textColorPrimary"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
@@ -140,7 +140,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:text="Empêche Tor de s'arrêter en arrière-plan"
+                                android:text="@string/notif_battery_tor_desc"
                                 android:textColor="?android:attr/textColorSecondary"
                                 android:textSize="13sp" />
                         </LinearLayout>
@@ -153,7 +153,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:paddingHorizontal="8dp"
-                        android:text="Appuyez pour corriger"
+                        android:text="@string/notif_tap_to_fix"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
 
@@ -181,7 +181,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="ℹ️ Comment ça marche ?"
+                        android:text="@string/notif_how_label"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -191,7 +191,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         android:lineSpacingExtra="3dp"
-                        android:text="Les notifications utilisent UnifiedPush (ntfy.sh ou auto-hébergé).\n\n• Aucun contenu de message n'est envoyé\n• Seul un signal de réveil est transmis\n• Zéro Google — aucun FCM, aucun token Google\n• Votre vie privée est toujours protégée"
+                        android:text="@string/notif_how_desc"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp" />
                 </LinearLayout>

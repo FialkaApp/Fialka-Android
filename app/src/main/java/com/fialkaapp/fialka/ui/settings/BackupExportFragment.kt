@@ -28,6 +28,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.fialkaapp.fialka.backup.FialkaBackupManager
+import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.crypto.WalletSeedManager
 import com.fialkaapp.fialka.data.local.FialkaDatabase
@@ -92,7 +93,7 @@ class BackupExportFragment : Fragment() {
             return
         }
         if (passphrase.length < 8) {
-            showError("La passphrase doit contenir au moins 8 caractères.")
+            showError(getString(R.string.backup_export_passphrase_too_short))
             return
         }
         if (passphrase != passphraseConf) {
@@ -113,7 +114,7 @@ class BackupExportFragment : Fragment() {
                 val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 saveFileLauncher.launch("fialka_backup_$dateStr.fialka")
             } catch (e: Exception) {
-                showError("Erreur lors de la création : ${e.message}")
+                showError(getString(R.string.backup_export_create_error, e.message))
             } finally {
                 showLoading(false)
             }
@@ -169,7 +170,7 @@ class BackupExportFragment : Fragment() {
                 }
                 showSuccess()
             } catch (e: Exception) {
-                showError("Impossible d'écrire le fichier : ${e.message}")
+                showError(getString(R.string.backup_export_write_error, e.message))
             }
         }
     }
@@ -177,7 +178,7 @@ class BackupExportFragment : Fragment() {
     private fun showSuccess() {
         hideError()
         binding.tvError.apply {
-            text = "Sauvegarde créée avec succès."
+            text = getString(R.string.backup_export_success)
             setTextColor(requireContext().getColor(com.fialkaapp.fialka.R.color.primary))
             visibility = View.VISIBLE
         }

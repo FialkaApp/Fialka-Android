@@ -159,7 +159,7 @@ class GroupRepository(private val appContext: Context) {
         }
 
         // System message: "Groupe créé"
-        insertSystemMessage(groupId, "Groupe « $name » créé")
+        insertSystemMessage(groupId, appContext.getString(com.fialkaapp.fialka.R.string.sys_group_created, name))
 
         // Send invitations to all members (except self)
         val allMembers = listOf(
@@ -633,7 +633,7 @@ class GroupRepository(private val appContext: Context) {
                         groupDao.removeAllMembers(groupId)
                         groupDao.deleteGroup(groupId)
                     } else {
-                        insertSystemMessage(groupId, "$kickedName a été retiré du groupe")
+                        insertSystemMessage(groupId, appContext.getString(com.fialkaapp.fialka.R.string.sys_group_member_removed, kickedName))
                     }
                 }
                 "LEAVE" -> {
@@ -641,7 +641,7 @@ class GroupRepository(private val appContext: Context) {
                     val count = groupDao.getMemberCount(groupId)
                     groupDao.updateMemberCount(groupId, count)
                     val name = actor.displayName
-                    insertSystemMessage(groupId, "$name a quitté le groupe")
+                    insertSystemMessage(groupId, appContext.getString(com.fialkaapp.fialka.R.string.sys_group_member_left, name))
                 }
                 "PROMOTE" -> {
                     groupDao.updateRole(groupId, targetKey, GroupLocal.ROLE_ADMIN)
@@ -659,7 +659,7 @@ class GroupRepository(private val appContext: Context) {
                 "RENAME" -> {
                     if (newName.isNotBlank()) {
                         groupDao.updateGroupName(groupId, newName)
-                        insertSystemMessage(groupId, "Groupe renommé : « $newName »")
+                        insertSystemMessage(groupId, appContext.getString(com.fialkaapp.fialka.R.string.sys_group_renamed, newName))
                     }
                 }
                 "SETTINGS" -> {
@@ -697,7 +697,7 @@ class GroupRepository(private val appContext: Context) {
         val count = groupDao.getMemberCount(groupId)
         groupDao.updateMemberCount(groupId, count)
 
-        insertSystemMessage(groupId, "Vous avez retiré $targetName du groupe")
+        insertSystemMessage(groupId, appContext.getString(com.fialkaapp.fialka.R.string.sys_group_you_removed, targetName))
     }
 
     /** Promote a member to ADMIN. Only OWNER can call this. */
@@ -755,7 +755,7 @@ class GroupRepository(private val appContext: Context) {
     /** Leave the group. Broadcasts LEAVE to all members, then removes local data. */
     suspend fun leaveGroup(groupId: String) {
         val me = userDao.getUser() ?: return
-        insertSystemMessage(groupId, "Vous avez quitté le groupe")
+        insertSystemMessage(groupId, appContext.getString(com.fialkaapp.fialka.R.string.sys_group_you_left))
         broadcastAdminAction(groupId, "LEAVE", me.publicKey)
         groupDao.removeMember(groupId, me.publicKey)
         groupDao.removeAllMembers(groupId)
@@ -769,7 +769,7 @@ class GroupRepository(private val appContext: Context) {
         if (myMember.role == GroupLocal.ROLE_MEMBER) return
 
         groupDao.updateGroupName(groupId, newName)
-        insertSystemMessage(groupId, "Groupe renommé : « $newName »")
+        insertSystemMessage(groupId, appContext.getString(com.fialkaapp.fialka.R.string.sys_group_renamed, newName))
         broadcastAdminAction(groupId, "RENAME", me.publicKey, newName = newName)
     }
 

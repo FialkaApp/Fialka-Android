@@ -44,7 +44,7 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="monospace"
                     android:letterSpacing="0.18"
-                    android:text="GHOST IDENTITY"
+                    android:text="@string/profile_eyebrow"
                     android:textColor="?attr/colorPrimary"
                     android:textSize="9sp"
                     android:textStyle="bold" />
@@ -87,7 +87,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:fontFamily="monospace"
-                    android:text="Ed25519 \u00b7 ML-DSA-44 \u00b7 ML-KEM-1024"
+                    android:text="@string/profile_crypto_badge"
                     android:textColor="?attr/colorTextSecondary"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -99,7 +99,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="8dp"
-                android:text="✏️ Pseudo"
+                android:text="@string/profile_username_label"
                 android:textColor="@color/primary"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -151,7 +151,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="8dp"
-                android:text="🔗 Lien d'invitation"
+                android:text="@string/profile_invite_link_label"
                 android:textColor="@color/primary"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -175,7 +175,7 @@
                         android:layout_width="220dp"
                         android:layout_height="220dp"
                         android:background="@color/white"
-                        android:contentDescription="QR Code de votre lien d'invitation"
+                        android:contentDescription="@string/cd_qr_profile"
                         android:padding="8dp" />
 
                     <TextView
@@ -222,8 +222,7 @@
                             android:layout_height="40dp"
                             android:layout_marginEnd="6dp"
                             android:layout_weight="1"
-                            android:text="📋 Copier"
-                            android:textSize="13sp" />
+                            android:text="@string/profile_copy_btn" />
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnShareKey"
@@ -231,8 +230,7 @@
                             android:layout_height="40dp"
                             android:layout_marginStart="6dp"
                             android:layout_weight="1"
-                            android:text="📤 Partager"
-                            android:textSize="13sp" />
+                            android:text="@string/profile_share_btn" />
                     </LinearLayout>
 
                     <!-- Note : lien sans pseudo pour préserver la vie privée -->
@@ -305,8 +303,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="8dp"
-                android:text="⚠️ Zone danger"
-                android:textColor="@color/error"
+                android:text="@string/profile_danger_zone"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
@@ -328,7 +325,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Supprimer votre compte effacera toutes vos conversations, clés et données locales. Cette action est irréversible."
+                        android:text="@string/profile_delete_desc"
                         android:textColor="@color/text_secondary"
                         android:textSize="13sp" />
 

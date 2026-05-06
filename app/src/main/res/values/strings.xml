@@ -439,9 +439,9 @@
     <string name="wallet_loading_address">Chargement de l\'adresse…</string>
 
     <!-- Transaction status -->
-    <string name="wallet_tx_pending">En attente</string>
+    <string name="wallet_tx_pending">En attente (non confirmé)</string>
     <string name="wallet_tx_confirming">En cours</string>
-    <string name="wallet_tx_confirmed">Confirmé</string>
+    <string name="wallet_tx_confirmed">Confirmé (%1$d)</string>
     <string name="wallet_tx_failed">Échoué</string>
 
     <!-- Settings tab -->
@@ -658,4 +658,673 @@
     <string name="cover_setup_step2_title">Confirmez la séquence</string>
     <string name="cover_setup_mismatch">Les séquences ne correspondent pas. Recommencez.</string>
     <string name="cover_setup_empty_error">La séquence ne peut pas être vide</string>
+    <!-- Language selection -->
+    <string name="language_selection_eyebrow">BIENVENUE SUR FIALKA</string>
+    <string name="language_selection_title">Choisissez votre langue</string>
+    <string name="language_selection_subtitle">Sélectionnez la langue que vous souhaitez utiliser.\nVous pourrez la modifier plus tard dans les Paramètres.</string>
+    <string name="language_french">Français</string>
+    <string name="language_english">English</string>
+    <string name="language_french_native">Français</string>
+    <string name="language_english_native">Anglais</string>
+
+    <!-- Paramètres — Langue -->
+    <string name="setting_language_title">Langue</string>
+    <string name="setting_language_summary">Changer la langue de l\'application</string>
+    <string name="setting_language_dialog_title">Sélectionner la langue</string>
+
+    <!-- Lock Screen -->
+    <string name="lock_enter_code">Entrez votre code</string>
+    <string name="lock_forgot_pin">PIN oublié ?</string>
+    <string name="lock_seed_wrong_count">La phrase doit contenir exactement 24 mots</string>
+    <string name="lock_seed_invalid">Phrase invalide</string>
+    <string name="lock_pin_removed">PIN supprimé. Vous pouvez en configurer un nouveau dans les paramètres.</string>
+    <string name="lock_seed_mismatch">La phrase ne correspond pas à ce compte</string>
+    <string name="lock_verify_error">Erreur de vérification</string>
+
+    <!-- Attachment Sheet -->
+    <string name="attachment_photo_video">Photo ou Vidéo</string>
+    <string name="attachment_from_gallery">Depuis la galerie</string>
+    <string name="attachment_camera">Caméra</string>
+    <string name="attachment_take_photo">Prendre une photo</string>
+    <string name="attachment_file">Fichier</string>
+    <string name="attachment_document">Document, PDF, ZIP…</string>
+
+    <!-- Duration Selector -->
+    <string name="duration_selector_title">Sélectionner la durée</string>
+    <string name="duration_selector_subtitle">Choisissez une durée</string>
+
+    <!-- Ephemeral photo dialog -->
+    <string name="ephemeral_photo_label">🔥 Photo éphémère (visible une seule fois)</string>
+
+    <!-- XMR dialog -->
+    <string name="xmr_loading_balance">Chargement du solde…</string>
+    <string name="xmr_fee_priority">Priorité des frais</string>
+
+    <!-- Add Contact -->
+    <string name="add_contact_eyebrow">CONNEXION SÉCURISÉE</string>
+    <string name="add_contact_description">Scanne le QR ou entre le lien d\'invitation.</string>
+
+    <!-- App Disguise -->
+    <string name="disguise_icon_change_note">Le changement d\'icône prend effet lorsque vous quittez l\'application. Le nom affiché dans le lanceur changera aussi.</string>
+    <string name="disguise_calculator_mode_title">🔐 Mode calculatrice réelle</string>
+    <string name="disguise_calculator_mode_desc">L\'app s\'ouvre comme une vraie calculatrice. Entrez votre code secret pour accéder à Fialka.</string>
+    <string name="disguise_activate_btn">Activer</string>
+
+    <!-- Backup Export -->
+    <string name="backup_export_desc">La sauvegarde est chiffrée avec votre passphrase. Elle contient uniquement ce que vous sélectionnez ci-dessous. Conservez-la en lieu sûr.</string>
+    <string name="backup_export_content_label">CONTENU</string>
+    <string name="backup_export_identity">Identité Fialka (obligatoire)</string>
+    <string name="backup_export_wallet">Wallet Monero</string>
+    <string name="backup_export_contacts_label">Contacts</string>
+    <string name="backup_export_conversations_label">Conversations</string>
+    <string name="backup_export_messages_label">Messages (peut être volumineux)</string>
+    <string name="backup_export_passphrase_section">PASSPHRASE DE CHIFFREMENT</string>
+    <string name="backup_export_passphrase_hint_text">Choisissez une passphrase solide. Elle sera requise pour restaurer la sauvegarde. Si vous la perdez, la sauvegarde est irrécupérable.</string>
+    <string name="backup_export_create_btn">Créer la sauvegarde</string>
+
+    <!-- Backup Import -->
+    <string name="backup_import_desc">Choisissez un fichier .fialka et saisissez la passphrase utilisée lors de la création. Les données seront restaurées sur cet appareil.</string>
+    <string name="backup_import_file_label">FICHIER</string>
+    <string name="backup_import_choose_file">Choisir un fichier .fialka</string>
+    <string name="backup_import_passphrase_label">PASSPHRASE</string>
+    <string name="backup_import_decrypt_btn">Déchiffrer</string>
+    <string name="backup_import_content_label">CONTENU DÉTECTÉ</string>
+    <string name="backup_import_warning">⚠ La restauration remplacera votre identité et vos données actuelles.</string>
+    <string name="backup_import_restore_btn">Restaurer</string>
+
+    <!-- Chat -->
+    <string name="chat_mailbox_fetching">Récupération depuis la mailbox…</string>
+    <string name="chat_release_to_send">Relâchez pour envoyer</string>
+    <string name="chat_already_seen">Déjà vue</string>
+    <string name="chat_visible_once">Visible une seule fois</string>
+
+    <!-- Conversations header -->
+    <string name="conversations_eyebrow">MESSAGERIE CHIFFRÉE</string>
+    <string name="conversations_new_label">Nouveau</string>
+
+    <!-- Conversation Profile -->
+    <string name="conv_profile_node_info">NODE INFO</string>
+    <string name="conv_profile_e2e">🔒 Chiffré de bout en bout</string>
+    <string name="conv_profile_section_conv">Conversation</string>
+    <string name="conv_profile_ephemeral">Messages éphémères</string>
+    <string name="conv_profile_disabled">Désactivé</string>
+    <string name="conv_profile_dummy_traffic">Trafic factice</string>
+    <string name="conv_profile_dummy_desc">Masque l\'activité réelle</string>
+    <string name="conv_profile_section_security">Sécurité</string>
+    <string name="conv_profile_fingerprint">Empreinte de sécurité</string>
+    <string name="conv_profile_not_verified">⚠️ Non vérifié</string>
+    <string name="conv_profile_protocol_label">Protocole de chiffrement</string>
+    <string name="conv_profile_protocol_value">PQXDH · X25519 + ML-KEM-1024 · AES-256-GCM · Double Ratchet</string>
+    <string name="conv_profile_danger_zone">Zone danger</string>
+    <string name="conv_profile_delete_conv">Supprimer la conversation</string>
+
+    <!-- Create Group -->
+    <string name="create_group_select_contacts">Sélectionner des contacts</string>
+    <string name="create_group_btn">Créer le groupe</string>
+
+    <!-- Donation -->
+    <string name="donation_balance_label">Solde disponible</string>
+    <string name="donation_generating_address">Génération de l\'adresse…</string>
+    <string name="donation_send_btn">Envoyer un don</string>
+    <string name="donation_no_wallet_msg">Créez ou restaurez votre wallet Fialka pour pouvoir envoyer un don XMR.</string>
+    <string name="donation_setup_wallet_btn">Configurer le wallet</string>
+    <string name="donation_confirm_btn">Confirmer le don</string>
+    <string name="donation_history_title">Historique des dons envoyés</string>
+    <string name="donation_history_empty">Aucun don envoyé depuis cette app</string>
+    <string name="donation_send_failed_title">Envoi échoué</string>
+
+    <!-- Fingerprint -->
+    <string name="fingerprint_desc">Vérifiez que les emojis ci-dessous sont identiques sur les deux téléphones pour confirmer que la conversation est sécurisée.</string>
+    <string name="fingerprint_show_qr">Appuyez pour voir le QR code</string>
+    <string name="fingerprint_scan_contact_qr">📷 Scanner le QR code du contact</string>
+    <string name="fingerprint_verified_manually">✅ J\'ai vérifié manuellement</string>
+    <string name="fingerprint_how_label">💡 Comment vérifier ?</string>
+    <string name="fingerprint_how_desc">Deux méthodes :\n\n🔢 Emojis — Comparez visuellement les emojis en personne ou par appel vidéo.\n\n📷 QR Code — Scannez le QR code affiché sur le téléphone de votre contact. La vérification est automatique.\n\nSi les empreintes ne correspondent pas, la conversation pourrait être compromise (attaque MITM).</string>
+
+    <!-- Group Info -->
+    <string name="group_rename_btn">Renommer</string>
+    <string name="group_leave_btn">Quitter</string>
+    <string name="group_members_label">MEMBRES</string>
+    <string name="group_invite_member_btn">Inviter un membre</string>
+    <string name="group_settings_label">PARAMÈTRES</string>
+    <string name="group_all_can_invite">Tous peuvent inviter</string>
+    <string name="group_all_can_invite_desc">Les membres peuvent inviter de nouveaux contacts</string>
+    <string name="group_admin_badge">ADMIN</string>
+
+    <!-- Invite Member -->
+    <string name="invite_member_title">SÉLECTIONNER DES CONTACTS</string>
+    <string name="invite_btn">Inviter</string>
+
+    <!-- Mailbox Dashboard stats -->
+    <string name="mailbox_stat_deposited">Déposés</string>
+    <string name="mailbox_stat_retrieved">Récupérés</string>
+    <string name="mailbox_stat_transferred">Transféré</string>
+    <string name="mailbox_stat_pending">En attente</string>
+
+    <!-- Onboarding badge -->
+    <string name="onboarding_crypto_badge">PQXDH · X25519 · ML-KEM-1024 · AES-256-GCM</string>
+
+    <!-- Profile -->
+    <string name="profile_eyebrow">GHOST IDENTITY</string>
+    <string name="profile_crypto_badge">Ed25519 · ML-DSA-44 · ML-KEM-1024</string>
+    <string name="profile_username_label">✏️ Pseudo</string>
+    <string name="profile_invite_link_label">🔗 Lien d\'invitation</string>
+    <string name="profile_copy_btn">📋 Copier</string>
+    <string name="profile_share_btn">📤 Partager</string>
+    <string name="profile_danger_zone">⚠️ Zone danger</string>
+    <string name="profile_delete_desc">Supprimer votre compte effacera toutes vos conversations, clés et données locales. Cette action est irréversible.</string>
+
+    <!-- Restore -->
+    <string name="restore_tab_seed">Seed 24 mots</string>
+    <string name="restore_tab_file">Fichier .fialka</string>
+    <string name="restore_seed_label">Saisissez vos 24 mots de récupération</string>
+    <string name="restore_word_counter">0 / 24 mots</string>
+    <string name="restore_file_label">FICHIER</string>
+    <string name="restore_choose_file">Choisir un fichier .fialka</string>
+    <string name="restore_passphrase_label">PASSPHRASE</string>
+    <string name="restore_content_label">CONTENU DÉTECTÉ</string>
+    <string name="restore_warning">⚠ La restauration remplacera votre identité et vos données actuelles.</string>
+    <string name="restore_backup_btn">Restaurer la sauvegarde</string>
+    <string name="restore_file_passphrase_hint">Passphrase de déchiffrement</string>
+
+    <!-- MessagesAdapter one-shot / file states -->
+    <string name="msg_photo_ephemeral">Photo éphémère</string>
+    <string name="msg_locked">Verrouillée</string>
+    <string name="msg_open">Ouvrir</string>
+    <string name="msg_view">Voir</string>
+    <string name="msg_expired">Expirée</string>
+    <string name="msg_downloading">Téléchargement…</string>
+    <string name="msg_oneshot_hint">Vérifier / Ouvrir (1 fois)</string>
+    <string name="msg_download_failed">⚠️ Échec : %1$s</string>
+
+    <!-- SecurityFragment -->
+    <string name="security_pin_removed">Code supprimé</string>
+    <string name="security_pin_active">✅ Code actif — demandé à chaque ouverture</string>
+    <string name="security_pin_inactive">Protégez l’accès à l’application</string>
+    <string name="security_autolock_after">Après %1$s</string>
+    <string name="security_biometric_active">✅ Activé — utilisez votre empreinte ou visage</string>
+    <string name="security_biometric_inactive">Empreinte digitale, reconnaissance faciale…</string>
+    <string name="security_hw_available">Disponible ✅</string>
+    <string name="security_hw_declared_unavailable">Déclaré, non fonctionnel ⚠️</string>
+    <string name="security_hw_unavailable">Non disponible</string>
+    <string name="security_level_maximum">Maximum</string>
+    <string name="security_level_standard">Standard</string>
+    <string name="security_os_custom">ROM personnalisée</string>
+    <string name="security_os_stock">Android</string>
+    <string name="security_profile_owner">Propriétaire</string>
+    <string name="security_profile_secondary">Profil secondaire ⚠️</string>
+    <string name="security_profile_unknown">Inconnu</string>
+    <string name="security_biometric_no_hardware">Cet appareil n’a pas de capteur biométrique</string>
+    <string name="security_biometric_hw_unavailable">Le capteur biométrique n’est pas disponible</string>
+    <string name="security_biometric_none_enrolled">Aucune empreinte/visage enregistré dans les paramètres du téléphone</string>
+    <string name="security_biometric_unavailable">Biométrie non disponible</string>
+
+    <!-- TorSettingsFragment -->
+    <string name="tor_status_starting">Démarrage…</string>
+    <string name="tor_status_bootstrapping">Connexion… %1$d%%</string>
+    <string name="tor_status_connected_full">✅ Connecté au réseau Tor</string>
+    <string name="tor_status_publishing">Publication .onion…</string>
+    <string name="tor_status_error">❌ %1$s</string>
+    <string name="tor_circuits_active_count">%1$d circuits actifs</string>
+
+    <!-- ConversationProfileFragment -->
+    <string name="conv_dummy_active">✅ Actif — trafic masqué en temps réel</string>
+    <string name="conv_dummy_inactive">Masque l’activité réelle</string>
+    <string name="conv_fingerprint_verified">✅ Vérifié</string>
+    <string name="conv_fingerprint_unverified">⚠️ Non vérifié</string>
+
+    <!-- FingerprintFragment -->
+    <string name="scan_cancelled">Scan annulé</string>
+    <string name="fingerprint_verified_toast">Empreinte vérifiée ✓</string>
+    <string name="fingerprint_unverified_toast">Vérification retirée</string>
+    <string name="fingerprint_toggle_hint_emojis">Appuyez pour voir les emojis</string>
+    <string name="fingerprint_toggle_hint_qr">Appuyez pour voir le QR code</string>
+    <string name="fingerprint_qr_explanation">Montrez ce QR code à votre contact pour qu\'il le scanne, ou scannez le sien.</string>
+    <string name="fingerprint_emoji_explanation">Vérifiez que les emojis ci-dessous sont identiques sur les deux téléphones pour confirmer que la conversation est sécurisée.</string>
+    <string name="fingerprint_qr_error">Erreur génération QR</string>
+    <string name="fingerprint_scan_prompt">Scannez le QR code de votre contact</string>
+    <string name="fingerprint_match_title">✅ Empreinte vérifiée</string>
+    <string name="fingerprint_match_message">Les empreintes correspondent ! La conversation est authentique et sécurisée.</string>
+    <string name="fingerprint_mismatch_title">❌ Empreintes différentes</string>
+    <string name="fingerprint_mismatch_message">ATTENTION : les empreintes ne correspondent pas !\n\nCela peut indiquer une attaque de type homme du milieu (MITM). Ne partagez pas d\'informations sensibles dans cette conversation.</string>
+    <string name="fingerprint_remove_verification">Retirer la vérification</string>
+    <string name="fingerprint_mark_verified">Marquer comme vérifié</string>
+
+    <!-- Ephemeral Settings -->
+    <string name="ephemeral_settings_desc">Les nouveaux messages envoyés dans les conversations qui ont activé les messages éphémères seront automatiquement supprimés après la durée choisie.</string>
+    <string name="ephemeral_duration_label">Durée par défaut</string>
+    <string name="ephemeral_disabled">Désactivé</string>
+    <string name="ephemeral_how_label">⏳ Comment ça marche ?</string>
+    <string name="ephemeral_how_desc">Ce réglage s\'applique par défaut aux nouvelles conversations.\n\nVous pouvez aussi changer la durée individuellement dans chaque conversation via le profil du contact.\n\nSeuls les nouveaux messages sont concernés. Les messages existants ne sont pas affectés.</string>
+
+    <!-- Notification Settings -->
+    <string name="notif_setting_label">Notifications nouvelles messages</string>
+    <string name="notif_push_enabled">✅ Activées — vous recevrez des notifications de nouveaux messages</string>
+    <string name="notif_push_disabled">🔕 Désactivées — appuyez pour autoriser</string>
+    <string name="notif_battery_ok">✅ Optimisations batterie désactivées — Tor reste actif en arrière-plan</string>
+    <string name="notif_battery_warning">⚠️ Les optimisations batterie peuvent tuer Tor en arrière-plan — appuyez pour corriger</string>
+
+    <!-- AppLockManager auto-lock labels -->
+    <string name="autolock_immediate">Immédiat</string>
+    <string name="autolock_5s">5 secondes</string>
+    <string name="autolock_15s">15 secondes</string>
+    <string name="autolock_30s">30 secondes</string>
+    <string name="autolock_1m">1 minute</string>
+    <string name="autolock_5m">5 minutes</string>
+
+    <!-- AddContactViewModel errors -->
+    <string name="add_contact_fill_all_fields">Veuillez remplir tous les champs.</string>
+    <string name="add_contact_invalid_key">Clé publique invalide.</string>
+    <string name="add_contact_mlkem_too_large">Clé ML-KEM invalide (trop grande).</string>
+    <string name="add_contact_mlkem_invalid">Clé ML-KEM invalide.</string>
+    <string name="add_contact_own_key">Vous ne pouvez pas ajouter votre propre clé.</string>
+    <string name="add_contact_already_exists">Ce contact existe déjà sous le nom « %1$s ».</string>
+
+    <!-- AddContactFragment helpers -->
+    <string name="add_contact_prefilled_qr">✅ Pré-rempli depuis le QR</string>
+    <string name="add_contact_prefilled_link">✅ Pré-rempli depuis le lien</string>
+
+    <!-- ChatFragment -->
+    <string name="perm_photos_videos">photos et vidéos</string>
+    <string name="perm_files_audio">fichiers, musique et audio</string>
+    <string name="chat_recording_hint">Relâchez pour envoyer • Glissez pour annuler</string>
+    <string name="chat_conversation_deleted_title">Conversation supprimée</string>
+    <string name="chat_conversation_deleted_message">Ce contact a supprimé son compte. Cette conversation n\'existe plus sur le serveur.</string>
+    <string name="chat_send_to">Envoyer à %1$s ?</string>
+
+    <!-- XMR -->
+    <string name="xmr_sent_title">✅ Paiement XMR envoyé</string>
+    <string name="xmr_sent_detail">Montant : %1$s\n\nTX ID :\n%2$s</string>
+    <string name="xmr_txid_copied">TX ID copié</string>
+    <string name="xmr_received_title">Paiement XMR reçu</string>
+    <string name="xmr_confirm_title">Confirmer le paiement</string>
+    <string name="xmr_confirm_message">Envoyer %1$s XMR à\n%2$s\n\nFrais : %3$s</string>
+
+    <!-- StorageFragment -->
+    <string name="storage_clear_cache_title">Vider le cache</string>
+    <string name="storage_clear_cache_message">Cela supprimera les fichiers temporaires (miniatures, données de rendu). Aucun message ne sera effacé.</string>
+    <string name="storage_clear_btn">Vider</string>
+    <string name="storage_cache_cleared">Cache vidé.</string>
+    <string name="storage_delete_files_title">Supprimer les fichiers reçus</string>
+    <string name="storage_delete_files_message">%1$d message(s) contenant des fichiers seront effacés. Cette action est irréversible.</string>
+    <string name="storage_files_deleted">Fichiers supprimés.</string>
+    <string name="storage_expired_deleted">Messages expirés supprimés.</string>
+    <string name="storage_delete_all_title">Supprimer tous les messages ?</string>
+    <string name="storage_delete_all_message">Cette action effacera définitivement l\'historique de TOUTES les conversations.\n\nVos contacts ne seront pas supprimés. Cette action est irréversible.</string>
+    <string name="storage_delete_all_btn">Supprimer tout</string>
+
+    <!-- ProfileFragment -->
+    <string name="profile_name_updated">Pseudo mis à jour</string>
+
+    <!-- Group -->
+    <string name="group_select_at_least_one">Sélectionne au moins un contact</string>
+
+    <!-- Actions common -->
+    <string name="action_confirm">Confirmer</string>
+
+    <!-- BackupExportFragment -->
+    <string name="backup_export_create_error">Erreur lors de la création : %1$s</string>
+    <string name="backup_export_write_error">Impossible d\'écrire le fichier : %1$s</string>
+    <string name="backup_export_success">Sauvegarde créée avec succès.</string>
+    <string name="backup_export_passphrase_too_short">La passphrase doit contenir au moins 8 caractères.</string>
+
+    <!-- BackupImportFragment + RestoreFragment -->
+    <string name="backup_import_no_file">Aucun fichier chargé.</string>
+    <string name="backup_import_wrong_passphrase">Passphrase incorrecte. Vérifiez et réessayez.</string>
+    <string name="backup_preview_identity">Identité Fialka</string>
+
+    <!-- BackupPhraseFragment -->
+    <string name="backup_phrase_share_subject">Fialka — phrase de récupération</string>
+    <string name="backup_phrase_file_header">Fialka — phrase de récupération (24 mots BIP-39)</string>
+    <string name="backup_phrase_warning">Gardez ces mots en lieu sûr. Ne les partagez jamais.</string>
+
+    <!-- RestoreFragment -->
+    <string name="restore_invalid_phrase">Phrase invalide. Vérifiez les mots et réessayez.</string>
+    <string name="restore_no_file">Aucun fichier chargé.</string>
+    <string name="restore_wrong_passphrase">Passphrase incorrecte. Vérifiez et réessayez.</string>
+
+    <!-- PinSetupDialogFragment -->
+    <string name="pin_setup_new_title">Choisissez un code à 6 chiffres</string>
+    <string name="pin_setup_change_title">Choisissez un nouveau code à 6 chiffres</string>
+
+    <!-- TorBootstrapFragment -->
+    <string name="tor_onion_published">Service .onion publié</string>
+
+    <!-- GroupInfoFragment -->
+    <string name="group_leave_confirm_message">Es-tu sûr de vouloir quitter « %1$s » ?</string>
+    <string name="group_demote_title">Rétrograder %1$s</string>
+    <string name="group_demote_btn">Rétrograder</string>
+
+    <!-- ConversationProfileFragment dialogs -->
+    <string name="conv_profile_ephemeral_title">Messages éphémères</string>
+    <string name="conv_profile_delete_confirm_message">Tous les messages seront définitivement supprimés de cet appareil.</string>
+    <string name="conv_profile_deleted_toast">Conversation supprimée</string>
+
+    <!-- ConversationsFragment toolbar badges -->
+    <string name="conv_tor_connected_badge">🔒 🧅 Tor connecté</string>
+    <string name="conv_e2ee_badge">🔒 chiffrée de bout en bout</string>
+
+    <!-- ConversationsAdapter -->
+    <string name="msg_xmr_address_shared">💰 Adresse XMR partagée</string>
+
+    <!-- MessagesAdapter group invites -->
+    <string name="group_invite_pending">⏳ En attente de réponse…</string>
+    <string name="group_invite_declined">❌ Invitation refusée</string>
+
+    <!-- LockScreenActivity -->
+    <string name="restore_words_hint">Entrez vos 24 mots séparés par des espaces</string>
+    <string name="lockscreen_recovery_title">Récupération par phrase secrète</string>
+    <string name="lockscreen_recovery_message">Entrez votre phrase de récupération (24 mots) pour réinitialiser votre code PIN.</string>
+    <string name="lockscreen_biometric_subtitle">Déverrouillez avec votre empreinte ou visage</string>
+    <string name="action_verify">Vérifier</string>
+
+    <!-- System messages (ChatRepository) -->
+    <string name="sys_fingerprint_verified_local">🔐 Vous avez vérifié l\'empreinte de sécurité</string>
+    <string name="sys_fingerprint_verified_remote">🔐 Votre contact a vérifié l\'empreinte de sécurité</string>
+    <string name="sys_fingerprint_unverified_local">🔓 Vous avez retiré la vérification de l\'empreinte</string>
+    <string name="sys_fingerprint_unverified_remote">🔓 Votre contact a retiré la vérification de l\'empreinte</string>
+    <string name="sys_ephemeral_enabled">⏱ Les messages éphémères ont été activés sur %1$s</string>
+    <string name="sys_ephemeral_disabled_msg">⏱ Les messages éphémères ont été désactivés</string>
+    <string name="sys_decrypt_failed">[Échec du déchiffrement]</string>
+    <string name="sys_contact_account_restored">🔄 Ce contact a restauré son compte. Envoyez un message pour démarrer une nouvelle session chiffrée.</string>
+
+    <!-- System messages (GroupRepository) -->
+    <string name="group_invite_accepted_preview">✅ Invitation acceptée</string>
+    <string name="group_invite_declined_preview">❌ Invitation refusée</string>
+    <string name="sys_group_created">Groupe « %1$s » créé</string>
+    <string name="sys_group_member_removed">%1$s a été retiré du groupe</string>
+    <string name="sys_group_member_left">%1$s a quitté le groupe</string>
+    <string name="sys_group_renamed">Groupe renommé : « %1$s »</string>
+    <string name="sys_group_you_removed">Vous avez retiré %1$s du groupe</string>
+    <string name="sys_group_you_left">Vous avez quitté le groupe</string>
+
+    <!-- TorForegroundService notifications -->
+    <string name="notif_tor_connected">Tor : connecté 🧅</string>
+    <string name="notif_tor_starting">Tor : démarrage…</string>
+    <string name="notif_tor_disconnected">Tor : déconnecté</string>
+
+    <!-- ChatViewModel errors -->
+    <string name="chat_send_error">Échec de l\'envoi</string>
+    <string name="chat_send_file_error">Échec de l\'envoi du fichier: %1$s</string>
+    <string name="chat_send_voice_error">Échec de l\'envoi du message vocal: %1$s</string>
+    <string name="chat_wallet_unavailable">Wallet non disponible — activez-le dans les paramètres</string>
+    <string name="chat_xmr_send_failed">Envoi XMR échoué : %1$s</string>
+
+    <!-- OnboardingViewModel -->
+    <string name="onboarding_timeout">Délai d\'attente dépassé. Vérifiez votre connexion Internet.</string>
+
+    <!-- GroupMemberAdapter -->
+    <string name="group_role_creator">CRÉATEUR</string>
+
+    <!-- Backup file error strings (FialkaBackupManager) -->
+    <string name="backup_file_too_short">Fichier trop court pour être une sauvegarde Fialka.</string>
+    <string name="backup_version_unsupported">Version de sauvegarde non supportée : %1$d.</string>
+    <string name="backup_file_corrupted">Fichier corrompu ou tronqué.</string>
+    <string name="backup_payload_corrupted">Payload corrompu : %1$s</string>
+
+    <!-- GroupInfoFragment -->
+    <string name="group_created_on">Créé le %1$s</string>
+
+    <!-- Mailbox role labels -->
+    <string name="role_owner">Propriétaire 👑</string>
+    <string name="role_owner_plain">Propriétaire</string>
+    <string name="role_member">Membre</string>
+
+    <!-- MailboxClientManager -->
+    <string name="mailbox_identity_not_configured">Identité non configurée — configurez d\'abord votre compte</string>
+
+    <!-- WalletRepository node status -->
+    <string name="wallet_node_offline_http">Nœud hors ligne (HTTP %1$d)</string>
+    <string name="wallet_node_invalid_response">Réponse nœud invalide</string>
+    <string name="wallet_node_online_synced">Nœud en ligne · sync OK</string>
+    <string name="wallet_node_online_syncing">Nœud en ligne · syncing…</string>
+    <string name="wallet_node_unreachable">Nœud hors ligne / injoignable</string>
+
+    <!-- WalletHomeFragment -->
+    <string name="wallet_tx_label">Libellé   : %1$s</string>
+    <string name="wallet_seed_hint">25 mots Monero (séparés par espaces)</string>
+
+    <!-- WalletSeedBackupFragment -->
+    <string name="wallet_seed_warning">Gardez ces mots en lieu sûr. Ne les partagez jamais.</string>
+
+    <!-- DonationFragment -->
+    <string name="wallet_not_configured">Wallet non configuré</string>
+    <string name="wallet_available">disponible : %1$s</string>
+    <string name="wallet_available_send">Disponible : %1$s</string>
+    <string name="donation_address_unavailable_title">Adresse indisponible</string>
+    <string name="donation_address_unavailable_message">Impossible de générer l\'adresse de don. Vérifiez que votre identité Fialka est configurée.</string>
+    <string name="donation_confirm_title">Confirmer le don</string>
+    <string name="donation_confirm_message">Vous allez envoyer\n\n%1$s\n\nPriorité des frais : %2$s\n\nAdresse :\n%3$s…</string>
+    <string name="donation_sent_toast">Don envoyé ! Merci pour votre soutien ❤️</string>
+    <string name="wallet_tx_detail_title">Détails de la transaction</string>
+    <string name="tx_pending">En attente</string>
+    <string name="tx_confirmations">%1$d confirmation(s)</string>
+    <string name="tx_confirmed">Confirmé</string>
+
+    <!-- Fee priority labels (XMR) -->
+    <string name="fee_automatic">Automatique</string>
+    <string name="fee_slow">Lent (×0.2)</string>
+    <string name="fee_normal">Normal (×1)</string>
+    <string name="fee_fast">Rapide (×5)</string>
+    <string name="fee_fastest">Le plus rapide (×200)</string>
+
+    <!-- ChatRepository voice message -->
+    <string name="msg_voice_corrupted">⚠️ Message vocal corrompu</string>
+
+    <!-- MainActivity DB migration dialog -->
+    <string name="db_migration_title">Mise à jour — données locales</string>
+    <string name="db_migration_message">Cette mise à jour de Fialka nécessite une réinitialisation de la base de données locale.\n\n⚠ Tous vos messages, contacts et sessions seront effacés de cet appareil.\n\nVos clés d\'identité (seed phrase) ne sont PAS affectées — vous pourrez recréer votre compte.\n\nSi vous souhaitez conserver vos données, ne continuez pas et exportez votre backup d\'abord.</string>
+    <string name="db_migration_confirm">Compris, continuer</string>
+    <string name="db_migration_cancel">Annuler (quitter)</string>
+
+    <!-- EphemeralManager duration labels -->
+    <string name="ephemeral_label_disabled">Désactivé</string>
+    <string name="ephemeral_label_30s">30 secondes</string>
+    <string name="ephemeral_label_5m">5 minutes</string>
+    <string name="ephemeral_label_1h">1 heure</string>
+    <string name="ephemeral_label_6h">6 heures</string>
+    <string name="ephemeral_label_12h">12 heures</string>
+    <string name="ephemeral_label_24h">24 heures</string>
+    <string name="ephemeral_label_7d">7 jours</string>
+    <string name="ephemeral_label_2w">2 semaines</string>
+    <string name="ephemeral_label_1month">1 mois</string>
+
+    <!-- InviteMemberFragment -->
+    <string name="group_default_name">Groupe</string>
+    <string name="invite_to_group_title">Inviter dans « %1$s »</string>
+
+    <!-- XmrPaymentBottomSheet / WalletRepository balance strings -->
+    <string name="wallet_balance_unavailable">Solde non disponible (wallet non ouvert)</string>
+    <string name="wallet_balance_unavailable_short">Solde non disponible</string>
+    <string name="wallet_total">  (total : %1$s)</string>
+    <string name="xmr_fee_label">Frais : %1$s</string>
+    <string name="action_send">Envoyer</string>
+    <string name="action_delete">Supprimer</string>
+    <string name="notif_permissions_label">Autorisations système</string>
+    <string name="notif_tap_to_allow">Appuyez pour autoriser</string>
+    <string name="notif_battery_label">Optimisations batterie</string>
+    <string name="notif_battery_tor_desc">Empêche Tor de s\'arrêter en arrière-plan</string>
+    <string name="notif_tap_to_fix">Appuyez pour corriger</string>
+    <string name="notif_how_label">ℹ️ Comment ça marche ?</string>
+    <string name="notif_how_desc">Les notifications utilisent UnifiedPush (ntfy.sh ou auto-hébergé).\n\n• Aucun contenu de message n\'est envoyé\n• Seul un signal de réveil est transmis\n• Zéro Google — aucun FCM, aucun token Google\n• Votre vie privée est toujours protégée</string>
+
+    <!-- Privacy Settings -->
+    <string name="privacy_section_messages">Messages</string>
+    <string name="privacy_delete_on_receive">Suppression après réception</string>
+    <string name="privacy_delete_on_receive_desc">Les messages sont supprimés du serveur dès réception</string>
+    <string name="privacy_section_network">Réseau</string>
+    <string name="privacy_dummy_note">Activable par conversation depuis le profil du contact</string>
+    <string name="privacy_protections_label">🛡️ Protections actives</string>
+    <string name="privacy_protections_desc">• Chiffrement E2E (X25519 + AES-256-GCM)\n• Double Ratchet avec Perfect Forward Secrecy\n• Padding des messages (taille uniforme)\n• HMAC sur l\'identifiant expéditeur\n• Suppression des messages du serveur après réception\n• Trafic factice optionnel contre l\'analyse de trafic</string>
+
+    <!-- Security Settings -->
+    <string name="security_section_device">APPAREIL</string>
+    <string name="security_level_label">Niveau de sécurité</string>
+    <string name="security_strongbox_label">StrongBox</string>
+    <string name="security_system_label">Système</string>
+    <string name="security_device_label">Appareil</string>
+    <string name="security_profile_label">Profil</string>
+    <string name="security_pin_label">Code PIN</string>
+    <string name="security_pin_desc">Protégez l\'accès à l\'application</string>
+    <string name="security_change_pin_btn">Changer le code</string>
+    <string name="security_autolock_label">Verrouillage auto</string>
+    <string name="security_biometric_label">Déverrouillage biométrique</string>
+    <string name="security_biometric_desc">Empreinte digitale, reconnaissance faciale…</string>
+    <string name="security_pin_info_label">🔐 Sécurité du code</string>
+    <string name="security_pin_info_desc">Le code PIN est stocké sous forme de hash PBKDF2 (600k itérations) dans un espace chiffré (Keystore).\n\nMême avec un accès root, le code ne peut pas être récupéré en clair.\n\nL\'app se re-verrouille automatiquement selon le délai choisi.</string>
+    <string name="security_pin_enabled_toast">Code de verrouillage activé ✓</string>
+
+    <!-- Storage Settings -->
+    <string name="storage_overview_label">Vue d\'ensemble</string>
+    <string name="storage_messages_label">Messages</string>
+    <string name="storage_files_label">Fichiers reçus</string>
+    <string name="storage_db_label">Base de données</string>
+    <string name="storage_cache_label">Cache</string>
+    <string name="storage_cleanup_label">NETTOYAGE</string>
+    <string name="storage_clear_cache_btn">Vider le cache</string>
+    <string name="storage_cache_desc">Miniatures, données temporaires</string>
+    <string name="storage_delete_files_btn">Supprimer les fichiers reçus</string>
+    <string name="storage_files_desc">Images, documents, fichiers partagés</string>
+    <string name="storage_purge_ephemeral_btn">Purger les messages expirés</string>
+    <string name="storage_purge_ephemeral_desc">Messages éphémères dont le délai est écoulé</string>
+    <string name="storage_danger_zone">ZONE SENSIBLE</string>
+    <string name="storage_delete_all_messages_btn">Supprimer tous les messages</string>
+    <string name="storage_delete_all_messages_desc">Efface l\'historique de toutes les conversations</string>
+
+    <!-- Tor Bootstrap -->
+    <string name="tor_bootstrap_title">Connexion au réseau Tor</string>
+    <string name="tor_bootstrap_preparing">Préparation…</string>
+    <string name="tor_circuits_label">Circuits Tor</string>
+    <string name="tor_connecting">Connexion…</string>
+    <string name="tor_retry_btn">Réessayer</string>
+    <string name="tor_connected">Connecté ✓</string>
+    <string name="tor_connection_failed">Échec de connexion</string>
+    <string name="tor_disconnected">Déconnecté</string>
+    <string name="tor_waiting">En attente…</string>
+    <string name="tor_status_create_identity">Tor connecté — créez votre identité</string>
+    <string name="tor_status_circuit_loading">Récupération du circuit…</string>
+    <string name="tor_status_connection_lost">La connexion a été interrompue</string>
+    <string name="tor_status_onion_publishing">Service caché en cours de publication</string>
+    <string name="tor_status_onion_published">Service .onion publié</string>
+    <string name="tor_status_connected_network">Connecté au réseau Tor</string>
+    <string name="tor_publishing_onion">Publication .onion…</string>
+    <string name="tor_status_relay_connecting">Connexion aux relais…</string>
+    <string name="tor_status_loading_descriptors">Chargement des descripteurs…</string>
+    <string name="tor_status_establishing_circuits">Établissement des circuits…</string>
+    <string name="tor_status_finalizing">Finalisation…</string>
+    <string name="tor_circuits_active">%d circuits Tor actifs</string>
+
+    <!-- Tor Settings -->
+    <string name="tor_settings_section_title">Réseau Tor</string>
+    <string name="tor_state_label">État</string>
+    <string name="tor_connecting_label">Connexion en cours…</string>
+    <string name="tor_reconnect_btn">Reconnecter</string>
+    <string name="tor_about_label">À propos de Tor</string>
+    <string name="tor_about_desc">Fialka utilise Tor pour toutes ses communications. Tor achemine votre trafic à travers plusieurs relais chiffrés, masquant votre adresse IP.\n\nLe service .onion de votre compte est accessible uniquement via Tor — personne ne peut l\'atteindre directement depuis l\'internet public.\n\nLes circuits actifs ci-dessus représentent les chemins utilisés pour vos communications.</string>
+
+    <!-- Wallet labels -->
+    <string name="wallet_your_address_label">Votre adresse</string>
+
+    <!-- Contact Request Item -->
+    <string name="contact_request_wants_to_chat">veut discuter avec vous</string>
+    <string name="contact_request_accept">Accepter</string>
+    <string name="contact_request_decline">Refuser</string>
+
+    <!-- Group Invite Items -->
+    <string name="group_invite_label">Invitation de groupe</string>
+    <string name="group_invite_join">Rejoindre</string>
+    <string name="group_invite_decline">Refuser</string>
+    <string name="group_member_remove">Retirer</string>
+
+    <!-- Message Items -->
+    <string name="msg_open_btn">Ouvrir</string>
+    <string name="msg_retry_btn">Réessayer</string>
+    <string name="msg_resend_btn">Renvoyer</string>
+    <string name="msg_failed">Échec</string>
+
+    <!-- Unread divider -->
+    <string name="unread_divider_label">Nouveaux messages</string>
+
+    <!-- Groups empty state -->
+    <string name="no_groups">Aucun groupe\nCrée ou rejoins un groupe</string>
+
+    <!-- XMR / Chat toasts -->
+    <string name="xmr_address_amount_required">Adresse et montant requis</string>
+    <string name="xmr_open_wallet_from_home">Ouvrez le wallet depuis l\'accueil</string>
+
+    <!-- Wallet seed errors -->
+    <string name="wallet_seed_wrong_count">La seed doit contenir exactement 25 mots (%1$d détectés)</string>
+    <string name="wallet_seed_invalid_checksum">Seed invalide — vérifiez les 25 mots et le checksum</string>
+    <string name="wallet_amount_invalid">Montant invalide</string>
+    <string name="wallet_address_required">Adresse requise</string>
+    <string name="wallet_tx_details_title">Détails de la transaction</string>
+    <string name="wallet_fee_priority_label">Priorité des frais</string>
+    <string name="wallet_fee_auto">Automatique</string>
+    <string name="wallet_fee_slow">Lent (×0.2)</string>
+    <string name="wallet_fee_normal">Normal (×1)</string>
+    <string name="wallet_fee_fast">Rapide (×5)</string>
+    <string name="wallet_fee_fastest">Le plus rapide (×200)</string>
+    <string name="wallet_generating_seed">Génération de la seed…</string>
+    <string name="wallet_tx_direction_incoming">Reçu ▲</string>
+    <string name="wallet_tx_direction_outgoing">Envoyé ▼</string>
+    <string name="message_copied">Message copié</string>
+    <string name="microphone_access_denied">Impossible d\'accéder au microphone</string>
+    <string name="recording_cancelled">Enregistrement annulé</string>
+    <string name="file_too_large">Fichier trop volumineux (max 25 Mo)</string>
+    <string name="chat_file_error">⚠️ Échec : %1$s</string>
+    <string name="storage_messages_deleted">Tous les messages ont été supprimés.</string>
+    <string name="wallet_delete_success_network">Wallet supprimée — Réseau : %1$s</string>
+    <string name="wallet_tx_confirmations">%1$d confirmation(s)</string>
+    <string name="wallet_tx_confirmed_simple">Confirmé</string>
+    <string name="wallet_sync_height_daemon">Hauteur %1$d / %2$d · %3$d tx</string>
+    <string name="wallet_sync_height">Hauteur %1$d · %2$d tx</string>
+    <string name="wallet_restore_height_scan">Hauteur de restauration (laisser 2100000 si incertain)</string>
+    <string name="error_unknown">Erreur inconnue</string>
+    <string name="tor_err_clock_desync">Horloge désynchronisée (%1$s min) — vérifiez la date/heure de l\'appareil</string>
+    <string name="tor_err_payload_short">Erreur de protocole (payload trop court)</string>
+    <string name="tor_err_pubkey_mismatch">Clé publique invalide</string>
+    <string name="tor_err_invalid_signature">Signature invalide — identité corrompue ou incompatible</string>
+    <string name="xmr_sending_progress">Envoi XMR en cours…\nCela peut prendre quelques secondes.</string>
+
+    <!-- Menu items -->
+    <string name="menu_search">Rechercher</string>
+    <string name="menu_my_profile">Mon profil</string>
+    <string name="menu_settings">Paramètres</string>
+    <string name="menu_reply">Répondre</string>
+    <string name="menu_wallet_seed_action">Voir la seed wallet</string>
+    <string name="menu_wallet_settings_action">Paramètres wallet</string>
+
+    <!-- Layout hints -->
+    <string name="backup_passphrase_hint">Passphrase</string>
+    <string name="backup_confirm_passphrase_hint">Confirmer la passphrase</string>
+    <string name="backup_decrypt_passphrase_hint">Passphrase de déchiffrement</string>
+    <string name="hint_group_name">Nom du groupe</string>
+    <string name="xmr_amount_hint">Montant XMR</string>
+    <string name="fingerprint_tap_qr">Appuyez pour voir le QR code</string>
+    <string name="hint_message_group">Message…</string>
+    <string name="settings_autolock_after_3s">Après 3 secondes</string>
+    <string name="xmr_pay_btn">Payer</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_xmr_payment">Paiement XMR</string>
+    <string name="cd_file">Fichier</string>
+    <string name="cd_photo">Photo</string>
+    <string name="cd_camera">Caméra</string>
+    <string name="cd_cancel_reply">Annuler la réponse</string>
+    <string name="cd_attach_file">Joindre un fichier</string>
+    <string name="cd_send">Envoyer</string>
+    <string name="cd_qr_fingerprint">QR Code de l\'empreinte</string>
+    <string name="cd_qr_profile">QR Code de votre lien d\'invitation</string>
+    <string name="cd_voice_message">Écouter le message vocal</string>
+    <string name="cd_copy">Copier</string>
+    <string name="cd_refresh">Actualiser</string>
+    <string name="cd_torch">Lampe torche</string>
+    <string name="cd_clear_last">Effacer le dernier</string>
+
+    <!-- FAB menu + misc missing -->
+    <string name="fab_new_conversation">💬  Nouvelle conversation</string>
+    <string name="fab_new_group">👥  Nouveau groupe</string>
+    <string name="conversation_new_placeholder">Nouvelle conversation</string>
+    <string name="pending_acceptance_short">⏳ En attente d\'acceptation…</string>
+    <string name="create_group_title">Nouveau groupe</string>
 </resources>

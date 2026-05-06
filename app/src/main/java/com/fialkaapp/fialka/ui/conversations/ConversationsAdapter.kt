@@ -70,7 +70,7 @@ class ConversationsAdapter(
         }
 
         /** Convert raw plaintext to a human-readable conversation preview. */
-        fun formatLastMessage(raw: String): String {
+        fun formatLastMessage(raw: String, context: android.content.Context): String {
             return when {
                 raw.startsWith("XMR_SENT|") -> {
                     val amount = raw.removePrefix("XMR_SENT|").substringBefore("|")
@@ -81,7 +81,7 @@ class ConversationsAdapter(
                     val amount = if (parts.size >= 2) parts[1] else ""
                     "🔔 Demande XMR${if (amount.isNotEmpty()) " : $amount" else ""}"
                 }
-                raw.startsWith("XMR_ADDR|") -> "💰 Adresse XMR partagée"
+                raw.startsWith("XMR_ADDR|") -> context.getString(R.string.msg_xmr_address_shared)
                 raw.startsWith("FILE|") -> {
                     val fileName = raw.split("|").getOrNull(4) ?: ""
                     when {
@@ -115,10 +115,10 @@ class ConversationsAdapter(
                 conversation.contactDisplayName.firstOrNull()?.uppercase() ?: "?"
 
             if (!conversation.accepted) {
-                binding.tvLastMessage.text = "⏳ En attente d'acceptation…"
+                binding.tvLastMessage.text = binding.root.context.getString(R.string.pending_acceptance_short)
                 binding.tvLastMessage.setTextColor(0xFFFF9800.toInt())
             } else {
-                binding.tvLastMessage.text = formatLastMessage(conversation.lastMessage).ifEmpty { "Nouvelle conversation" }
+                binding.tvLastMessage.text = formatLastMessage(conversation.lastMessage, binding.root.context).ifEmpty { binding.root.context.getString(R.string.conversation_new_placeholder) }
                 binding.tvLastMessage.setTextColor(
                     binding.root.context.getColor(R.color.text_secondary)
                 )

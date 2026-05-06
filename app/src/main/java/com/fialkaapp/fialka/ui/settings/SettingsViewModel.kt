@@ -78,6 +78,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 destination = "appearanceFragment"
             ),
             SettingItem(
+                id = "language",
+                title = app.getString(R.string.setting_language_title),
+                summary = app.getString(R.string.setting_language_summary),
+                iconRes = R.drawable.ic_language,
+                category = CATEGORY_APPEARANCE,
+                type = SettingType.ACTION
+            ),
+            SettingItem(
                 id = "notifications",
                 title = app.getString(R.string.settings_notifications_category),
                 summary = app.getString(R.string.setting_notifications_summary),

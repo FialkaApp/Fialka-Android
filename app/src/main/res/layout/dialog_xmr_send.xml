@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:text="Chargement du solde…"
+        android:text="@string/xmr_loading_balance"
         android:textSize="14sp"
         android:textColor="?attr/colorOnSurface"
         android:alpha="0.7" />
@@ -52,7 +52,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="4dp"
-        android:text="Priorité des frais"
+        android:text="@string/xmr_fee_priority"
         android:textSize="13sp"
         android:alpha="0.7" />
 

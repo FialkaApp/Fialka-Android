@@ -261,15 +261,10 @@ class MainActivity : AppCompatActivity() {
      */
     private fun showDestructiveMigrationWarning() {
         AlertDialog.Builder(this)
-            .setTitle("Mise à jour — données locales")
-            .setMessage(
-                "Cette mise à jour de Fialka nécessite une réinitialisation de la base de données locale.\n\n" +
-                "⚠ Tous vos messages, contacts et sessions seront effacés de cet appareil.\n\n" +
-                "Vos clés d'identité (seed phrase) ne sont PAS affectées — vous pourrez recréer votre compte.\n\n" +
-                "Si vous souhaitez conserver vos données, ne continuez pas et exportez votre backup d'abord."
-            )
+            .setTitle(getString(com.fialkaapp.fialka.R.string.db_migration_title))
+            .setMessage(getString(com.fialkaapp.fialka.R.string.db_migration_message))
             .setCancelable(false)
-            .setPositiveButton("Compris, continuer") { _, _ ->
+            .setPositiveButton(getString(com.fialkaapp.fialka.R.string.db_migration_confirm)) { _, _ ->
                 // User acknowledged — let the app open normally (Room will migrate on first DB access)
                 FialkaDatabase.recordCurrentVersion(this)
                 // Re-run startup sequence
@@ -281,7 +276,7 @@ class MainActivity : AppCompatActivity() {
                 handleMailboxDeepLink(intent)
                 handleChatNotificationIntent(intent)
             }
-            .setNegativeButton("Annuler (quitter)") { _, _ ->
+            .setNegativeButton(getString(com.fialkaapp.fialka.R.string.db_migration_cancel)) { _, _ ->
                 finishAffinity()
             }
             .show()

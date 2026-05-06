@@ -37,31 +37,31 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
     fun addContact(displayName: String, publicKey: String, mlkemPublicKey: String? = null, ed25519PublicKey: String? = null) {
         // Validate input
         if (displayName.isBlank() || publicKey.isBlank()) {
-            _state.value = AddContactState.Error("Veuillez remplir tous les champs.")
+            _state.value = AddContactState.Error(getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.add_contact_fill_all_fields))
             return
         }
 
         val trimmedKey = publicKey.trim()
 
         if (!CryptoManager.isValidPublicKey(trimmedKey)) {
-            _state.value = AddContactState.Error("Clé publique invalide.")
+            _state.value = AddContactState.Error(getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.add_contact_invalid_key))
             return
         }
 
         // Validate ML-KEM key if present
         if (mlkemPublicKey != null && mlkemPublicKey.isNotEmpty()) {
             if (mlkemPublicKey.length > 2500) {
-                _state.value = AddContactState.Error("Clé ML-KEM invalide (trop grande).")
+                _state.value = AddContactState.Error(getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.add_contact_mlkem_too_large))
                 return
             }
             try {
                 val decoded = android.util.Base64.decode(mlkemPublicKey, android.util.Base64.NO_WRAP)
                 if (decoded.size !in 1500..1650) {
-                    _state.value = AddContactState.Error("Clé ML-KEM invalide.")
+                    _state.value = AddContactState.Error(getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.add_contact_mlkem_invalid))
                     return
                 }
             } catch (_: Exception) {
-                _state.value = AddContactState.Error("Clé ML-KEM invalide.")
+                _state.value = AddContactState.Error(getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.add_contact_mlkem_invalid))
                 return
             }
         }
@@ -69,7 +69,7 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
         // Check it's not our own key
         val myKey = CryptoManager.getPublicKey()
         if (myKey == trimmedKey) {
-            _state.value = AddContactState.Error("Vous ne pouvez pas ajouter votre propre clé.")
+            _state.value = AddContactState.Error(getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.add_contact_own_key))
             return
         }
 
@@ -83,7 +83,7 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
                     val convoId = repository.getConversationIdByContactPublicKey(trimmedKey)
                     if (convoId != null) {
                         _state.value = AddContactState.Error(
-                            "Ce contact existe déjà sous le nom \"${existingContact.displayName}\"."
+                            getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.add_contact_already_exists, existingContact.displayName)
                         )
                         return@launch
                     }
@@ -118,12 +118,12 @@ class AddContactViewModel(application: Application) : AndroidViewModel(applicati
                 val sent = repository.sendContactRequest(trimmedKey)
                 if (!sent) {
                     android.util.Log.w("AddContactViewModel",
-                        "sendContactRequest: demande non envoyée (onion manquant) — sera retentée au prochain démarrage")
+                        "sendContactRequest: request not sent (onion missing) — will retry on next start")
                 }
 
                 _state.value = AddContactState.Success(conversation)
             } catch (e: Exception) {
-                _state.value = AddContactState.Error(e.message ?: "Erreur inconnue")
+                _state.value = AddContactState.Error(e.message ?: getApplication<android.app.Application>().getString(com.fialkaapp.fialka.R.string.error_unknown))
             }
         }
     }

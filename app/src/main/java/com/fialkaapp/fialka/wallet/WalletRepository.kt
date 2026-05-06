@@ -300,19 +300,19 @@ object WalletRepository {
             connection.outputStream.use { it.write(payload) }
             val code = connection.responseCode
             if (code !in 200..299) {
-                return WalletNodeStatus(false, null, null, false, "Nœud hors ligne (HTTP $code)")
+                return WalletNodeStatus(false, null, null, false, context.getString(com.fialkaapp.fialka.R.string.wallet_node_offline_http, code))
             }
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             val result = JSONObject(body).optJSONObject("result")
-                ?: return WalletNodeStatus(false, null, null, false, "Réponse nœud invalide")
+                ?: return WalletNodeStatus(false, null, null, false, context.getString(com.fialkaapp.fialka.R.string.wallet_node_invalid_response))
             val height = result.optLong("height", -1L).takeIf { it >= 0L }
             val target = result.optLong("target_height", -1L).takeIf { it >= 0L }
             val synchronized = result.optBoolean("synchronized", false) ||
                 (height != null && target != null && target > 0L && height >= target)
-            val label = if (synchronized) "Nœud en ligne · sync OK" else "Nœud en ligne · syncing…"
+            val label = if (synchronized) context.getString(com.fialkaapp.fialka.R.string.wallet_node_online_synced) else context.getString(com.fialkaapp.fialka.R.string.wallet_node_online_syncing)
             WalletNodeStatus(true, height, target, synchronized, label)
         } catch (_: Exception) {
-            WalletNodeStatus(false, null, null, false, "Nœud hors ligne / injoignable")
+            WalletNodeStatus(false, null, null, false, context.getString(com.fialkaapp.fialka.R.string.wallet_node_unreachable))
         }
     }
 

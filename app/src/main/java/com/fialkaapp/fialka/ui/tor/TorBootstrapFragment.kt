@@ -38,6 +38,7 @@ import com.fialkaapp.fialka.databinding.FragmentTorBootstrapBinding
 import com.fialkaapp.fialka.tor.TorCircuit
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.tor.TorState
+import com.fialkaapp.fialka.util.LocaleHelper
 import com.fialkaapp.fialka.util.TermsManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -73,6 +74,13 @@ class TorBootstrapFragment : Fragment() {
 
         // Reset navigation guard (handles returning from consent screen or backup phrase)
         hasNavigated = false
+
+        // Language selection check — must be the VERY FIRST check
+        if (!LocaleHelper.isLanguageSelected(requireContext())) {
+            hasNavigated = true
+            findNavController().navigate(R.id.action_torBootstrap_to_languageSelection)
+            return
+        }
 
         // Terms consent check — must precede ALL other navigation
         if (!TermsManager.isAccepted(requireContext())) {
@@ -121,9 +129,9 @@ class TorBootstrapFragment : Fragment() {
         }
 
         // Returning user — show bootstrap progress
-        binding.tvTitle.text = "Connexion au réseau Tor"
+        binding.tvTitle.text = getString(R.string.tor_bootstrap_title)
         binding.btnContinue.isEnabled = false
-        binding.btnContinue.text = "Connexion…"
+        binding.btnContinue.text = getString(R.string.tor_connecting)
         binding.cardCircuitInfo.visibility = View.GONE
         startPulseAnimation()
         startSmoothProgress()
@@ -140,8 +148,8 @@ class TorBootstrapFragment : Fragment() {
         binding.btnRetry.setOnClickListener {
             binding.btnRetry.visibility = View.GONE
             binding.btnContinue.isEnabled = false
-            binding.btnContinue.text = "Connexion…"
-            binding.tvTitle.text = "Connexion au réseau Tor"
+            binding.btnContinue.text = getString(R.string.tor_connecting)
+            binding.tvTitle.text = getString(R.string.tor_bootstrap_title)
             binding.cardCircuitInfo.visibility = View.GONE
             continueTimeoutJob?.cancel()
             realPercent = 0
@@ -167,7 +175,7 @@ class TorBootstrapFragment : Fragment() {
                 TorManager.circuits.collect { circuits ->
                     if (_binding == null || circuits.isEmpty()) return@collect
                     binding.cardCircuitInfo.visibility = View.VISIBLE
-                    binding.tvCircuitCount.text = "${circuits.size} circuits Tor actifs"
+                binding.tvCircuitCount.text = getString(R.string.tor_circuits_active, circuits.size)
                     buildCircuitViews(circuits)
                     binding.btnContinue.isEnabled = true
                     binding.btnContinue.text = "Continuer"
@@ -186,7 +194,7 @@ class TorBootstrapFragment : Fragment() {
                     if (_binding == null || address == null) return@collect
                     binding.cardCircuitInfo.visibility = View.VISIBLE
                     binding.tvOnionAddress.text = address
-                    binding.tvStatus.text = "Service .onion publié"
+                    binding.tvStatus.text = getString(R.string.tor_onion_published)
                     binding.btnContinue.isEnabled = true
                     binding.btnContinue.text = "Continuer"
                 }
@@ -211,16 +219,16 @@ class TorBootstrapFragment : Fragment() {
                 displayedPercent = 100
                 binding.progressIndicator.isIndeterminate = false
                 binding.progressIndicator.setProgressCompat(100, true)
-                binding.tvTitle.text = "Connecté ✓"
+                binding.tvTitle.text = getString(R.string.tor_connected)
                 binding.btnRetry.visibility = View.GONE
                 stopPulseAnimation()
                 if (!CryptoManager.hasIdentity()) {
                     // New user: no seed yet, can't publish .onion — let them proceed to onboarding
-                    binding.tvStatus.text = "Tor connecté — créez votre identité"
+                    binding.tvStatus.text = getString(R.string.tor_status_create_identity)
                     binding.btnContinue.isEnabled = true
                     binding.btnContinue.text = "Continuer"
                 } else {
-                    binding.tvStatus.text = "Récupération du circuit…"
+                    binding.tvStatus.text = getString(R.string.tor_status_circuit_loading)
                     // Wait for circuit info or timeout
                     startContinueTimeout()
                 }
@@ -228,8 +236,8 @@ class TorBootstrapFragment : Fragment() {
             is TorState.PUBLISHING_ONION -> {
                 realPercent = 100
                 binding.progressIndicator.isIndeterminate = true
-                binding.tvTitle.text = "Publication .onion…"
-                binding.tvStatus.text = "Service caché en cours de publication"
+                binding.tvTitle.text = getString(R.string.tor_publishing_onion)
+                binding.tvStatus.text = getString(R.string.tor_status_onion_publishing)
                 binding.btnRetry.visibility = View.GONE
             }
             is TorState.ONION_PUBLISHED -> {
@@ -238,8 +246,8 @@ class TorBootstrapFragment : Fragment() {
                 displayedPercent = 100
                 binding.progressIndicator.isIndeterminate = false
                 binding.progressIndicator.setProgressCompat(100, true)
-                binding.tvTitle.text = "Connecté ✓"
-                binding.tvStatus.text = "Service .onion publié"
+                binding.tvTitle.text = getString(R.string.tor_connected)
+                binding.tvStatus.text = getString(R.string.tor_status_onion_published)
                 binding.btnContinue.isEnabled = true
                 binding.btnContinue.text = "Continuer"
                 binding.btnRetry.visibility = View.GONE
@@ -249,21 +257,21 @@ class TorBootstrapFragment : Fragment() {
             is TorState.ERROR -> {
                 smoothJob?.cancel()
                 binding.progressIndicator.isIndeterminate = false
-                binding.tvTitle.text = "Échec de connexion"
+                binding.tvTitle.text = getString(R.string.tor_connection_failed)
                 binding.tvStatus.text = state.message
                 binding.btnRetry.visibility = View.VISIBLE
                 binding.btnContinue.isEnabled = false
-                binding.btnContinue.text = "Connexion…"
+                binding.btnContinue.text = getString(R.string.tor_connecting)
                 stopPulseAnimation()
             }
             is TorState.DISCONNECTED -> {
                 smoothJob?.cancel()
                 binding.progressIndicator.isIndeterminate = false
-                binding.tvTitle.text = "Déconnecté"
-                binding.tvStatus.text = "La connexion a été interrompue"
+                binding.tvTitle.text = getString(R.string.tor_disconnected)
+                binding.tvStatus.text = getString(R.string.tor_status_connection_lost)
                 binding.btnRetry.visibility = View.VISIBLE
                 binding.btnContinue.isEnabled = false
-                binding.btnContinue.text = "Connexion…"
+                binding.btnContinue.text = getString(R.string.tor_connecting)
                 stopPulseAnimation()
             }
         }
@@ -318,7 +326,7 @@ class TorBootstrapFragment : Fragment() {
             if (_binding != null && !binding.btnContinue.isEnabled) {
                 binding.btnContinue.isEnabled = true
                 binding.btnContinue.text = "Continuer"
-                binding.tvStatus.text = "Connecté au réseau Tor"
+                binding.tvStatus.text = getString(R.string.tor_status_connected_network)
             }
         }
     }
@@ -351,10 +359,10 @@ class TorBootstrapFragment : Fragment() {
     }
 
     private fun getStatusText(percent: Int): String = when {
-        percent < 25 -> "Connexion aux relais…"
-        percent < 50 -> "Chargement des descripteurs…"
-        percent < 80 -> "Établissement des circuits…"
-        else -> "Finalisation…"
+        percent < 25 -> getString(R.string.tor_status_relay_connecting)
+        percent < 50 -> getString(R.string.tor_status_loading_descriptors)
+        percent < 80 -> getString(R.string.tor_status_establishing_circuits)
+        else -> getString(R.string.tor_status_finalizing)
     }
 
     private fun navigateToNext() {

@@ -219,9 +219,9 @@ class WalletHomeFragment : Fragment() {
         // Transactions tab
         val daemonH = snapshot.nodeStatus.daemonHeight
         binding.tvTxSyncInfo.text = if (daemonH != null) {
-            "Hauteur ${snapshot.walletSyncHeight} / $daemonH · ${snapshot.transactions.size} tx"
+            getString(R.string.wallet_sync_height_daemon, snapshot.walletSyncHeight, daemonH, snapshot.transactions.size)
         } else {
-            "Hauteur ${snapshot.walletSyncHeight} · ${snapshot.transactions.size} tx"
+            getString(R.string.wallet_sync_height, snapshot.walletSyncHeight, snapshot.transactions.size)
         }
         addTxRows(binding.containerTxList, snapshot.transactions, maxItems = Int.MAX_VALUE)
     }
@@ -256,11 +256,11 @@ class WalletHomeFragment : Fragment() {
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
 
-        val dirText = if (tx.isIncoming) "Recu" else "Envoye"
+        val dirText = if (tx.isIncoming) getString(R.string.wallet_tx_direction_incoming) else getString(R.string.wallet_tx_direction_outgoing)
         val statusText = when {
-            tx.isPending -> "En attente"
-            tx.confirmations < 10 -> "${tx.confirmations} confirmation(s)"
-            else -> "Confirme"
+            tx.isPending -> getString(R.string.tx_pending)
+            tx.confirmations < 10 -> getString(R.string.wallet_tx_confirmations, tx.confirmations)
+            else -> getString(R.string.wallet_tx_confirmed_simple)
         }
 
         val dirLabel = TextView(ctx).apply {
@@ -315,17 +315,17 @@ class WalletHomeFragment : Fragment() {
         } else "—"
 
         val lines = buildString {
-            appendLine("Direction : ${if (tx.isIncoming) "Reçu ▲" else "Envoyé ▼"}")
+            appendLine("Direction : ${if (tx.isIncoming) getString(R.string.wallet_tx_direction_incoming) else getString(R.string.wallet_tx_direction_outgoing)}")
             appendLine("Montant   : ${(if (tx.isIncoming) "+" else "-") + formatXmr(tx.amount)}")
             if (tx.fee > 0L) appendLine("Frais     : ${formatXmr(tx.fee)}")
             appendLine("Statut    : ${when {
-                tx.isPending -> "En attente (non confirmé)"
-                tx.confirmations < 10 -> "${tx.confirmations} confirmation(s)"
-                else -> "Confirmé (${tx.confirmations})"
+                tx.isPending -> getString(R.string.wallet_tx_pending)
+                tx.confirmations < 10 -> getString(R.string.wallet_tx_confirmations, tx.confirmations)
+                else -> getString(R.string.wallet_tx_confirmed, tx.confirmations)
             }}")
             if (tx.height > 0L) appendLine("Hauteur   : ${tx.height}")
             appendLine("Date      : $dateStr")
-            if (tx.label.isNotBlank()) appendLine("Libellé   : ${tx.label}")
+            if (tx.label.isNotBlank()) appendLine(getString(com.fialkaapp.fialka.R.string.wallet_tx_label, tx.label))
             if (tx.paymentId.isNotBlank() && tx.paymentId != "0000000000000000")
                 appendLine("Payment ID: ${tx.paymentId}")
             appendLine()
@@ -342,12 +342,12 @@ class WalletHomeFragment : Fragment() {
         scrollView.addView(tv)
 
         MaterialAlertDialogBuilder(ctx)
-            .setTitle("Détails de la transaction")
+            .setTitle(getString(R.string.wallet_tx_details_title))
             .setView(scrollView)
             .setPositiveButton("Copier TX ID") { _, _ ->
                 val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("TX ID", tx.txId))
-                Toast.makeText(ctx, "TX ID copié", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, getString(R.string.xmr_txid_copied), Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Fermer", null)
             .show()
@@ -375,19 +375,23 @@ class WalletHomeFragment : Fragment() {
         val amountStr = binding.etSendAmount.text?.toString()?.trim().orEmpty()
 
         if (address.isEmpty()) {
-            Toast.makeText(requireContext(), "Adresse requise", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.wallet_address_required), Toast.LENGTH_SHORT).show()
             return
         }
         val amountXmr = amountStr.toDoubleOrNull()
         if (amountXmr == null || amountXmr <= 0.0) {
-            Toast.makeText(requireContext(), "Montant invalide", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.wallet_amount_invalid), Toast.LENGTH_SHORT).show()
             return
         }
         val amountPico = (amountXmr * 1_000_000_000_000.0).toLong()
 
         // Fee priority picker
         val feeLabels = arrayOf(
-            "Automatique", "Lent (×0.2)", "Normal (×1)", "Rapide (×5)", "Le plus rapide (×200)"
+            getString(R.string.wallet_fee_auto),
+            getString(R.string.wallet_fee_slow),
+            getString(R.string.wallet_fee_normal),
+            getString(R.string.wallet_fee_fast),
+            getString(R.string.wallet_fee_fastest)
         )
         val spinner = android.widget.Spinner(requireContext())
         spinner.adapter = android.widget.ArrayAdapter(
@@ -398,7 +402,7 @@ class WalletHomeFragment : Fragment() {
             setPadding(64, 16, 64, 8)
         }
         val label = TextView(requireContext()).apply {
-            text = "Priorité des frais"
+            text = getString(R.string.wallet_fee_priority_label)
             textSize = 13f
             alpha = 0.7f
         }
@@ -483,7 +487,7 @@ class WalletHomeFragment : Fragment() {
 
         // Show a loading indicator while we prepare the seed
         binding.btnCreateWallet.isEnabled = false
-        binding.tvSyncStatus.text = "Génération de la seed…"
+        binding.tvSyncStatus.text = getString(R.string.wallet_generating_seed)
 
         lifecycleScope.launch(Dispatchers.IO) {
             // Close any open wallet before creating a new one
@@ -522,12 +526,12 @@ class WalletHomeFragment : Fragment() {
             setPadding(48, 16, 48, 8)
         }
         val seedInput = android.widget.EditText(ctx).apply {
-            hint = "25 mots Monero (séparés par espaces)"
+            hint = getString(com.fialkaapp.fialka.R.string.wallet_seed_hint)
             minLines = 3
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
         }
         val heightLabel = android.widget.TextView(ctx).apply {
-            text = "Hauteur de restauration (laisser 2100000 si incertain)"
+            text = getString(R.string.wallet_restore_height_scan)
             textSize = 12f
             setPadding(0, 16, 0, 4)
         }
@@ -547,7 +551,7 @@ class WalletHomeFragment : Fragment() {
                 val mnemonic = seedInput.text?.toString()?.trim().orEmpty()
                 val words = mnemonic.split(Regex("\\s+")).filter { it.isNotBlank() }
                 if (words.size != 25) {
-                    Toast.makeText(ctx, "La seed doit contenir exactement 25 mots (${words.size} detectes)", Toast.LENGTH_LONG).show()
+                    Toast.makeText(ctx, getString(R.string.wallet_seed_wrong_count, words.size), Toast.LENGTH_LONG).show()
                     return@setPositiveButton
                 }
                 val heightStr = heightInput.text?.toString()?.trim().orEmpty()
@@ -581,7 +585,7 @@ class WalletHomeFragment : Fragment() {
                             // Restore failed — go back to setup
                             binding.setupContainer.visibility = View.VISIBLE
                             binding.walletContentContainer.visibility = View.GONE
-                            Toast.makeText(appCtx, "Seed invalide — verifie les 25 mots et le checksum", Toast.LENGTH_LONG).show()
+                            Toast.makeText(appCtx, getString(R.string.wallet_seed_invalid_checksum), Toast.LENGTH_LONG).show()
                             return@withContext
                         }
                     }

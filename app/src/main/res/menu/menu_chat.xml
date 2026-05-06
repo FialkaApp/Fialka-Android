@@ -4,6 +4,6 @@
 
     <item
         android:id="@+id/action_contact_profile"
-        android:title="Profil du contact"
+        android:title="@string/contact_profile_title"
         app:showAsAction="never" />
 </menu>

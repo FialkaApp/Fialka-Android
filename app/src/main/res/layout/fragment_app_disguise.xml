@@ -292,7 +292,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:padding="14dp"
-                    android:text="Le changement d\u2019ic\u00f4ne prend effet lorsque vous quittez l\u2019application. Le nom affich\u00e9 dans le lanceur changera aussi."
+                    android:text="@string/disguise_icon_change_note"
                     android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp"
                     android:lineSpacingExtra="2dp" />
@@ -321,7 +321,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="&#128272; Mode calculatrice r\u00e9elle"
+                        android:text="@string/disguise_calculator_mode_title"
                         android:textColor="?android:attr/textColorPrimary"
                         android:textSize="15sp"
                         android:textStyle="bold"
@@ -330,7 +330,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="L\u2019app s\u2019ouvre comme une vraie calculatrice. Entrez votre code secret pour acc\u00e9der \u00e0 Fialka."
+                        android:text="@string/disguise_calculator_mode_desc"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textSize="13sp"
                         android:lineSpacingExtra="2dp"
@@ -348,7 +348,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Activer"
+                            android:text="@string/disguise_activate_btn"
                             android:textColor="?android:attr/textColorPrimary"
                             android:textSize="15sp" />
 

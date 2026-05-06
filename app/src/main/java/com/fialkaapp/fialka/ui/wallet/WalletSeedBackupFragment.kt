@@ -139,7 +139,7 @@ class WalletSeedBackupFragment : Fragment() {
 
     private fun buildSeedText(): String = buildString {
         appendLine("Fialka — seed wallet Monero (25 mots)")
-        appendLine("Gardez ces mots en lieu sûr. Ne les partagez jamais.")
+        appendLine(getString(com.fialkaapp.fialka.R.string.wallet_seed_warning))
         appendLine()
         words.forEachIndexed { i, w -> appendLine("${i + 1}. $w") }
     }

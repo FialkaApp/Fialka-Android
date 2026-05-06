@@ -34,7 +34,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
-                android:text="Invitation de groupe"
+                android:text="@string/group_invite_label"
                 android:textColor="@color/primary_light"
                 android:textStyle="bold"
                 android:textSize="12sp" />

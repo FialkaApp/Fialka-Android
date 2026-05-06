@@ -43,7 +43,7 @@
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Retirer"
+        android:text="@string/group_member_remove"
         android:textAllCaps="false"
         android:textSize="12sp"
         android:visibility="gone"

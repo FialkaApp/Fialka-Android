@@ -32,6 +32,7 @@
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"
         android:theme="@style/Theme.Fialka"
+        android:localeConfig="@xml/locale_config"
         tools:targetApi="31">
 
         <activity

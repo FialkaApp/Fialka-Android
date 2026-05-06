@@ -97,7 +97,7 @@
                         android:clickable="true"
                         android:focusable="true"
                         android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="Copier" />
+                        android:contentDescription="@string/cd_copy" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>

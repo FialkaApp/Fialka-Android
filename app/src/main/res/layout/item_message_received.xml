@@ -93,7 +93,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/ic_file"
-                    android:contentDescription="Fichier"
+                    android:contentDescription="@string/cd_file"
                     android:importantForAccessibility="no" />
 
                 <LinearLayout
@@ -126,7 +126,7 @@
                     android:id="@+id/btnOpenFileReceived"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Ouvrir"
+                    android:text="@string/msg_open_btn"
                     android:textColor="?attr/colorPrimary"
                     android:textSize="13sp"
                     android:textStyle="bold"
@@ -165,7 +165,7 @@
                     android:id="@+id/btnRetryReceived"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Réessayer"
+                    android:text="@string/msg_retry_btn"
                     android:textColor="?attr/colorPrimary"
                     android:textSize="13sp"
                     android:textStyle="bold"

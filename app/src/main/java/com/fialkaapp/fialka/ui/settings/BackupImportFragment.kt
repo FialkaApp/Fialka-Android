@@ -135,7 +135,7 @@ class BackupImportFragment : Fragment() {
 
         val data = loadedFileBytes
         if (data == null) {
-            showError("Aucun fichier chargé.")
+            showError(getString(R.string.backup_import_no_file))
             return
         }
 
@@ -144,7 +144,7 @@ class BackupImportFragment : Fragment() {
 
         lifecycleScope.launch {
             val result = withContext(Dispatchers.Default) {
-                FialkaBackupManager.openBackup(data, passphrase.toCharArray())
+                FialkaBackupManager.openBackup(data, passphrase.toCharArray(), requireContext())
             }
 
             showLoading(false)
@@ -155,7 +155,7 @@ class BackupImportFragment : Fragment() {
                     showPreview(result.content)
                 }
                 is FialkaBackupManager.OpenResult.WrongPassphrase -> {
-                    showError("Passphrase incorrecte. Vérifiez et réessayez.")
+                    showError(getString(R.string.backup_import_wrong_passphrase))
                 }
                 is FialkaBackupManager.OpenResult.Invalid -> {
                     showError(result.reason)
@@ -174,7 +174,7 @@ class BackupImportFragment : Fragment() {
         }
 
         if (content.options.includeIdentity && content.identitySeedB64 != null) {
-            showRow(binding.tvPreviewIdentity, "✓  Identité Fialka${
+            showRow(binding.tvPreviewIdentity, "✓  ${getString(R.string.backup_preview_identity)}${
                 content.displayName?.let { " — $it" } ?: ""
             }")
         }

@@ -17,6 +17,7 @@
  */
 package com.fialkaapp.fialka.backup
 
+import android.content.Context
 import android.util.Base64
 import com.fialkaapp.fialka.data.model.Contact
 import org.json.JSONArray
@@ -127,10 +128,10 @@ object FialkaBackupManager {
      * Returns [OpenResult.WrongPassphrase] if GCM auth tag fails,
      * [OpenResult.Invalid] if the file is not a valid Fialka backup.
      */
-    fun openBackup(data: ByteArray, passphrase: CharArray): OpenResult {
+    fun openBackup(data: ByteArray, passphrase: CharArray, context: Context): OpenResult {
         // Validate size and magic
         if (data.size < HEADER_LEN + 16) {
-            return OpenResult.Invalid("Fichier trop court pour être une sauvegarde Fialka.")
+            return OpenResult.Invalid(context.getString(com.fialkaapp.fialka.R.string.backup_file_too_short))
         }
         if (!data.copyOfRange(0, 4).contentEquals(MAGIC)) {
             return OpenResult.Invalid("Ce fichier n'est pas une sauvegarde Fialka (magic invalide).")
@@ -138,7 +139,7 @@ object FialkaBackupManager {
 
         val version = data[4]
         if (version != FORMAT_VERSION) {
-            return OpenResult.Invalid("Version de sauvegarde non supportée : $version.")
+            return OpenResult.Invalid(context.getString(com.fialkaapp.fialka.R.string.backup_version_unsupported, version))
         }
 
         val flags      = data[5].toInt() and 0xFF
@@ -148,7 +149,7 @@ object FialkaBackupManager {
 
         val expectedEnd = HEADER_LEN + payloadLen
         if (data.size < expectedEnd) {
-            return OpenResult.Invalid("Fichier corrompu ou tronqué.")
+            return OpenResult.Invalid(context.getString(com.fialkaapp.fialka.R.string.backup_file_corrupted))
         }
 
         val ciphertext = data.copyOfRange(HEADER_LEN, expectedEnd)
@@ -172,7 +173,7 @@ object FialkaBackupManager {
             OpenResult.Success(content)
         } catch (e: Exception) {
             plaintext.fill(0)
-            OpenResult.Invalid("Payload corrompu : ${e.message}")
+            OpenResult.Invalid(context.getString(com.fialkaapp.fialka.R.string.backup_payload_corrupted, e.message))
         }
     }
 

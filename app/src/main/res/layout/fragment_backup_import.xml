@@ -33,7 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
-                android:text="Choisissez un fichier .fialka et saisissez la passphrase utilisée lors de la création. Les données seront restaurées sur cet appareil."
+                android:text="@string/backup_import_desc"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
 
@@ -56,7 +56,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:text="FICHIER"
+                        android:text="@string/backup_import_file_label"
                         android:textColor="@color/text_secondary"
                         android:textSize="11sp"
                         android:letterSpacing="0.1" />
@@ -66,7 +66,7 @@
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Choisir un fichier .fialka"
+                        android:text="@string/backup_import_choose_file"
                         app:cornerRadius="12dp" />
 
                     <TextView
@@ -103,7 +103,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:text="PASSPHRASE"
+                        android:text="@string/backup_import_passphrase_label"
                         android:textColor="@color/text_secondary"
                         android:textSize="11sp"
                         android:letterSpacing="0.1" />
@@ -114,7 +114,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                        android:hint="Passphrase de déchiffrement"
+                        android:hint="@string/backup_decrypt_passphrase_hint"
                         app:endIconMode="password_toggle">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -130,7 +130,7 @@
                         android:id="@+id/btnDecrypt"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Déchiffrer"
+                        android:text="@string/backup_import_decrypt_btn"
                         android:textColor="?android:attr/textColorPrimaryInverse"
                         app:backgroundTint="?attr/colorPrimary"
                         app:cornerRadius="12dp" />
@@ -159,7 +159,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:text="CONTENU DÉTECTÉ"
+                        android:text="@string/backup_import_content_label"
                         android:textColor="@color/text_secondary"
                         android:textSize="11sp"
                         android:letterSpacing="0.1" />
@@ -213,7 +213,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="⚠ La restauration remplacera votre identité et vos données actuelles."
+                        android:text="@string/backup_import_warning"
                         android:textColor="@color/error"
                         android:textSize="13sp" />
 
@@ -245,7 +245,7 @@
                 android:id="@+id/btnRestore"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Restaurer"
+                android:text="@string/backup_import_restore_btn"
                 android:textColor="?android:attr/textColorPrimaryInverse"
                 android:textSize="16sp"
                 android:visibility="gone"

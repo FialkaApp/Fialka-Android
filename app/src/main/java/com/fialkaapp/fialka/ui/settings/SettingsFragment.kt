@@ -30,6 +30,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.databinding.FragmentSettingsBinding
+import com.fialkaapp.fialka.util.LocaleHelper
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
@@ -157,11 +158,34 @@ class SettingsFragment : Fragment() {
 
     private fun handleActionItem(itemId: String) {
         when (itemId) {
+            "language" -> showLanguageDialog()
             "legal" -> showLegalDialog()
             "licenses" -> showLicensesDialog()
             "backup_export" -> navigateTo(R.id.action_settings_to_backupExport)
             "import_backup" -> navigateTo(R.id.action_settings_to_backupImport)
         }
+    }
+
+    private fun showLanguageDialog() {
+        val languages = arrayOf(
+            getString(R.string.language_french),
+            getString(R.string.language_english)
+        )
+        val codes = arrayOf("fr", "en")
+        val current = LocaleHelper.getLocaleCode(requireContext())
+        val currentIdx = codes.indexOf(current).takeIf { it >= 0 } ?: 0
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.setting_language_dialog_title))
+            .setSingleChoiceItems(languages, currentIdx) { dialog, which ->
+                dialog.dismiss()
+                if (codes[which] != current) {
+                    // setLocale triggers Activity.recreate() via AppCompatDelegate
+                    LocaleHelper.setLocale(requireContext(), codes[which])
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
     }
 
     private fun getNavigationAction(destination: String?): Int? {

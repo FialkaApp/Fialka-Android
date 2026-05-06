@@ -24,6 +24,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.fialkaapp.fialka.R
 import com.fialkaapp.fialka.data.local.FialkaDatabase
 import com.fialkaapp.fialka.databinding.FragmentStorageBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -120,9 +121,9 @@ class StorageFragment : Fragment() {
 
     private fun confirmClearCache() {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Vider le cache")
-            .setMessage("Cela supprimera les fichiers temporaires (miniatures, données de rendu). Aucun message ne sera effacé.")
-            .setPositiveButton("Vider") { _, _ -> clearCache() }
+            .setTitle(getString(R.string.storage_clear_cache_title))
+            .setMessage(getString(R.string.storage_clear_cache_message))
+            .setPositiveButton(getString(R.string.storage_clear_btn)) { _, _ -> clearCache() }
             .setNegativeButton("Annuler", null)
             .show()
     }
@@ -132,7 +133,7 @@ class StorageFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             deleteDirContents(requireContext().cacheDir)
             withContext(Dispatchers.Main) {
-                showStatus("Cache vidé.")
+                showStatus(getString(R.string.storage_cache_cleared))
                 refreshStats()
             }
         }
@@ -145,9 +146,9 @@ class StorageFragment : Fragment() {
             withContext(Dispatchers.Main) {
                 if (_binding == null) return@withContext
                 MaterialAlertDialogBuilder(ctx)
-                    .setTitle("Supprimer les fichiers reçus")
-                    .setMessage("$count message(s) contenant des fichiers seront effacés. Cette action est irréversible.")
-                    .setPositiveButton("Supprimer") { _, _ -> deleteFileMessages() }
+                    .setTitle(getString(R.string.storage_delete_files_title))
+                    .setMessage(getString(R.string.storage_delete_files_message, count))
+                    .setPositiveButton(getString(R.string.action_delete)) { _, _ -> deleteFileMessages() }
                     .setNegativeButton("Annuler", null)
                     .show()
             }
@@ -161,7 +162,7 @@ class StorageFragment : Fragment() {
             val db = FialkaDatabase.getInstance(ctx)
             db.messageLocalDao().deleteFileMessages()
             withContext(Dispatchers.Main) {
-                showStatus("Fichiers supprimés.")
+                showStatus(getString(R.string.storage_files_deleted))
                 refreshStats()
             }
         }
@@ -174,7 +175,7 @@ class StorageFragment : Fragment() {
             val db = FialkaDatabase.getInstance(ctx)
             db.messageLocalDao().deleteExpiredMessages(System.currentTimeMillis())
             withContext(Dispatchers.Main) {
-                showStatus("Messages expirés supprimés.")
+                showStatus(getString(R.string.storage_expired_deleted))
                 refreshStats()
             }
         }
@@ -182,12 +183,9 @@ class StorageFragment : Fragment() {
 
     private fun confirmDeleteAllMessages() {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Supprimer tous les messages ?")
-            .setMessage(
-                "Cette action effacera définitivement l'historique de TOUTES les conversations.\n\n" +
-                "Vos contacts ne seront pas supprimés. Cette action est irréversible."
-            )
-            .setPositiveButton("Supprimer tout") { _, _ -> deleteAllMessages() }
+            .setTitle(getString(R.string.storage_delete_all_title))
+            .setMessage(getString(R.string.storage_delete_all_message))
+            .setPositiveButton(getString(R.string.storage_delete_all_btn)) { _, _ -> deleteAllMessages() }
             .setNegativeButton("Annuler", null)
             .show()
     }
@@ -199,7 +197,7 @@ class StorageFragment : Fragment() {
             val db = FialkaDatabase.getInstance(ctx)
             db.messageLocalDao().deleteAllMessages()
             withContext(Dispatchers.Main) {
-                showStatus("Tous les messages ont été supprimés.")
+                showStatus(getString(R.string.storage_messages_deleted))
                 refreshStats()
             }
         }

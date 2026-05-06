@@ -65,7 +65,7 @@
         android:id="@+id/cbOneShot"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="🔥 Photo éphémère (visible une seule fois)"
+        android:text="@string/ephemeral_photo_label"
         android:textColor="?android:attr/textColorPrimary"
         android:textSize="14sp"
         android:visibility="gone"

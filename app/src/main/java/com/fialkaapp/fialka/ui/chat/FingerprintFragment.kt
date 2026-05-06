@@ -63,7 +63,7 @@ class FingerprintFragment : Fragment() {
     private val scanLauncher = registerForActivityResult(ScanContract()) { result: ScanIntentResult ->
         val scannedData = result.contents
         if (scannedData == null) {
-            Toast.makeText(requireContext(), "Scan annulé", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.scan_cancelled), Toast.LENGTH_SHORT).show()
             return@registerForActivityResult
         }
         handleScanResult(scannedData)
@@ -124,7 +124,7 @@ class FingerprintFragment : Fragment() {
                     repository.verifyFingerprint(conversationId, newState)
                     isVerified = newState
                     updateVerificationUI(isVerified)
-                    val msg = if (newState) "Empreinte vérifiée ✓" else "Vérification retirée"
+                    val msg = if (newState) getString(R.string.fingerprint_verified_toast) else getString(R.string.fingerprint_unverified_toast)
                     Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
                 }
             }
@@ -150,8 +150,8 @@ class FingerprintFragment : Fragment() {
                 binding.ivQrCode.animate().alpha(1f).setDuration(150).start()
             }.start()
             binding.tvToggleIcon.text = "📱"
-            binding.tvToggleHint.text = "Appuyez pour voir les emojis"
-            binding.tvExplanation.text = "Montrez ce QR code à votre contact pour qu'il le scanne, ou scannez le sien."
+            binding.tvToggleHint.text = getString(R.string.fingerprint_toggle_hint_emojis)
+            binding.tvExplanation.text = getString(R.string.fingerprint_qr_explanation)
         } else {
             binding.ivQrCode.animate().alpha(0f).setDuration(150).withEndAction {
                 binding.ivQrCode.visibility = View.GONE
@@ -160,8 +160,8 @@ class FingerprintFragment : Fragment() {
                 binding.tvFingerprint.animate().alpha(1f).setDuration(150).start()
             }.start()
             binding.tvToggleIcon.text = "🔐"
-            binding.tvToggleHint.text = "Appuyez pour voir le QR code"
-            binding.tvExplanation.text = "Vérifiez que les emojis ci-dessous sont identiques sur les deux téléphones pour confirmer que la conversation est sécurisée."
+            binding.tvToggleHint.text = getString(R.string.fingerprint_toggle_hint_qr)
+            binding.tvExplanation.text = getString(R.string.fingerprint_emoji_explanation)
         }
     }
 
@@ -180,7 +180,7 @@ class FingerprintFragment : Fragment() {
             }
             binding.ivQrCode.setImageBitmap(bitmap)
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), "Erreur génération QR", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.fingerprint_qr_error), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -189,7 +189,7 @@ class FingerprintFragment : Fragment() {
     private fun launchScanner() {
         val options = ScanOptions().apply {
             setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-            setPrompt("Scannez le QR code de votre contact")
+            setPrompt(getString(R.string.fingerprint_scan_prompt))
             setBeepEnabled(false)
             setOrientationLocked(false)
             setCaptureActivity(CustomScannerActivity::class.java)
@@ -209,13 +209,13 @@ class FingerprintFragment : Fragment() {
                 updateVerificationUI(true)
             }
             showResultDialog(
-                title = "✅ Empreinte vérifiée",
-                message = "Les empreintes correspondent ! La conversation est authentique et sécurisée."
+                title = getString(R.string.fingerprint_match_title),
+                message = getString(R.string.fingerprint_match_message)
             )
         } else {
             showResultDialog(
-                title = "❌ Empreintes différentes",
-                message = "ATTENTION : les empreintes ne correspondent pas !\n\nCela peut indiquer une attaque de type homme du milieu (MITM). Ne partagez pas d'informations sensibles dans cette conversation."
+                title = getString(R.string.fingerprint_mismatch_title),
+                message = getString(R.string.fingerprint_mismatch_message)
             )
         }
     }
@@ -224,7 +224,7 @@ class FingerprintFragment : Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle(title)
             .setMessage(message)
-            .setPositiveButton("OK", null)
+            .setPositiveButton(android.R.string.ok, null)
             .setCancelable(true)
             .show()
     }
@@ -233,18 +233,18 @@ class FingerprintFragment : Fragment() {
 
     private fun updateVerificationUI(verified: Boolean) {
         if (verified) {
-            binding.tvVerificationStatus.text = "✅ Vérifié"
+            binding.tvVerificationStatus.text = getString(R.string.conv_fingerprint_verified)
             binding.tvVerificationStatus.setTextColor(
                 ContextCompat.getColor(requireContext(), R.color.green_verified)
             )
-            binding.btnVerify.text = "Retirer la vérification"
+            binding.btnVerify.text = getString(R.string.fingerprint_remove_verification)
             binding.btnVerify.visibility = View.VISIBLE
         } else {
-            binding.tvVerificationStatus.text = "⚠️ Non vérifié"
+            binding.tvVerificationStatus.text = getString(R.string.conv_fingerprint_unverified)
             binding.tvVerificationStatus.setTextColor(
                 ContextCompat.getColor(requireContext(), R.color.orange_warning)
             )
-            binding.btnVerify.text = "Marquer comme vérifié"
+            binding.btnVerify.text = getString(R.string.fingerprint_mark_verified)
             binding.btnVerify.visibility = View.VISIBLE
         }
     }

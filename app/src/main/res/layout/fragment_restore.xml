@@ -41,7 +41,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Seed 24 mots"
+                android:text="@string/restore_tab_seed"
                 android:textSize="13sp"
                 app:cornerRadius="12dp" />
 
@@ -51,7 +51,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Fichier .fialka"
+                android:text="@string/restore_tab_file"
                 android:textSize="13sp"
                 app:cornerRadius="12dp" />
 
@@ -71,7 +71,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:gravity="center"
-                android:text="Saisissez vos 24 mots de récupération"
+                android:text="@string/restore_seed_label"
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp" />
 
@@ -82,7 +82,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:gravity="center"
-                android:text="0 / 24 mots"
+                android:text="@string/restore_word_counter"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
 
@@ -154,18 +154,16 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp"
+                        android:layout_marginBottom="8dp"
                         android:letterSpacing="0.1"
-                        android:text="FICHIER"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11sp" />
+                        android:text="@string/restore_file_label" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnChooseFile"
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Choisir un fichier .fialka"
+                        android:text="@string/restore_choose_file"
                         app:cornerRadius="12dp" />
 
                     <TextView
@@ -202,16 +200,14 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
                         android:letterSpacing="0.1"
-                        android:text="PASSPHRASE"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11sp" />
+                        android:text="@string/restore_passphrase_label" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/tilFilePassphrase"
                         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="Passphrase de déchiffrement"
+                        android:hint="@string/restore_file_passphrase_hint"
                         app:endIconMode="password_toggle">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -248,9 +244,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
                         android:letterSpacing="0.1"
-                        android:text="CONTENU DÉTECTÉ"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11sp" />
+                        android:text="@string/restore_content_label" />
 
                     <TextView
                         android:id="@+id/tvPreviewIdentity"
@@ -296,7 +290,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="⚠ La restauration remplacera votre identité et vos données actuelles."
+                        android:text="@string/restore_warning"
                         android:textColor="@color/error"
                         android:textSize="13sp" />
 
@@ -309,7 +303,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:layout_marginTop="20dp"
-                android:text="Restaurer la sauvegarde"
+                android:text="@string/restore_backup_btn"
                 android:textAllCaps="false"
                 android:textColor="?android:attr/textColorPrimaryInverse"
                 android:textSize="16sp"

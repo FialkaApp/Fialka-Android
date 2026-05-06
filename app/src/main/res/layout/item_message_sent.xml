@@ -82,7 +82,7 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/ic_file"
-                    android:contentDescription="Fichier"
+                    android:contentDescription="@string/cd_file"
                     android:importantForAccessibility="no" />
 
                 <LinearLayout
@@ -115,7 +115,7 @@
                     android:id="@+id/btnOpenFileSent"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Ouvrir"
+                    android:text="@string/msg_open_btn"
                     android:textColor="?attr/colorPrimary"
                     android:textSize="13sp"
                     android:textStyle="bold"
@@ -196,7 +196,7 @@
                     android:id="@+id/tvFailedLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Échec"
+                    android:text="@string/msg_failed"
                     android:textColor="#FF4444"
                     android:textSize="11sp" />
 
@@ -205,7 +205,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
-                    android:text="Renvoyer"
+                    android:text="@string/msg_resend_btn"
                     android:textColor="#7B68EE"
                     android:textSize="11sp"
                     android:textStyle="bold"

@@ -38,7 +38,7 @@
             android:paddingHorizontal="20dp"
             android:paddingTop="16dp"
             android:paddingBottom="4dp"
-            android:text="SÉLECTIONNER DES CONTACTS"
+            android:text="@string/invite_member_title"
             android:textColor="?attr/colorPrimary"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -61,7 +61,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:text="Inviter"
+        android:text="@string/invite_btn"
         android:textAllCaps="false"
         app:icon="@drawable/ic_send"
         app:layout_behavior="com.google.android.material.behavior.HideBottomViewOnScrollBehavior" />

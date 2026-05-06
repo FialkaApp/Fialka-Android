@@ -61,7 +61,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Vue d'ensemble"
+                        android:text="@string/storage_overview_label"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp"
                         android:letterSpacing="0.08"
@@ -96,13 +96,12 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Messages"
-                                android:textColor="@color/text_secondary"
+                                android:text="@string/storage_messages_label"
                                 android:textSize="12sp" />
 
                         </LinearLayout>
 
-                        <!-- Fichiers -->
+                        <!-- Files -->
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
@@ -123,7 +122,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Fichiers reçus"
+                                android:text="@string/storage_files_label"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="12sp" />
 
@@ -158,7 +157,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Base de données"
+                                android:text="@string/storage_db_label"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="12sp" />
 
@@ -185,7 +184,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Cache"
+                                android:text="@string/storage_cache_label"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="12sp" />
 
@@ -200,12 +199,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="NETTOYAGE"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:letterSpacing="0.12"
-                android:layout_marginStart="4dp"
-                android:layout_marginBottom="8dp" />
+                android:text="@string/storage_cleanup_label"
+                android:textSize="12sp" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -250,14 +245,14 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Vider le cache"
+                                android:text="@string/storage_clear_cache_btn"
                                 android:textColor="@color/text_primary"
                                 android:textSize="15sp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Miniatures, données temporaires"
+                                android:text="@string/storage_cache_desc"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="13sp" />
 
@@ -304,7 +299,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Supprimer les fichiers reçus"
+                                android:text="@string/storage_delete_files_btn"
                                 android:textColor="@color/text_primary"
                                 android:textSize="15sp" />
 
@@ -312,7 +307,7 @@
                                 android:id="@+id/tvFileHint"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Images, documents, fichiers partagés"
+                                android:text="@string/storage_files_desc"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="13sp" />
 
@@ -359,14 +354,14 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Purger les messages expirés"
+                                android:text="@string/storage_purge_ephemeral_btn"
                                 android:textColor="@color/text_primary"
                                 android:textSize="15sp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Messages éphémères dont le délai est écoulé"
+                                android:text="@string/storage_purge_ephemeral_desc"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="13sp" />
 
@@ -387,12 +382,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ZONE SENSIBLE"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:letterSpacing="0.12"
-                android:layout_marginStart="4dp"
-                android:layout_marginBottom="8dp" />
+                android:text="@string/storage_danger_zone"
+                android:textSize="12sp" />
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -437,14 +428,13 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Supprimer tous les messages"
-                                android:textColor="@color/error"
+                                android:text="@string/storage_delete_all_messages_btn"
                                 android:textSize="15sp" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Efface l'historique de toutes les conversations"
+                                android:text="@string/storage_delete_all_messages_desc"
                                 android:textColor="@color/text_secondary"
                                 android:textSize="13sp" />
 

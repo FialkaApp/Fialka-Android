@@ -20,7 +20,7 @@
             android:elevation="0dp"
             app:navigationIcon="@drawable/ic_arrow_back"
             app:navigationIconTint="?attr/colorToolbarIcon"
-            app:title="Nouveau groupe"
+            app:title="@string/create_group_title"
             app:titleTextColor="?attr/colorToolbarTitle" />
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -47,7 +47,7 @@
                 android:id="@+id/etGroupName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Nom du groupe"
+                android:hint="@string/hint_group_name"
                 android:inputType="text|textCapSentences"
                 android:maxLength="50"
                 android:textColor="?attr/colorTextPrimary"
@@ -60,7 +60,7 @@
             android:layout_marginHorizontal="20dp"
             android:layout_marginTop="16dp"
             android:layout_marginBottom="8dp"
-            android:text="Sélectionner des contacts"
+            android:text="@string/create_group_select_contacts"
             android:textColor="?attr/colorPrimary"
             android:textSize="12sp"
             android:textStyle="bold"
@@ -95,7 +95,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:text="Créer le groupe"
+        android:text="@string/create_group_btn"
         android:textAllCaps="false"
         app:icon="@drawable/ic_group"
         app:backgroundTint="?attr/colorPrimary"

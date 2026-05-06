@@ -160,7 +160,7 @@ object MailboxClientManager {
                 if (inviteCode.isNotEmpty()) inviteCode.toByteArray(Charsets.UTF_8) else ByteArray(0)
             )
         } catch (_: IllegalStateException) {
-            return Pair(false, "Identité non configurée — configurez d'abord votre compte")
+            return Pair(false, appContext.getString(com.fialkaapp.fialka.R.string.mailbox_identity_not_configured))
         }
         val frame = TorTransport.Frame(TorTransport.TYPE_JOIN, authPayload)
         val response = TorTransport.sendFrame(onion, frame = frame)

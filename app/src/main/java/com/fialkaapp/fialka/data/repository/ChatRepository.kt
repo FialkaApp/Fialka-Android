@@ -284,8 +284,8 @@ class ChatRepository(private val appContext: Context) {
     private suspend fun updateConversationLastMessage(conversationId: String, message: String) {
         val preview = when {
             message.startsWith(GroupRepository.GROUP_INVITE_PREFIX)         -> "🔔 Invitation de groupe"
-            message.startsWith(GroupRepository.GROUP_INVITE_ACCEPT_PREFIX)  -> "✅ Invitation acceptée"
-            message.startsWith(GroupRepository.GROUP_INVITE_DECLINE_PREFIX) -> "❌ Invitation refusée"
+            message.startsWith(GroupRepository.GROUP_INVITE_ACCEPT_PREFIX)  -> appContext.getString(com.fialkaapp.fialka.R.string.group_invite_accepted_preview)
+            message.startsWith(GroupRepository.GROUP_INVITE_DECLINE_PREFIX) -> appContext.getString(com.fialkaapp.fialka.R.string.group_invite_declined_preview)
             else -> message
         }
         val conversation = conversationDao.getConversationById(conversationId) ?: return
@@ -869,10 +869,10 @@ class ChatRepository(private val appContext: Context) {
             }
         } catch (e: Exception) {
             val errorMessage = placeholder.copy(
-                plaintext = "⚠️ Échec : $fileName"
+                plaintext = appContext.getString(com.fialkaapp.fialka.R.string.chat_file_error, fileName)
             )
             messageDao.insertMessage(errorMessage)  // REPLACE by same localId
-            updateConversationLastMessage(conversationId, "⚠️ Échec : $fileName")
+            updateConversationLastMessage(conversationId, appContext.getString(com.fialkaapp.fialka.R.string.chat_file_error, fileName))
             errorMessage
         }
     }
@@ -968,9 +968,9 @@ class ChatRepository(private val appContext: Context) {
                 placeholder
             }
         } catch (e: Exception) {
-            val errorMessage = placeholder.copy(plaintext = "⚠️ Message vocal corrompu")
+            val errorMessage = placeholder.copy(plaintext = appContext.getString(com.fialkaapp.fialka.R.string.msg_voice_corrupted))
             messageDao.insertMessage(errorMessage)
-            updateConversationLastMessage(conversationId, "⚠️ Message vocal corrompu")
+            updateConversationLastMessage(conversationId, appContext.getString(com.fialkaapp.fialka.R.string.msg_voice_corrupted))
             errorMessage
         }
     }
@@ -998,11 +998,11 @@ class ChatRepository(private val appContext: Context) {
                 updateConversationLastMessage(message.conversationId, finalMessage.plaintext)
             } else {
                 // No pending chunk — leave as error
-                val errorMessage = message.copy(plaintext = "⚠️ Échec : $fileName")
+                val errorMessage = message.copy(plaintext = appContext.getString(com.fialkaapp.fialka.R.string.chat_file_error, fileName))
                 messageDao.insertMessage(errorMessage)
             }
         } catch (e: Exception) {
-            val errorMessage = message.copy(plaintext = "⚠️ Échec : $fileName")
+            val errorMessage = message.copy(plaintext = appContext.getString(com.fialkaapp.fialka.R.string.chat_file_error, fileName))
             messageDao.insertMessage(errorMessage)
         }
     }
@@ -1032,9 +1032,9 @@ class ChatRepository(private val appContext: Context) {
             messageDao.insertMessage(finalMessage)
             updateConversationLastMessage(conversationId, finalMessage.plaintext)
         } catch (_: Exception) {
-            val errorMessage = message.copy(plaintext = "⚠️ Échec : $fileName")
+            val errorMessage = message.copy(plaintext = appContext.getString(com.fialkaapp.fialka.R.string.chat_file_error, fileName))
             messageDao.insertMessage(errorMessage)
-            updateConversationLastMessage(conversationId, "⚠️ Échec : $fileName")
+            updateConversationLastMessage(conversationId, appContext.getString(com.fialkaapp.fialka.R.string.chat_file_error, fileName))
         }
     }
 
@@ -1300,7 +1300,7 @@ class ChatRepository(private val appContext: Context) {
                  decryptedPlaintext.startsWith(com.fialkaapp.fialka.data.repository.GroupRepository.GROUP_INVITE_DECLINE_PREFIX))) {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        GroupRepository(appContext).handleInviteResponse(decryptedPlaintext!!, conversationId)
+                        GroupRepository(appContext).handleInviteResponse(decryptedPlaintext, conversationId)
                     } catch (e: Exception) {
                         android.util.Log.e("ChatRepository", "handleInviteResponse failed: ${e.message}")
                     }
@@ -1323,7 +1323,7 @@ class ChatRepository(private val appContext: Context) {
                 localId = UUID.randomUUID().toString(),
                 conversationId = conversationId,
                 senderPublicKey = conversation.participantPublicKey,
-                plaintext = decryptedPlaintext ?: "[Échec du déchiffrement]",
+                plaintext = decryptedPlaintext ?: appContext.getString(com.fialkaapp.fialka.R.string.sys_decrypt_failed),
                 timestamp = p2pMessage.createdAt,
                 isMine = false,
                 ephemeralDuration = ephDuration,
@@ -1512,11 +1512,11 @@ class ChatRepository(private val appContext: Context) {
      */
     suspend fun insertFingerprintInfoMessage(conversationId: String, verified: Boolean, isLocal: Boolean) {
         val text = if (verified) {
-            if (isLocal) "🔐 Vous avez vérifié l'empreinte de sécurité"
-            else "🔐 Votre contact a vérifié l'empreinte de sécurité"
+            if (isLocal) appContext.getString(com.fialkaapp.fialka.R.string.sys_fingerprint_verified_local)
+            else appContext.getString(com.fialkaapp.fialka.R.string.sys_fingerprint_verified_remote)
         } else {
-            if (isLocal) "🔓 Vous avez retiré la vérification de l'empreinte"
-            else "🔓 Votre contact a retiré la vérification de l'empreinte"
+            if (isLocal) appContext.getString(com.fialkaapp.fialka.R.string.sys_fingerprint_unverified_local)
+            else appContext.getString(com.fialkaapp.fialka.R.string.sys_fingerprint_unverified_remote)
         }
         val infoMessage = MessageLocal(
             localId = UUID.randomUUID().toString(),
@@ -1602,9 +1602,9 @@ class ChatRepository(private val appContext: Context) {
      */
     suspend fun insertEphemeralInfoMessage(conversationId: String, durationMs: Long) {
         val text = if (durationMs > 0) {
-            "⏱ Les messages éphémères ont été activés sur ${EphemeralManager.getLabelForDuration(durationMs)}"
+            appContext.getString(com.fialkaapp.fialka.R.string.sys_ephemeral_enabled, EphemeralManager.getLabelForDuration(appContext, durationMs))
         } else {
-            "⏱ Les messages éphémères ont été désactivés"
+            appContext.getString(com.fialkaapp.fialka.R.string.sys_ephemeral_disabled_msg)
         }
         val infoMessage = MessageLocal(
             localId = UUID.randomUUID().toString(),

@@ -68,7 +68,7 @@ class PinSetupDialogFragment : DialogFragment() {
             tvTitle.text = "Entrez votre code actuel"
             verifyingOldPin = true
         } else {
-            tvTitle.text = "Choisissez un code à 6 chiffres"
+            tvTitle.text = getString(R.string.pin_setup_new_title)
         }
 
         val padIds = listOf(
@@ -100,7 +100,7 @@ class PinSetupDialogFragment : DialogFragment() {
                     if (valid) {
                         verifyingOldPin = false
                         enteredPin = ""
-                        tvTitle.text = "Choisissez un nouveau code à 6 chiffres"
+                        tvTitle.text = getString(R.string.pin_setup_change_title)
                         updateDots()
                     } else {
                         shakeAndReset("Code actuel incorrect")
@@ -132,14 +132,14 @@ class PinSetupDialogFragment : DialogFragment() {
             if (enteredPin == firstPin) {
                 lifecycleScope.launch {
                     AppLockManager.setPin(ctx, enteredPin)
-                    Toast.makeText(ctx, "Code de verrouillage activé ✓", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, getString(R.string.security_pin_enabled_toast), Toast.LENGTH_SHORT).show()
                     onPinSet?.invoke()
                     dismiss()
                 }
             } else {
                 shakeAndReset("Les codes ne correspondent pas")
                 firstPin = null
-                tvTitle.text = "Choisissez un code à 6 chiffres"
+                tvTitle.text = getString(R.string.pin_setup_new_title)
             }
         }
     }

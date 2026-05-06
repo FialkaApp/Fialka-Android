@@ -129,7 +129,7 @@ class RestoreFragment : Fragment() {
             }
 
             if (!MnemonicManager.validateMnemonic(words)) {
-                showError("Phrase invalide. Vérifiez les mots et réessayez.")
+                showError(getString(R.string.restore_invalid_phrase))
                 highlightInvalidWords(words, wordList)
                 return@setOnClickListener
             }
@@ -150,7 +150,7 @@ class RestoreFragment : Fragment() {
             }
             val data = loadedFileBytes
             if (data == null) {
-                showError("Aucun fichier chargé.")
+                showError(getString(R.string.restore_no_file))
                 return@setOnClickListener
             }
             // If preview already shown, go straight to restore
@@ -213,7 +213,7 @@ class RestoreFragment : Fragment() {
 
         lifecycleScope.launch {
             val result = withContext(Dispatchers.Default) {
-                FialkaBackupManager.openBackup(data, passphrase)
+                FialkaBackupManager.openBackup(data, passphrase, requireContext())
             }
             showLoading(false)
 
@@ -225,7 +225,7 @@ class RestoreFragment : Fragment() {
                     binding.btnRestoreFile.text = "Confirmer la restauration"
                 }
                 is FialkaBackupManager.OpenResult.WrongPassphrase ->
-                    showError("Passphrase incorrecte. Vérifiez et réessayez.")
+                    showError(getString(R.string.restore_wrong_passphrase))
                 is FialkaBackupManager.OpenResult.Invalid ->
                     showError(result.reason)
             }
@@ -238,7 +238,7 @@ class RestoreFragment : Fragment() {
             tv.text = text; tv.setTextColor(primaryColor); tv.visibility = View.VISIBLE
         }
         if (content.options.includeIdentity && content.identitySeedB64 != null)
-            showRow(binding.tvPreviewIdentity, "✓  Identité Fialka${content.displayName?.let { " — $it" } ?: ""}")
+            showRow(binding.tvPreviewIdentity, "✓  ${getString(R.string.backup_preview_identity)}${content.displayName?.let { " — $it" } ?: ""}")
         if (content.options.includeWallet && content.walletMnemonic != null)
             showRow(binding.tvPreviewWallet, "✓  Wallet Monero")
         if (content.options.includeContacts && content.contacts.isNotEmpty())

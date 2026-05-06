@@ -382,7 +382,7 @@ class MailboxDashboardFragment : Fragment() {
             val m = members[position]
             val keyShort = m.pubKey.take(16) + "…"
             holder.binding.tvMemberKey.text = keyShort
-            holder.binding.tvMemberRole.text = if (m.role == "OWNER") "Propriétaire 👑" else "Membre"
+            holder.binding.tvMemberRole.text = if (m.role == "OWNER") holder.itemView.context.getString(com.fialkaapp.fialka.R.string.role_owner) else holder.itemView.context.getString(com.fialkaapp.fialka.R.string.role_member)
 
             // Color based on role
             val roleColor = if (m.role == "OWNER") {

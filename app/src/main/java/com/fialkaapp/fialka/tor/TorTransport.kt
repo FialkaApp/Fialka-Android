@@ -127,6 +127,12 @@ object TorTransport {
     // ── Anti-replay ──
     private const val TIMESTAMP_WINDOW_MS = 30 * 60 * 1000L   // 30 min — tolerates cross-device clock skew
 
+    // ── Auth error codes (stable, language-agnostic) ──
+    const val ERR_PAYLOAD_TOO_SHORT = "ERR_PAYLOAD_TOO_SHORT"
+    const val ERR_CLOCK_DESYNC      = "ERR_CLOCK_DESYNC"   // format: "ERR_CLOCK_DESYNC:<diffMin>"
+    const val ERR_PUBKEY_MISMATCH   = "ERR_PUBKEY_MISMATCH"
+    const val ERR_INVALID_SIGNATURE = "ERR_INVALID_SIGNATURE"
+
     /** A transport-level frame. */
     data class Frame(val type: Byte, val payload: ByteArray) {
         override fun equals(other: Any?): Boolean {
@@ -357,7 +363,7 @@ object TorTransport {
         payload: ByteArray,
         expectedPubKey: ByteArray? = null
     ): String? {
-        if (payload.size < AUTH_HEADER_SIZE) return "payload trop court"
+        if (payload.size < AUTH_HEADER_SIZE) return ERR_PAYLOAD_TOO_SHORT
 
         val buf = ByteBuffer.wrap(payload)
         val pubKey = ByteArray(32).also { buf.get(it) }
@@ -369,16 +375,16 @@ object TorTransport {
         val clockDiff = abs(System.currentTimeMillis() - timestamp)
         if (clockDiff > TIMESTAMP_WINDOW_MS) {
             val diffMin = clockDiff / 60_000
-            return "horloge désynchronisée (${diffMin}min) — vérifiez la date/heure de l'appareil"
+            return "$ERR_CLOCK_DESYNC:$diffMin"
         }
 
-        if (expectedPubKey != null && !pubKey.contentEquals(expectedPubKey)) return "clé publique invalide"
+        if (expectedPubKey != null && !pubKey.contentEquals(expectedPubKey)) return ERR_PUBKEY_MISMATCH
 
         val toVerify = buildSigningData(commandTag, timestamp, nonce, extra)
         val valid = verifyEd25519(pubKey, toVerify, signature)
         toVerify.fill(0)
 
-        if (!valid) return "signature invalide — identité corrompue ou incompatible"
+        if (!valid) return ERR_INVALID_SIGNATURE
         return null  // success
     }
 

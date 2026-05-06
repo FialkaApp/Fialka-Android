@@ -95,13 +95,13 @@ class TorForegroundService : Service() {
         scope.launch {
             TorManager.state.collectLatest { state ->
                 val text = when (state) {
-                    is TorState.CONNECTED -> "Tor : connecté \uD83E\uDDC5"
+                    is TorState.CONNECTED -> getString(com.fialkaapp.fialka.R.string.notif_tor_connected)
                     is TorState.PUBLISHING_ONION -> "Tor : publication .onion…"
                     is TorState.ONION_PUBLISHED -> "Tor : ${state.address}"
                     is TorState.BOOTSTRAPPING -> "Tor : ${state.percent}%"
-                    is TorState.STARTING -> "Tor : démarrage…"
+                    is TorState.STARTING -> getString(com.fialkaapp.fialka.R.string.notif_tor_starting)
                     is TorState.ERROR -> "Tor : erreur"
-                    else -> "Tor : déconnecté"
+                    else -> getString(com.fialkaapp.fialka.R.string.notif_tor_disconnected)
                 }
                 val nm = getSystemService(NotificationManager::class.java)
                 nm.notify(NOTIFICATION_ID, buildNotification(text))

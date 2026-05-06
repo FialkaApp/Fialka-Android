@@ -377,7 +377,7 @@ object P2PServer : TorTransport.FrameListener {
                                         localId         = java.util.UUID.randomUUID().toString(),
                                         conversationId  = conv.conversationId,
                                         senderPublicKey = "",
-                                        plaintext       = "🔄 Ce contact a restauré son compte. Envoyez un message pour démarrer une nouvelle session chiffrée.",
+                                        plaintext       = appContext.getString(com.fialkaapp.fialka.R.string.sys_contact_account_restored),
                                         timestamp       = System.currentTimeMillis(),
                                         isMine          = false,
                                         isInfoMessage   = true

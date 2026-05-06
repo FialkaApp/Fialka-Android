@@ -48,10 +48,17 @@ object AppLockManager {
 
     /** Auto-lock delay options in milliseconds. */
     val AUTO_LOCK_OPTIONS = longArrayOf(0L, 5_000L, 15_000L, 30_000L, 60_000L, 300_000L)
-    val AUTO_LOCK_LABELS = arrayOf(
-        "Immédiat", "5 secondes", "15 secondes",
-        "30 secondes", "1 minute", "5 minutes"
-    )
+
+    fun getAutoLockLabels(context: Context): Array<String> {
+        return arrayOf(
+            context.getString(com.fialkaapp.fialka.R.string.autolock_immediate),
+            context.getString(com.fialkaapp.fialka.R.string.autolock_5s),
+            context.getString(com.fialkaapp.fialka.R.string.autolock_15s),
+            context.getString(com.fialkaapp.fialka.R.string.autolock_30s),
+            context.getString(com.fialkaapp.fialka.R.string.autolock_1m),
+            context.getString(com.fialkaapp.fialka.R.string.autolock_5m)
+        )
+    }
 
     @Volatile
     private var cachedPrefs: SharedPreferences? = null
@@ -106,7 +113,7 @@ object AppLockManager {
     fun getAutoLockLabel(context: Context): String {
         val delay = getAutoLockDelay(context)
         val idx = AUTO_LOCK_OPTIONS.indexOf(delay)
-        return if (idx >= 0) AUTO_LOCK_LABELS[idx] else "5 secondes"
+        return if (idx >= 0) getAutoLockLabels(context)[idx] else context.getString(com.fialkaapp.fialka.R.string.autolock_5s)
     }
 
     /** Check if biometric unlock is enabled. */
