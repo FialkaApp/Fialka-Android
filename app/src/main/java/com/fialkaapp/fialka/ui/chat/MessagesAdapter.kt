@@ -521,6 +521,18 @@ class MessagesAdapter(
                         true
                     }
                 }
+                else -> {
+                    // Normal text message
+                    binding.tvMessageSent.visibility = View.VISIBLE
+                    binding.tvMessageSent.text = message.plaintext
+                    binding.fileRowSent.visibility = View.GONE
+                    binding.ivImagePreviewSent.visibility = View.GONE
+                    binding.bubbleSent.setOnClickListener(null)
+                    binding.bubbleSent.setOnLongClickListener { v ->
+                        onMessageLongPress?.invoke(v, message)
+                        true
+                    }
+                }
             }
 
             // Quote bar

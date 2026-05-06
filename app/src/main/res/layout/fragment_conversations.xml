@@ -103,7 +103,7 @@
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
         <!-- SwipeRefresh wraps the full pager — pull from anywhere works -->
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        <com.fialkaapp.fialka.ui.conversations.HorizontalAwareSwipeRefreshLayout
             android:id="@+id/swipeRefresh"
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -114,7 +114,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
 
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+        </com.fialkaapp.fialka.ui.conversations.HorizontalAwareSwipeRefreshLayout>
 
         <!-- Floating pill tab bar — full-width indicator so text never overflows -->
         <com.google.android.material.card.MaterialCardView
