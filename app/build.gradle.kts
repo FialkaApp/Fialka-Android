@@ -116,7 +116,7 @@ dependencies {
     ksp("androidx.room:room-compiler:2.8.4")
 
     // SQLCipher (encrypted Room database)
-    implementation("net.zetetic:sqlcipher-android:4.14.1")
+    implementation("net.zetetic:sqlcipher-android:4.15.0")
     implementation("androidx.sqlite:sqlite-ktx:2.6.2")
 
     // Security / Crypto
