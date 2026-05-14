@@ -19,6 +19,7 @@ package com.fialkaapp.fialka.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.view.WindowManager
 import android.view.animation.AnimationUtils
 import android.widget.EditText
@@ -43,6 +44,12 @@ import kotlinx.coroutines.launch
 /**
  * Lock screen — PIN entry + optional biometric unlock.
  * Shown when the app is opened and a PIN is configured.
+ *
+ * Rate limiting (persisted across restarts):
+ *   ≥ 3 wrong attempts → 30 s lockout
+ *   ≥ 5 wrong attempts → 5 min lockout
+ *   ≥ 7 wrong attempts → 30 min lockout
+ * Counter resets on correct PIN.
  */
 class LockScreenActivity : AppCompatActivity() {
 
@@ -50,12 +57,21 @@ class LockScreenActivity : AppCompatActivity() {
     private val pinLength = 6
 
     private lateinit var tvTitle: TextView
+    private lateinit var tvLockoutMessage: TextView
     private lateinit var dotsContainer: LinearLayout
     private lateinit var dots: List<ImageView>
+    private lateinit var numpad: android.widget.GridLayout
 
     // Single BiometricPrompt instance — reused to prevent duplicate prompts
     private var biometricPrompt: BiometricPrompt? = null
     private var isBiometricShowing = false
+
+    // ── Rate limiting ─────────────────────────────────────────────────────────
+    private var wrongAttempts = 0
+    private var countDownTimer: CountDownTimer? = null
+
+    /** True when the numpad is blocked due to too many wrong attempts. */
+    private var isInputLocked = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         ThemeManager.applyToActivity(this)
@@ -65,8 +81,10 @@ class LockScreenActivity : AppCompatActivity() {
 
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
 
-        tvTitle = findViewById(R.id.tvLockTitle)
-        dotsContainer = findViewById(R.id.dotsContainer)
+        tvTitle          = findViewById(R.id.tvLockTitle)
+        tvLockoutMessage = findViewById(R.id.tvLockoutMessage)
+        dotsContainer    = findViewById(R.id.dotsContainer)
+        numpad           = findViewById(R.id.numpad)
 
         // Create 6 dot indicators
         dots = (0 until pinLength).map { i ->
@@ -85,8 +103,15 @@ class LockScreenActivity : AppCompatActivity() {
 
         findViewById<ImageView>(R.id.btnBackspace).setOnClickListener { onBackspace() }
 
-        // Try biometric immediately if enabled
-        if (AppLockManager.isBiometricEnabled(this)) {
+        // Load persisted attempt count and check for active lockout
+        wrongAttempts = loadAttempts()
+        val remaining = remainingLockoutMs()
+        if (remaining > 0) {
+            startCountdown(remaining)
+        }
+
+        // Try biometric immediately if enabled and input is not locked
+        if (!isInputLocked && AppLockManager.isBiometricEnabled(this)) {
             initBiometricPrompt()
             val biometricBtn = findViewById<ImageView>(R.id.btnBiometric)
             biometricBtn.visibility = android.view.View.VISIBLE
@@ -97,6 +122,191 @@ class LockScreenActivity : AppCompatActivity() {
         // Forgot PIN → verify recovery phrase
         findViewById<TextView>(R.id.tvForgotPin).setOnClickListener { showForgotPinDialog() }
     }
+
+    override fun onDestroy() {
+        countDownTimer?.cancel()
+        super.onDestroy()
+    }
+
+    // ── Rate limiting ─────────────────────────────────────────────────────────
+
+    /** Lockout duration in ms based on current wrong attempt count. 0 = no lockout. */
+    private fun lockoutDurationMs(): Long = when {
+        wrongAttempts >= 7 -> 30 * 60_000L   // 30 min
+        wrongAttempts >= 5 ->  5 * 60_000L   // 5 min
+        wrongAttempts >= 3 ->       30_000L   // 30 s
+        else -> 0L
+    }
+
+    /** How many ms remain in the current lockout. 0 = not locked. */
+    private fun remainingLockoutMs(): Long {
+        val lockedUntil = getSharedPreferences(PREFS_RATE, MODE_PRIVATE)
+            .getLong(KEY_LOCKED_UNTIL, 0L)
+        return (lockedUntil - System.currentTimeMillis()).coerceAtLeast(0L)
+    }
+
+    private fun loadAttempts(): Int =
+        getSharedPreferences(PREFS_RATE, MODE_PRIVATE).getInt(KEY_ATTEMPTS, 0)
+
+    private fun saveAttempts() {
+        getSharedPreferences(PREFS_RATE, MODE_PRIVATE)
+            .edit().putInt(KEY_ATTEMPTS, wrongAttempts).apply()
+    }
+
+    private fun saveLockoutUntil(durationMs: Long) {
+        val until = if (durationMs > 0) System.currentTimeMillis() + durationMs else 0L
+        getSharedPreferences(PREFS_RATE, MODE_PRIVATE)
+            .edit().putLong(KEY_LOCKED_UNTIL, until).apply()
+    }
+
+    private fun clearRateLimit() {
+        getSharedPreferences(PREFS_RATE, MODE_PRIVATE)
+            .edit()
+            .remove(KEY_ATTEMPTS)
+            .remove(KEY_LOCKED_UNTIL)
+            .apply()
+        wrongAttempts = 0
+    }
+
+    /** Register a wrong attempt and start a lockout if the threshold is reached. */
+    private fun recordWrongAttempt() {
+        wrongAttempts++
+        saveAttempts()
+
+        val shake = AnimationUtils.loadAnimation(this, R.anim.shake)
+        dotsContainer.startAnimation(shake)
+        Toast.makeText(this, getString(R.string.lock_wrong_pin), Toast.LENGTH_SHORT).show()
+        enteredPin = ""
+        dotsContainer.postDelayed({ updateDots() }, 300)
+
+        val lockout = lockoutDurationMs()
+        if (lockout > 0) {
+            saveLockoutUntil(lockout)
+            startCountdown(lockout)
+        } else {
+            // Still show how many attempts remain before first lockout
+            val remaining = 3 - wrongAttempts
+            if (remaining > 0) {
+                Toast.makeText(
+                    this,
+                    getString(R.string.lock_attempts_warning, remaining),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    /** Start the countdown UI and disable the numpad for [durationMs]. */
+    private fun startCountdown(durationMs: Long) {
+        isInputLocked = true
+        numpad.alpha = 0.35f
+        tvLockoutMessage.visibility = android.view.View.VISIBLE
+
+        countDownTimer?.cancel()
+        countDownTimer = object : CountDownTimer(durationMs, 1_000) {
+            override fun onTick(millisUntilFinished: Long) {
+                tvLockoutMessage.text = getString(
+                    R.string.lock_too_many_attempts,
+                    formatCountdown(millisUntilFinished)
+                )
+            }
+
+            override fun onFinish() {
+                isInputLocked = false
+                numpad.alpha = 1f
+                tvLockoutMessage.visibility = android.view.View.GONE
+                enteredPin = ""
+                updateDots()
+                tvTitle.text = getString(R.string.lock_enter_code)
+            }
+        }.start()
+    }
+
+    /** Format ms remaining as "mm:ss" or "Xs" for short durations. */
+    private fun formatCountdown(ms: Long): String {
+        val totalSec = ms / 1_000
+        val minutes  = totalSec / 60
+        val seconds  = totalSec % 60
+        return if (minutes > 0) "%d:%02d".format(minutes, seconds)
+               else "${seconds}s"
+    }
+
+    // ── PIN input ─────────────────────────────────────────────────────────────
+
+    private fun onDigitPressed(digit: String) {
+        if (isInputLocked) return
+        if (enteredPin.length >= pinLength) return
+        enteredPin += digit
+        updateDots()
+
+        if (enteredPin.length == pinLength) {
+            lifecycleScope.launch {
+                val valid = AppLockManager.verifyPin(this@LockScreenActivity, enteredPin)
+                if (valid) {
+                    clearRateLimit()
+                    unlock()
+                } else {
+                    recordWrongAttempt()
+                }
+            }
+        }
+    }
+
+    private fun onBackspace() {
+        if (isInputLocked) return
+        if (enteredPin.isNotEmpty()) {
+            enteredPin = enteredPin.dropLast(1)
+            updateDots()
+        }
+    }
+
+    private fun updateDots() {
+        for (i in 0 until pinLength) {
+            dots[i].setImageResource(
+                if (i < enteredPin.length) R.drawable.dot_filled else R.drawable.dot_empty
+            )
+        }
+    }
+
+    // ── Biometric ─────────────────────────────────────────────────────────────
+
+    private fun initBiometricPrompt() {
+        val executor = ContextCompat.getMainExecutor(this)
+        biometricPrompt = BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                isBiometricShowing = false
+                clearRateLimit()
+                unlock()
+            }
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                isBiometricShowing = false
+            }
+            override fun onAuthenticationFailed() {
+                // Single attempt failed — user can retry within the same prompt
+            }
+        })
+    }
+
+    private fun showBiometricPrompt() {
+        if (isInputLocked || isBiometricShowing) return
+
+        val biometricManager = BiometricManager.from(this)
+        if (biometricManager.canAuthenticate(
+                BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                BiometricManager.Authenticators.BIOMETRIC_WEAK
+            ) != BiometricManager.BIOMETRIC_SUCCESS) return
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Fialka")
+            .setSubtitle(getString(R.string.lockscreen_biometric_subtitle))
+            .setNegativeButtonText(getString(R.string.lock_use_pin))
+            .build()
+
+        isBiometricShowing = true
+        biometricPrompt?.authenticate(promptInfo)
+    }
+
+    // ── Forgot PIN ────────────────────────────────────────────────────────────
 
     private fun showForgotPinDialog() {
         val input = EditText(this).apply {
@@ -128,12 +338,12 @@ class LockScreenActivity : AppCompatActivity() {
 
                 try {
                     val mnemonicSeed = MnemonicManager.mnemonicToSeed(words)
-                    val storedSeed = CryptoManager.getIdentitySeed()
+                    val storedSeed   = CryptoManager.getIdentitySeed()
                     if (mnemonicSeed.contentEquals(storedSeed)) {
-                        // Identity verified — remove PIN and unlock
                         mnemonicSeed.fill(0)
                         storedSeed.fill(0)
                         AppLockManager.removePin(this)
+                        clearRateLimit()
                         Toast.makeText(this, getString(R.string.lock_pin_removed), Toast.LENGTH_LONG).show()
                         unlock()
                     } else {
@@ -145,83 +355,14 @@ class LockScreenActivity : AppCompatActivity() {
                     Toast.makeText(this, getString(R.string.lock_verify_error), Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton("Annuler", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .create()
         dialog.window?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         dialog.setOnDismissListener { input.text?.clear() }
         dialog.show()
     }
 
-    private fun onDigitPressed(digit: String) {
-        if (enteredPin.length >= pinLength) return
-        enteredPin += digit
-        updateDots()
-
-        if (enteredPin.length == pinLength) {
-            lifecycleScope.launch {
-                val valid = AppLockManager.verifyPin(this@LockScreenActivity, enteredPin)
-                if (valid) {
-                    unlock()
-                } else {
-                    val shake = AnimationUtils.loadAnimation(this@LockScreenActivity, R.anim.shake)
-                    dotsContainer.startAnimation(shake)
-                    Toast.makeText(this@LockScreenActivity, "Code incorrect", Toast.LENGTH_SHORT).show()
-                    enteredPin = ""
-                    dotsContainer.postDelayed({ updateDots() }, 300)
-                }
-            }
-        }
-    }
-
-    private fun onBackspace() {
-        if (enteredPin.isNotEmpty()) {
-            enteredPin = enteredPin.dropLast(1)
-            updateDots()
-        }
-    }
-
-    private fun updateDots() {
-        for (i in 0 until pinLength) {
-            dots[i].setImageResource(
-                if (i < enteredPin.length) R.drawable.dot_filled else R.drawable.dot_empty
-            )
-        }
-    }
-
-    private fun initBiometricPrompt() {
-        val executor = ContextCompat.getMainExecutor(this)
-        biometricPrompt = BiometricPrompt(this, executor, object : BiometricPrompt.AuthenticationCallback() {
-            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                isBiometricShowing = false
-                unlock()
-            }
-            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                isBiometricShowing = false
-                // User cancelled or error — fall back to PIN
-            }
-            override fun onAuthenticationFailed() {
-                // Single attempt failed — user can retry within the same prompt
-            }
-        })
-    }
-
-    private fun showBiometricPrompt() {
-        if (isBiometricShowing) return
-
-        val biometricManager = BiometricManager.from(this)
-        if (biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK) != BiometricManager.BIOMETRIC_SUCCESS) {
-            return
-        }
-
-        val promptInfo = BiometricPrompt.PromptInfo.Builder()
-            .setTitle("Fialka")
-            .setSubtitle(getString(R.string.lockscreen_biometric_subtitle))
-            .setNegativeButtonText("Utiliser le code PIN")
-            .build()
-
-        isBiometricShowing = true
-        biometricPrompt?.authenticate(promptInfo)
-    }
+    // ── Unlock ────────────────────────────────────────────────────────────────
 
     private fun unlock() {
         setResult(RESULT_OK)
@@ -230,7 +371,12 @@ class LockScreenActivity : AppCompatActivity() {
 
     @Deprecated("Use OnBackPressedDispatcher")
     override fun onBackPressed() {
-        // Don't allow back to bypass lock
         finishAffinity()
+    }
+
+    companion object {
+        private const val PREFS_RATE      = "fialka_pin_rate"
+        private const val KEY_ATTEMPTS    = "wrong_attempts"
+        private const val KEY_LOCKED_UNTIL = "locked_until"
     }
 }

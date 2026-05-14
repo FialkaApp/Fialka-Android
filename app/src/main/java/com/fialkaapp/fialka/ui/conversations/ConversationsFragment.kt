@@ -76,7 +76,11 @@ class ConversationsFragment : Fragment() {
     /** Android 13+ runtime permission for POST_NOTIFICATIONS. */
     private val notifPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (!granted) {
+            if (granted) {
+                // Permission just granted — re-issue the foreground service notification
+                // so it appears immediately without needing a kill + relaunch.
+                com.fialkaapp.fialka.tor.TorForegroundService.renotify(requireContext())
+            } else {
                 // User denied — explain why it matters
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle(getString(R.string.perm_notif_denied_title))
@@ -305,38 +309,31 @@ class ConversationsFragment : Fragment() {
     }
 
     /**
-     * Ask for runtime permissions needed for the app to work correctly:
-     * 1. POST_NOTIFICATIONS (Android 13+) — for message/request notifications
-     * 2. REQUEST_IGNORE_BATTERY_OPTIMIZATIONS — keeps the Tor service alive in background
+     * Ask for runtime permissions needed for the app to work correctly.
      *
-     * Each dialog is shown at most once (tracked via SharedPreferences).
+     * POST_NOTIFICATIONS is now requested earlier, in TorBootstrapFragment when the
+     * .onion is published — so users see the notification appear at the right moment.
+     * Here we only handle the fallback (user denied during bootstrap) and battery opt.
      */
     private fun askPermissionsIfNeeded() {
         val prefs = requireContext().getSharedPreferences("fialka_perm_asked", 0)
 
+        // Fallback: if user denied POST_NOTIFICATIONS during bootstrap and hasn't been
+        // asked again, give them one more chance here.
         val needNotif = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && !NotificationHelper.hasNotificationPermission(requireContext())
-                && !prefs.getBoolean("notif_asked", false)
+                && !prefs.getBoolean("notif_asked_conversations", false)
 
         val pm = requireContext().getSystemService(PowerManager::class.java)
         val needBattery = !pm.isIgnoringBatteryOptimizations(requireContext().packageName)
                 && !prefs.getBoolean("battery_asked", false)
 
         if (needNotif) {
-            prefs.edit().putBoolean("notif_asked", true).apply()
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle(getString(R.string.perm_notif_title))
-                .setMessage(getString(R.string.perm_notif_message))
-                .setCancelable(false)
-                .setPositiveButton(getString(R.string.perm_allow)) { _, _ ->
-                    notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    if (needBattery) showBatteryDialog(prefs)
-                }
-                .setNegativeButton(getString(R.string.perm_later)) { _, _ ->
-                    if (needBattery) showBatteryDialog(prefs)
-                }
-                .show()
-        } else if (needBattery) {
+            prefs.edit().putBoolean("notif_asked_conversations", true).apply()
+            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        if (needBattery) {
             showBatteryDialog(prefs)
         }
     }

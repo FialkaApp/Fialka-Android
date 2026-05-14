@@ -61,6 +61,7 @@ class SecurityFragment : Fragment() {
         setupAutoLock()
         setupDisguise()
         setupDeviceSecurityCard()
+        setupGrapheneOsCard()
     }
 
     private fun setupDisguise() {
@@ -177,6 +178,19 @@ class SecurityFragment : Fragment() {
 
     private fun updateBiometricStatus(enabled: Boolean) {
         binding.tvBiometricStatus.text = if (enabled) getString(R.string.security_biometric_active) else getString(R.string.security_biometric_inactive)
+    }
+
+    private fun setupGrapheneOsCard() {
+        val profile = DeviceSecurityManager.getSecurityProfile(requireContext())
+        if (profile.androidOs == AndroidOs.GRAPHENEOS) {
+            binding.cardGrapheneOs.visibility = View.VISIBLE
+            // MTE is available on Pixel 8+ (API 34+) — hide the item on older hardware
+            if (Build.VERSION.SDK_INT < 34) {
+                binding.tvGrapheneMte.visibility = View.GONE
+            }
+        } else {
+            binding.cardGrapheneOs.visibility = View.GONE
+        }
     }
 
     private fun setupDeviceSecurityCard() {

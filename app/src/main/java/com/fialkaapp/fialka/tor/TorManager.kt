@@ -132,6 +132,24 @@ object TorManager {
         TorForegroundService.stop(appContext)
     }
 
+    /**
+     * Kills the native Tor binary and clears its state, WITHOUT touching the foreground service.
+     * Called by TorForegroundService.stopEverything() to avoid a recursive call loop
+     * (TorManager.stop() calls TorForegroundService.stop(), which would re-enter the service).
+     */
+    fun killNativeTorProcess() {
+        disableProxy()
+        monitorJob?.cancel()
+        monitorJob = null
+        try { controlConnection?.shutdownTor("SHUTDOWN") } catch (_: Exception) {}
+        try { torProcess?.destroyForcibly() } catch (_: Exception) {}
+        controlConnection = null
+        torProcess = null
+        _onionAddress.value = null
+        _circuitInfo.value = null
+        _state.value = TorState.DISCONNECTED
+    }
+
     fun restart() {
         // Don't stop the foreground service — just kill Tor and re-launch
         disableProxy()

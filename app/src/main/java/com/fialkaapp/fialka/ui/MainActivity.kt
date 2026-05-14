@@ -96,8 +96,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // Show lock screen on first launch
+        // Show lock screen on first launch.
+        // Also clear any pending notification lock — the lockLauncher below handles it.
         if (AppLockManager.isPinSet(this)) {
+            AppLockManager.clearNotificationLock(this)
             isLocked = true
             showLockScreen()
         }
@@ -239,6 +241,19 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         DummyTrafficManager.setAppActive(true)
         lockGraceMs = AppLockManager.getAutoLockDelay(this)
+
+        // Notification "Verrouiller" was tapped while app was in background.
+        // Show the lock screen exactly once via lockLauncher (prevents double-prompt).
+        if (!isLocked && AppLockManager.isLockedByNotification(this)) {
+            AppLockManager.clearNotificationLock(this)
+            if (AppLockManager.isPinSet(this)) {
+                isLocked = true
+                showLockScreen()
+                return
+            }
+        }
+
+        // Normal auto-lock after grace period
         if (!isLocked && AppLockManager.isPinSet(this)) {
             val elapsed = System.currentTimeMillis() - lastPausedAt
             if (lastPausedAt > 0 && elapsed > lockGraceMs) {

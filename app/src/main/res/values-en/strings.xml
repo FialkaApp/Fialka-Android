@@ -317,6 +317,13 @@
     <string name="settings_app_info_dialog_title">Application information</string>
     <string name="settings_legal_dialog_title">Legal documents</string>
     <string name="settings_licenses_dialog_title">Open source licenses</string>
+
+    <!-- Dialog content (extracted from SettingsFragment for i18n) -->
+    <string name="settings_app_info_content">Version : %1$s\nBuild   : %2$s\n\nCrypto identity : Kyber-1024 + Dilithium-5\nEncryption      : AES-256-GCM + ChaCha20-Poly1305\nTransport       : Tor (SOCKS5)\n\nLicense         : GPLv3\nECCN            : 5D002.C.1 (open source — exempt)\nEU controls     : EU Regulation 2021/821\n\nSource code : github.com/FialkaApp/Fialka-Android</string>
+
+    <string name="settings_legal_content">TERMS OF USE\nVersion 5 — Applicable from 30/04/2026 (V4.2.0-alpha)\n\n1. TOOL — NOT A SERVICE\nFialka is a software tool distributed under GPLv3. Developers operate no infrastructure, store no data and cannot access any messages.\n\n2. USER RESPONSIBILITY\nYou are solely and entirely responsible for any use. Developers disclaim all liability, regardless of the nature of the use.\n\n3. ELIGIBILITY\nYou must be at least 16 years old (or the minimum legal age of digital consent in your country).\n\n4. NO WARRANTY\nFialka is provided AS IS, without warranty. The cryptographic implementation has not been audited by a third-party firm.\n\n5. EXPORT CONTROLS\nThis software contains cryptography subject to Wassenaar, ECCN 5D002.C.1 (US BIS) and EU 2021/821 regulations. As GPLv3 open source software, it is exempt in France and the EU. Verify the laws of your country.\n\n6. MONERO WALLET (XMR)\nFialka includes a local, non-custodial Monero wallet. Your private keys remain exclusively on your device. Developers have no access to your funds.\n\nFialka charges NO fees, NO percentage on your transactions. The only fees are Monero network fees (paid to miners), shown before confirmation.\n\nFrance: The PSAN regime (AMF / PACTE Act 2019-486) does not apply to self-hosted wallets. You are responsible for declaring capital gains (PFU 30%, Art. 150 VH bis CGI).\n\nEU: MiCA (Regulation 2023/1114) explicitly excludes non-custodial wallets.\n\nUSA: FinCEN FIN-2019-G001 — non-custodial wallet is not an MSB. You are responsible for OFAC sanctions compliance and IRS reporting (Notice 2014-21, Form 8949).\n\nFialka provides no legal or tax advice. Verify the laws of your jurisdiction.\n\n7. BACKUP AND RESTORE\nBackup files (.fialka) are AES-256-GCM encrypted with a key derived via PBKDF2-HMAC-SHA256 (600,000 iterations). They do NOT contain messages. The passphrase is known only to you.\n\nPRIVACY POLICY\nFialka does not collect, store or transmit any personal data. All data remains on your device. No telemetry, no accounts, no central server.\n\nFull text: github.com/FialkaApp/Fialka-Android/blob/main/TERMS.md</string>
+
+    <string name="settings_licenses_content">MAIN LICENSE\nFialka — GNU General Public License v3 (GPLv3)\nCopyright (C) 2024-2026 DevBot667\nhttps://www.gnu.org/licenses/gpl-3.0.html\n\nTHIRD-PARTY COMPONENTS\n\nTor — The Tor Project\nLicense: Modified BSD\nhttps://www.torproject.org\n\nFialka-Core (Rust cryptography)\nLicense: GPLv3\nhttps://github.com/FialkaApp/fialka-core\n\nAndroidX / Jetpack\nLicense: Apache License 2.0\nhttps://developer.android.com/jetpack\n\nMaterial Components for Android\nLicense: Apache License 2.0\nhttps://github.com/material-components/material-components-android\n\nKotlin Standard Library\nLicense: Apache License 2.0\nhttps://kotlinlang.org\n\nSQLCipher for Android\nLicense: BSD\nhttps://www.zetetic.net/sqlcipher/\n\nMonero Wallet Libraries\nLicense: BSD / MIT\nhttps://github.com/monero-project/monero\n\nZXing Android Embedded\nLicense: Apache License 2.0\nhttps://github.com/journeyapps/zxing-android-embedded\n\nFull text: github.com/FialkaApp/Fialka-Android/blob/main/LICENSE</string>
     <string name="settings_action_ok">Close</string>
     <string name="setting_theme_summary">Change the app appearance</string>
     <string name="setting_notifications_summary">Manage push notifications</string>
@@ -597,7 +604,7 @@
     <string name="wallet_send_confirm_msg">Send %1$s to:\n%2$s</string>
     <string name="wallet_send_error">Error: %s</string>
     <string name="wallet_tab_transactions">Transactions</string>
-    <string name="settings_group_wallet">Wallet</string>
+    <string name="settings_group_wallet">🪙 Wallet</string>
 
     <!-- XMR Chat Payment -->
     <string name="xmr_sheet_title">XMR Payment</string>
@@ -628,11 +635,15 @@
     <!-- Lock Screen -->
     <string name="lock_enter_code">Enter your PIN</string>
     <string name="lock_forgot_pin">Forgot PIN?</string>
+    <string name="lock_use_pin">Use PIN code</string>
     <string name="lock_seed_wrong_count">The phrase must contain exactly 24 words</string>
     <string name="lock_seed_invalid">Invalid phrase</string>
     <string name="lock_pin_removed">PIN removed. You can set a new one in Settings.</string>
     <string name="lock_seed_mismatch">The phrase does not match this account</string>
     <string name="lock_verify_error">Verification error</string>
+    <string name="lock_wrong_pin">Wrong PIN</string>
+    <string name="lock_attempts_warning">%1$d attempt(s) left before lockout</string>
+    <string name="lock_too_many_attempts">Too many attempts — try again in %1$s</string>
 
     <!-- Attachment Sheet -->
     <string name="attachment_photo_video">Photo or Video</string>
@@ -658,10 +669,28 @@
     <string name="add_contact_description">Scan the QR or paste the invitation link.</string>
 
     <!-- App Disguise -->
+    <string name="disguise_screen_title">Launcher appearance</string>
+    <string name="disguise_screen_subtitle">Choose the icon and name displayed in the launcher</string>
+    <string name="disguise_option_fialka">Fialka (default)</string>
+    <string name="disguise_label_calculator">Calculator</string>
+    <string name="disguise_label_weather">Weather</string>
+    <string name="disguise_label_notes">Notes</string>
+    <string name="disguise_label_clock">Clock</string>
     <string name="disguise_icon_change_note">The icon change takes effect when you leave the app. The launcher name will change too.</string>
     <string name="disguise_calculator_mode_title">🔐 Real calculator mode</string>
     <string name="disguise_calculator_mode_desc">The app opens as a real calculator. Enter your secret code to access Fialka.</string>
     <string name="disguise_activate_btn">Activate</string>
+    <!-- Cover setup (secret sequence) -->
+    <string name="cover_setup_configure">Configure</string>
+    <string name="cover_setup_cancel">Cancel</string>
+    <string name="cover_setup_next">Next</string>
+    <string name="cover_setup_save">Save</string>
+    <string name="cover_setup_step1_indicator">Step 1 of 2</string>
+    <string name="cover_setup_step2_indicator">Step 2 of 2</string>
+    <string name="cover_setup_step1_title">Enter your secret sequence</string>
+    <string name="cover_setup_step2_title">Confirm the sequence</string>
+    <string name="cover_setup_mismatch">Sequences don\'t match. Try again.</string>
+    <string name="cover_setup_empty_error">Sequence cannot be empty</string>
 
     <!-- Backup Export -->
     <string name="backup_export_desc">The backup is encrypted with your passphrase. It contains only what you select below. Keep it in a safe place.</string>
@@ -991,10 +1020,20 @@
     <string name="sys_group_you_removed">You removed %1$s from the group</string>
     <string name="sys_group_you_left">You left the group</string>
 
-    <!-- TorForegroundService notifications -->
-    <string name="notif_tor_connected">Tor: connected 🧅</string>
-    <string name="notif_tor_starting">Tor: starting…</string>
-    <string name="notif_tor_disconnected">Tor: disconnected</string>
+    <!-- TorForegroundService — persistent notification (Signal-style) -->
+    <string name="notif_title_running">Fialka is running</string>
+    <string name="notif_body_subtitle">Communications anonymized via Tor 🧅</string>
+    <string name="notif_action_lock">Lock</string>
+    <string name="notif_action_stop_all">Stop all</string>
+
+    <!-- Tor status lines (collapsed notification) -->
+    <string name="notif_tor_connected">🧅 Tor connected</string>
+    <string name="notif_tor_starting">🧅 Starting Tor…</string>
+    <string name="notif_tor_disconnected">🧅 Tor disconnected</string>
+    <string name="notif_tor_publishing">🧅 Publishing .onion address…</string>
+    <string name="notif_tor_bootstrapping">🧅 Connecting to Tor… %1$d%%</string>
+    <string name="notif_tor_onion_short">🧅 Tor active · %1$s….onion</string>
+    <string name="notif_tor_error">🧅 Tor: connection error</string>
 
     <!-- ChatViewModel errors -->
     <string name="chat_send_error">Send failed</string>
@@ -1112,6 +1151,9 @@
 
     <!-- Security Settings -->
     <string name="security_section_device">DEVICE</string>
+    <string name="security_section_access">ACCESS</string>
+    <string name="security_section_appearance">APPEARANCE</string>
+    <string name="security_android_label">Android</string>
     <string name="security_level_label">Security level</string>
     <string name="security_strongbox_label">StrongBox</string>
     <string name="security_system_label">System</string>
@@ -1122,10 +1164,18 @@
     <string name="security_change_pin_btn">Change PIN</string>
     <string name="security_autolock_label">Auto-lock</string>
     <string name="security_biometric_label">Biometric unlock</string>
-    <string name="security_biometric_desc">Fingerprint, facial recognition…</string>
+    <string name="security_biometric_desc">Fingerprint, face recognition…</string>
     <string name="security_pin_info_label">🔐 PIN security</string>
     <string name="security_pin_info_desc">The PIN is stored as a PBKDF2 hash (600k iterations) in an encrypted space (Keystore).\n\nEven with root access, the PIN cannot be recovered in plain text.\n\nThe app re-locks automatically after the chosen delay.</string>
-    <string name="security_pin_enabled_toast">Lock code activated ✓</string>
+    <string name="security_pin_enabled_toast">Lock code enabled ✓</string>
+    <!-- GrapheneOS exclusive card -->
+    <string name="security_grapheneos_title">GrapheneOS detected</string>
+    <string name="security_grapheneos_subtitle">Advanced hardware and software protections active</string>
+    <string name="security_grapheneos_mte">✓ Memory Tagging Extension (MTE) — memory corruption protection</string>
+    <string name="security_grapheneos_verified_boot">✓ Verified boot — system integrity guaranteed</string>
+    <string name="security_grapheneos_no_gps">✓ No Google Play Services — reduced attack surface</string>
+    <string name="security_grapheneos_network_perms">✓ Per-app network permissions</string>
+    <string name="security_grapheneos_profiles">✓ Isolated profiles — hardened sandbox</string>
 
     <!-- Storage Settings -->
     <string name="storage_overview_label">Overview</string>

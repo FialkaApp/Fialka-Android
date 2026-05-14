@@ -74,6 +74,11 @@ object DeviceSecurityManager {
         }
     }
 
+    /** Call this to force a re-detection on next [getSecurityProfile] call. */
+    fun invalidateCache() {
+        cachedProfile = null
+    }
+
     // -------------------------------------------------------------------------
     // Internal builders
     // -------------------------------------------------------------------------
@@ -170,8 +175,13 @@ object DeviceSecurityManager {
         return when {
             fp.contains("lineage") -> AndroidOs.LINEAGEOS
             fp.contains("calyx")   -> AndroidOs.CALYXOS
+            // GrapheneOS: check fingerprint, system property, then package visibility
+            fp.contains("grapheneos") ||
+            getSystemProperty("ro.build.flavor").contains("grapheneos", ignoreCase = true) ||
+            getSystemProperty("ro.product.system.name").contains("grapheneos", ignoreCase = true) ||
             isPackageInstalled(context, "app.grapheneos.camera") ||
-            isPackageInstalled(context, "app.grapheneos.apps")   -> AndroidOs.GRAPHENEOS
+            isPackageInstalled(context, "app.grapheneos.apps") ||
+            isPackageInstalled(context, "app.grapheneos.dialer") -> AndroidOs.GRAPHENEOS
             isPackageInstalled(context, "org.calyxos.setup")     -> AndroidOs.CALYXOS
             // Fingerprint not from a known OEM prefix → likely a custom ROM
             !fp.startsWith("google/")   && !fp.startsWith("samsung/") &&
@@ -181,6 +191,13 @@ object DeviceSecurityManager {
             !fp.startsWith("realme/")   && !fp.startsWith("nothing/") -> AndroidOs.CUSTOM
             else -> AndroidOs.STOCK
         }
+    }
+
+    private fun getSystemProperty(key: String): String {
+        return try {
+            val c = Class.forName("android.os.SystemProperties")
+            c.getMethod("get", String::class.java).invoke(null, key) as? String ?: ""
+        } catch (_: Exception) { "" }
     }
 
     private fun isPackageInstalled(context: Context, pkg: String): Boolean {

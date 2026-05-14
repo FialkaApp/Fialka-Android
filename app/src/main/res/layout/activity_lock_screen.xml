@@ -85,6 +85,20 @@
             android:src="@drawable/dot_empty" />
     </LinearLayout>
 
+    <!-- Lockout countdown message — hidden until rate limit triggers -->
+    <TextView
+        android:id="@+id/tvLockoutMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:gravity="center"
+        android:textColor="#FF5252"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dotsContainer" />
+
     <!-- Number pad -->
     <GridLayout
         android:id="@+id/numpad"
@@ -95,7 +109,7 @@
         android:rowCount="4"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/dotsContainer">
+        app:layout_constraintTop_toBottomOf="@id/tvLockoutMessage">
 
         <!-- Row 1: 1 2 3 -->
         <TextView

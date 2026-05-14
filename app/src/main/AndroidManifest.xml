@@ -22,6 +22,14 @@
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- Package visibility for OS detection (Android 11+) -->
+    <queries>
+        <package android:name="app.grapheneos.camera" />
+        <package android:name="app.grapheneos.apps" />
+        <package android:name="app.grapheneos.dialer" />
+        <package android:name="org.calyxos.setup" />
+    </queries>
+
     <application
         android:name=".FialkaApplication"
         android:allowBackup="false"
@@ -74,7 +82,7 @@
 
         <activity-alias
             android:name=".ui.disguise.DisguiseCalculatorAlias"
-            android:label="Calculatrice"
+            android:label="@string/disguise_label_calculator"
             android:icon="@mipmap/ic_launcher_disguise_calc"
             android:targetActivity=".ui.SplashActivity"
             android:enabled="false"
@@ -87,7 +95,7 @@
 
         <activity-alias
             android:name=".ui.disguise.DisguiseWeatherAlias"
-            android:label="M\u00e9t\u00e9o"
+            android:label="@string/disguise_label_weather"
             android:icon="@mipmap/ic_launcher_disguise_weather"
             android:targetActivity=".ui.SplashActivity"
             android:enabled="false"
@@ -100,7 +108,7 @@
 
         <activity-alias
             android:name=".ui.disguise.DisguiseNotesAlias"
-            android:label="Notes"
+            android:label="@string/disguise_label_notes"
             android:icon="@mipmap/ic_launcher_disguise_notes"
             android:targetActivity=".ui.SplashActivity"
             android:enabled="false"
@@ -113,7 +121,7 @@
 
         <activity-alias
             android:name=".ui.disguise.DisguiseClockAlias"
-            android:label="Horloge"
+            android:label="@string/disguise_label_clock"
             android:icon="@mipmap/ic_launcher_disguise_clock"
             android:targetActivity=".ui.SplashActivity"
             android:enabled="false"

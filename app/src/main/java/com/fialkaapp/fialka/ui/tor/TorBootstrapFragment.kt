@@ -17,14 +17,17 @@
  */
 package com.fialkaapp.fialka.ui.tor
 
+import android.Manifest
 import android.animation.ObjectAnimator
 import android.animation.PropertyValuesHolder
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -36,9 +39,11 @@ import com.fialkaapp.fialka.AppModeType
 import com.fialkaapp.fialka.crypto.CryptoManager
 import com.fialkaapp.fialka.databinding.FragmentTorBootstrapBinding
 import com.fialkaapp.fialka.tor.TorCircuit
+import com.fialkaapp.fialka.tor.TorForegroundService
 import com.fialkaapp.fialka.tor.TorManager
 import com.fialkaapp.fialka.tor.TorState
 import com.fialkaapp.fialka.util.LocaleHelper
+import com.fialkaapp.fialka.util.NotificationHelper
 import com.fialkaapp.fialka.util.TermsManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -56,6 +61,17 @@ class TorBootstrapFragment : Fragment() {
 
     private var pulseAnimator: ObjectAnimator? = null
     private var hasNavigated = false
+
+    /**
+     * Requests POST_NOTIFICATIONS when the .onion is published.
+     * On Android 14+ this permission is required even for foreground services.
+     * If granted: renotify() makes the persistent notification appear immediately,
+     * without requiring a kill + relaunch.
+     */
+    private val notifPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) TorForegroundService.renotify(requireContext())
+        }
 
     // Smooth progress
     private var realPercent = 0
@@ -197,6 +213,16 @@ class TorBootstrapFragment : Fragment() {
                     binding.tvStatus.text = getString(R.string.tor_onion_published)
                     binding.btnContinue.isEnabled = true
                     binding.btnContinue.text = "Continuer"
+                    // .onion is live — ask POST_NOTIFICATIONS now so the persistent
+                    // notification appears immediately (Android 14+ requires this even
+                    // for foreground services). If already granted, just renotify.
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        if (NotificationHelper.hasNotificationPermission(requireContext())) {
+                            TorForegroundService.renotify(requireContext())
+                        } else {
+                            notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }
                 }
             }
         }

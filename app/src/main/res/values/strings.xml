@@ -318,6 +318,13 @@
     <string name="settings_app_info_dialog_title">Informations de l\'application</string>
     <string name="settings_legal_dialog_title">Documents legaux</string>
     <string name="settings_licenses_dialog_title">Licences open source</string>
+
+    <!-- Contenu des dialogs (extrait de SettingsFragment pour permettre la traduction) -->
+    <string name="settings_app_info_content">Version : %1$s\nBuild   : %2$s\n\nIdentite crypto : Kyber-1024 + Dilithium-5\nChiffrement     : AES-256-GCM + ChaCha20-Poly1305\nTransport       : Tor (SOCKS5)\n\nLicence         : GPLv3\nECCN            : 5D002.C.1 (open source — exempt)\nControles UE    : Reglement UE 2021/821\n\nCode source : github.com/FialkaApp/Fialka-Android</string>
+
+    <string name="settings_legal_content">TERMES D\'UTILISATION\nVersion 5 — Applicable depuis le 30/04/2026 (V4.2.0-alpha)\n\n1. OUTIL — PAS UN SERVICE\nFialka est un outil logiciel distribue sous GPLv3. Les developpeurs n\'operent aucune infrastructure, ne stockent aucune donnee et ne peuvent acceder a aucun message.\n\n2. RESPONSABILITE DE L\'UTILISATEUR\nVous etes seul(e) et entierement responsable de toute utilisation. Les developpeurs declinent toute responsabilite, quelle que soit la nature de l\'usage.\n\n3. ELIGIBILITE\nVous devez avoir au moins 16 ans (ou l\'age minimum legal de consentement numerique dans votre pays).\n\n4. ABSENCE DE GARANTIE\nFialka est fourni EN L\'ETAT, sans garantie. L\'implementation cryptographique n\'a pas ete auditee par un cabinet tiers.\n\n5. CONTROLE DES EXPORTATIONS\nCe logiciel contient de la cryptographie soumise aux reglementations Wassenaar, ECCN 5D002.C.1 (US BIS) et UE 2021/821. En tant que logiciel open source GPLv3, il est exempte en France et dans l\'UE. Verifiez les lois de votre pays.\n\n6. WALLET MONERO (XMR)\nFialka inclut un wallet Monero local et non-custodial. Vos cles privees restent exclusivement sur votre appareil. Les developpeurs n\'ont aucun acces sur vos fonds.\n\nFialka ne preleve AUCUN frais, AUCUN pourcentage sur vos transactions. Les seuls frais sont les frais de reseau Monero (verses aux mineurs), affiches avant confirmation.\n\nFrance : Le regime PSAN (AMF / Loi PACTE 2019-486) ne s\'applique pas aux wallets self-hosted. Vous etes responsable de la declaration de vos plus-values (PFU 30%, Art. 150 VH bis CGI).\n\nUE : MiCA (Reglement 2023/1114) exclut explicitement les wallets non-custodiaux.\n\nUSA : FinCEN FIN-2019-G001 — wallet non-custodial n\'est pas un MSB. Vous etes responsable du respect des sanctions OFAC et de la declaration IRS (Notice 2014-21, Form 8949).\n\nFialka ne fournit aucun conseil juridique ou fiscal. Verifiez les lois de votre juridiction.\n\n7. SAUVEGARDE ET RESTAURATION\nLes fichiers de sauvegarde .fialka sont chiffres AES-256-GCM avec une cle derivee via PBKDF2-HMAC-SHA256 (600 000 iterations). Ils ne contiennent PAS les messages. La phrase de passe est connue de vous seul(e).\n\nPOLITIQUE DE CONFIDENTIALITE\nFialka ne collecte, ne stocke ni ne transmet aucune donnee personnelle. Toutes les donnees restent sur votre appareil. Aucune telemetrie, aucun compte, aucun serveur central.\n\nTexte complet : github.com/FialkaApp/Fialka-Android/blob/main/TERMS.md</string>
+
+    <string name="settings_licenses_content">LICENCE PRINCIPALE\nFialka — GNU General Public License v3 (GPLv3)\nCopyright (C) 2024-2026 DevBot667\nhttps://www.gnu.org/licenses/gpl-3.0.html\n\nCOMPOSANTS TIERS\n\nTor — The Tor Project\nLicence : BSD modifiee\nhttps://www.torproject.org\n\nFialka-Core (cryptographie Rust)\nLicence : GPLv3\nhttps://github.com/FialkaApp/fialka-core\n\nAndroidX / Jetpack\nLicence : Apache License 2.0\nhttps://developer.android.com/jetpack\n\nMaterial Components for Android\nLicence : Apache License 2.0\nhttps://github.com/material-components/material-components-android\n\nKotlin Standard Library\nLicence : Apache License 2.0\nhttps://kotlinlang.org\n\nSQLCipher for Android\nLicence : BSD\nhttps://www.zetetic.net/sqlcipher/\n\nMonero Wallet Libraries\nLicence : BSD / MIT\nhttps://github.com/monero-project/monero\n\nZXing Android Embedded\nLicence : Apache License 2.0\nhttps://github.com/journeyapps/zxing-android-embedded\n\nTexte complet : github.com/FialkaApp/Fialka-Android/blob/main/LICENSE</string>
     <string name="settings_action_ok">Fermer</string>
     <string name="setting_theme_summary">Changer l\'apparence de l\'application</string>
     <string name="setting_notifications_summary">Gerer les notifications push</string>
@@ -598,7 +605,7 @@
     <string name="wallet_send_confirm_msg">Envoyer %1$s à :\n%2$s</string>
     <string name="wallet_send_error">Erreur : %s</string>
     <string name="wallet_tab_transactions">Transactions</string>
-    <string name="settings_group_wallet">Wallet</string>
+    <string name="settings_group_wallet">🪙 Wallet</string>
 
     <!-- ── XMR Chat Payment ──────────────────────────────────────────── -->
     <string name="xmr_sheet_title">Paiement XMR</string>
@@ -675,11 +682,15 @@
     <!-- Lock Screen -->
     <string name="lock_enter_code">Entrez votre code</string>
     <string name="lock_forgot_pin">PIN oublié ?</string>
+    <string name="lock_use_pin">Utiliser le code PIN</string>
     <string name="lock_seed_wrong_count">La phrase doit contenir exactement 24 mots</string>
     <string name="lock_seed_invalid">Phrase invalide</string>
     <string name="lock_pin_removed">PIN supprimé. Vous pouvez en configurer un nouveau dans les paramètres.</string>
     <string name="lock_seed_mismatch">La phrase ne correspond pas à ce compte</string>
     <string name="lock_verify_error">Erreur de vérification</string>
+    <string name="lock_wrong_pin">Code incorrect</string>
+    <string name="lock_attempts_warning">Plus que %1$d tentative(s) avant blocage</string>
+    <string name="lock_too_many_attempts">Trop de tentatives — réessayez dans %1$s</string>
 
     <!-- Attachment Sheet -->
     <string name="attachment_photo_video">Photo ou Vidéo</string>
@@ -1038,10 +1049,20 @@
     <string name="sys_group_you_removed">Vous avez retiré %1$s du groupe</string>
     <string name="sys_group_you_left">Vous avez quitté le groupe</string>
 
-    <!-- TorForegroundService notifications -->
-    <string name="notif_tor_connected">Tor : connecté 🧅</string>
-    <string name="notif_tor_starting">Tor : démarrage…</string>
-    <string name="notif_tor_disconnected">Tor : déconnecté</string>
+    <!-- TorForegroundService — notification persistante style Signal -->
+    <string name="notif_title_running">Fialka est actif</string>
+    <string name="notif_body_subtitle">Communications anonymisées via Tor 🧅</string>
+    <string name="notif_action_lock">Verrouiller</string>
+    <string name="notif_action_stop_all">Tout arrêter</string>
+
+    <!-- Lignes de statut Tor (notification collapse) -->
+    <string name="notif_tor_connected">🧅 Tor connecté</string>
+    <string name="notif_tor_starting">🧅 Démarrage de Tor…</string>
+    <string name="notif_tor_disconnected">🧅 Tor déconnecté</string>
+    <string name="notif_tor_publishing">🧅 Publication de l\'adresse .onion…</string>
+    <string name="notif_tor_bootstrapping">🧅 Connexion Tor… %1$d%%</string>
+    <string name="notif_tor_onion_short">🧅 Tor actif · %1$s….onion</string>
+    <string name="notif_tor_error">🧅 Tor : erreur de connexion</string>
 
     <!-- ChatViewModel errors -->
     <string name="chat_send_error">Échec de l\'envoi</string>
@@ -1159,6 +1180,9 @@
 
     <!-- Security Settings -->
     <string name="security_section_device">APPAREIL</string>
+    <string name="security_section_access">ACCÈS</string>
+    <string name="security_section_appearance">APPARENCE</string>
+    <string name="security_android_label">Android</string>
     <string name="security_level_label">Niveau de sécurité</string>
     <string name="security_strongbox_label">StrongBox</string>
     <string name="security_system_label">Système</string>
@@ -1173,6 +1197,14 @@
     <string name="security_pin_info_label">🔐 Sécurité du code</string>
     <string name="security_pin_info_desc">Le code PIN est stocké sous forme de hash PBKDF2 (600k itérations) dans un espace chiffré (Keystore).\n\nMême avec un accès root, le code ne peut pas être récupéré en clair.\n\nL\'app se re-verrouille automatiquement selon le délai choisi.</string>
     <string name="security_pin_enabled_toast">Code de verrouillage activé ✓</string>
+    <!-- GrapheneOS exclusive card -->
+    <string name="security_grapheneos_title">GrapheneOS détecté</string>
+    <string name="security_grapheneos_subtitle">Protections matérielles et logicielles avancées actives</string>
+    <string name="security_grapheneos_mte">✓ Marquage mémoire (MTE) — protection contre les corruptions mémoire</string>
+    <string name="security_grapheneos_verified_boot">✓ Démarrage vérifié — intégrité du système garantie</string>
+    <string name="security_grapheneos_no_gps">✓ Aucun Google Play Services — surface d\'attaque réduite</string>
+    <string name="security_grapheneos_network_perms">✓ Permissions réseau par application</string>
+    <string name="security_grapheneos_profiles">✓ Profils isolés — sandbox renforcé</string>
 
     <!-- Storage Settings -->
     <string name="storage_overview_label">Vue d\'ensemble</string>

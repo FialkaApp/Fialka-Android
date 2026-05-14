@@ -46,6 +46,33 @@ object AppLockManager {
     private const val PBKDF2_KEY_LENGTH = 256  // bits
     private const val SALT_LENGTH = 16  // bytes
 
+    // ── Notification-triggered lock ──────────────────────────────────────────
+    // A separate, lightweight prefs file so the Service can set the flag without
+    // opening the encrypted fialka_lock prefs (which requires Keystore access).
+    private const val LOCK_STATE_PREFS = "fialka_lock_state"
+    private const val KEY_NOTIFICATION_LOCKED = "notification_locked"
+
+    /**
+     * Lock the app silently from the notification quick-action.
+     * Does NOT open LockScreenActivity — MainActivity reads this flag on next onResume()
+     * and shows the lock screen exactly once via its lockLauncher.
+     */
+    fun lockNow(context: Context) {
+        context.getSharedPreferences(LOCK_STATE_PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_NOTIFICATION_LOCKED, true).apply()
+    }
+
+    /** True if a notification-triggered lock is pending. */
+    fun isLockedByNotification(context: Context): Boolean =
+        context.getSharedPreferences(LOCK_STATE_PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_NOTIFICATION_LOCKED, false)
+
+    /** Called by MainActivity after it has handled the pending lock. */
+    fun clearNotificationLock(context: Context) {
+        context.getSharedPreferences(LOCK_STATE_PREFS, Context.MODE_PRIVATE)
+            .edit().remove(KEY_NOTIFICATION_LOCKED).apply()
+    }
+
     /** Auto-lock delay options in milliseconds. */
     val AUTO_LOCK_OPTIONS = longArrayOf(0L, 5_000L, 15_000L, 30_000L, 60_000L, 300_000L)
 
