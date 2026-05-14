@@ -130,7 +130,7 @@ dependencies {
     implementation("org.briarproject:moat-api:0.4")
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // RecyclerView
     implementation("androidx.recyclerview:recyclerview:1.4.0")
